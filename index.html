@@ -2,80 +2,698 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rooting board</title>
-<style>html,body{margin:0;background:#0F1A2B;color:#EEF2F7}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rooting Board</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F201A;--panel:#152A21;--panel2:#1B3429;--line:#244234;--line2:#2F5443;--text:#EEF3EE;--muted:#9DB2A6;--dim:#6E887B;--flag:#F2C230;--red:#E4483E;--good:#7CE3A3;--bad:#FF7B6E;--blue:#7DBBFF}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:14px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font-weight:700;margin:0}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 64px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:18px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-bottom:10px}
+.brand h1{font-size:36px;font-weight:800;line-height:1;letter-spacing:.2px}
+.brand .wk{color:var(--muted);font-weight:600;font-size:15px}
+.brand .src{color:var(--dim);font-size:12px}
+.tabs{display:flex;gap:2px}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted);font-weight:600;padding:10px 14px;cursor:pointer}
+.tabs button:hover{color:var(--text)}
+.tabs button.on{color:var(--text);border-bottom-color:var(--flag)}
+.strip{display:flex;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.strip .cell{flex:1 1 150px;padding:10px 14px;border-right:1px solid var(--line)}
+.strip .cell:last-child{border-right:0}
+.strip .v{font:700 25px/1.1 "Barlow Condensed",sans-serif}
+.strip .l{color:var(--muted);font-size:12px;margin-top:2px}
+.toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:14px 0 4px;color:var(--muted);font-size:13px}
+.toolbar label{display:flex;align-items:center;gap:7px;cursor:pointer}
+.legend{color:var(--dim);font-size:12px;margin:6px 0 0;max-width:78ch}
+.slot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:30px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+.slot h2{font-size:28px;line-height:1}
+.slot .times{color:var(--muted);font:600 15px Barlow,sans-serif;margin-left:12px}
+.slot .rz{display:inline-block;margin-left:10px;padding:2px 7px;border-radius:4px;background:rgba(228,72,62,.16);color:#FF9A91;font:700 12px Barlow,sans-serif;vertical-align:3px}
+.slot .sm{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px}
+.grid>*{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px 10px;display:flex;flex-direction:column;gap:11px}
+.card.live{border-color:var(--red);box-shadow:0 0 0 1px rgba(228,72,62,.3)}
+.card.done{opacity:.7}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
+.team{display:inline-flex;align-items:center;gap:7px}
+.pts{font-size:27px;margin-left:3px}
+.at{color:var(--dim);font-size:15px;font-weight:600}
+.sub{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:7px}
+.livepill{color:#FF9A91;font-weight:700}
+.livepill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:6px;vertical-align:1px}
+.stake{text-align:right;white-space:nowrap}
+.stake .amt{font:700 27px/1 "Barlow Condensed",sans-serif}
+.stake .cap{color:var(--dim);font-size:11px;margin-top:3px}
+.rank{display:inline-block;background:var(--text);color:var(--bg);font:800 14px/1 "Barlow Condensed",sans-serif;padding:3px 6px 2px;border-radius:4px;margin-right:8px;vertical-align:5px}
+.verdict{display:flex;align-items:center;gap:6px 11px;flex-wrap:wrap}
+.plate{display:inline-block;padding:6px 11px 5px;border-radius:5px;border:1px solid rgba(255,255,255,.2);font:800 21px/1 "Barlow Condensed",sans-serif;letter-spacing:.2px;background:var(--line2);color:var(--text)}
+.plate.split{background:var(--flag);border-color:var(--flag);color:#1C1A0C}
+.plate.outline{background:transparent;border-width:2px}
+.plate.wants{background:transparent;border-color:var(--blue);color:var(--blue)}
+.plate.dead,.plate.final{background:transparent;border-color:var(--line2);color:var(--muted)}
+.target{font-weight:700;font-size:15px}
+.note{color:var(--muted);font-size:12px;flex-basis:100%}
+.rows{border-top:1px solid var(--line)}
+.r{display:grid;grid-template-columns:72px minmax(0,1fr) auto 16px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.r:last-child{border-bottom:0}
+.r .src{font-size:12px;font-weight:600;color:var(--muted);line-height:1.2}
+.r .what{display:flex;align-items:center;gap:9px;min-width:0}
+.r .txt{display:flex;flex-direction:column;min-width:0}
+.r .txt b{font-weight:700}
+.r .txt .d{color:var(--muted);font-size:12px}
+.r .w{font:700 18px/1 "Barlow Condensed",sans-serif;text-align:right}
+.r .mk{text-align:center;font-weight:700}
+.r.off .txt b{color:var(--dim);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 4px;border:1px solid var(--line2);border-radius:999px;background:var(--panel2);font-size:12px;font-weight:600;white-space:nowrap}
+.chip.against{border-color:rgba(255,123,110,.55)}
+.chip.me{border-color:var(--flag)}
+.chip.plain{padding:3px 10px}
+.warnline{color:var(--flag);font-size:12px}
+.foot{display:flex;justify-content:flex-end;margin-top:-4px}
+.linkbtn{background:none;border:0;color:var(--dim);cursor:pointer;padding:0;font-size:12px}
+.linkbtn:hover{color:var(--text)}
+.logo{display:inline-block;object-fit:contain;flex:none}
+.logo-fb{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:700;flex:none}
+.nologo{display:inline-block;flex:none}
+.quiet{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;color:var(--muted);font-size:12px}
+.quiet .q{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 6px}
+.book{display:inline-block;padding:1px 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--panel2);color:var(--muted)}
+.book.DK{background:#15392A;color:#8EF0B4}
+.book.FD{background:#132A4A;color:#9CCBFF}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.panel h3{font-size:23px;line-height:1.1}
+.stack{display:grid;gap:14px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.between{justify-content:space-between}
+table{border-collapse:collapse;width:100%}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+input,select,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:5px 8px;font:inherit}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+input[type=number]{width:84px}
+input[type=checkbox]{accent-color:var(--flag);width:15px;height:15px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.btn{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:6px 12px;color:var(--text);font-weight:600;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--flag);border-color:var(--flag);color:#1C1A0C}
+.btn.danger{color:var(--bad);border-color:rgba(255,123,110,.45)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.legs{color:var(--muted);font-size:12px}
+.pick{min-width:48px;height:30px;border:1px solid var(--line2);border-radius:6px;background:var(--panel2);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+.pick.me{border-color:var(--flag)}
+.pick.hit{background:rgba(124,227,163,.14);color:var(--good);border-color:rgba(124,227,163,.5)}
+.pick.miss{background:rgba(255,123,110,.12);color:var(--bad);border-color:rgba(255,123,110,.45)}
+.pick.empty{color:var(--dim);font-weight:400}
+.mini{display:flex;justify-content:center;gap:2px}
+.hint{color:var(--dim);font-size:12px}
+.you{color:var(--flag);font-size:12px;font-weight:600;margin-left:6px}
+.ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}.dim{color:var(--dim)}
+.empty-state{padding:28px;text-align:center;color:var(--muted)}
+@media (max-width:560px){.wrap{padding:16px 12px 48px}.grid{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.r{grid-template-columns:62px minmax(0,1fr) auto 14px;gap:8px}.matchup{font-size:21px;gap:8px}.pts{font-size:23px}.stake .amt{font-size:23px}.brand h1{font-size:30px}.strip .cell{flex-basis:45%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 </head>
 <body>
 <div id="root"></div>
 <script>
-(()=>{var We=Object.create;var ue=Object.defineProperty;var Me=Object.getOwnPropertyDescriptor;var Ue=Object.getOwnPropertyNames;var ze=Object.getPrototypeOf,Ye=Object.prototype.hasOwnProperty;var me=(t,n)=>()=>{try{return n||t((n={exports:{}}).exports,n),n.exports}catch(o){throw n=0,o}};var Ge=(t,n,o,l)=>{if(n&&typeof n=="object"||typeof n=="function")for(let a of Ue(n))!Ye.call(t,a)&&a!==o&&ue(t,a,{get:()=>n[a],enumerable:!(l=Me(n,a))||l.enumerable});return t};var ce=(t,n,o)=>(o=t!=null?We(ze(t)):{},Ge(n||!t||!t.__esModule?ue(o,"default",{value:t,enumerable:!0}):o,t));var he=me((dt,ve)=>{ve.exports=window.React});var ge=me((pt,be)=>{be.exports={createRoot:window.ReactDOM.createRoot}});var e=ce(he()),Ae=ce(ge()),Se="nfl-rooting-board:v1",je="data.json",Xe=`
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap');
-.rb{--bg:#0F1A2B;--panel:#172538;--panel2:#1E2F46;--line:#2B3E59;--text:#EEF2F7;--muted:#8FA0B8;--green:#34C77B;--amber:#F2B134;--red:#EF5A5A;--blue:#5AA9FF;
- background:var(--bg);color:var(--text);font-family:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh;font-size:14px;line-height:1.4}
-.rb *{box-sizing:border-box}
-.rb .disp{font-family:'Barlow Condensed','Oswald','Arial Narrow',system-ui,sans-serif}
-.rb .tnum{font-variant-numeric:tabular-nums}
-.rb .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
-.rb .muted{color:var(--muted)}
-.rb .ok{color:var(--green)} .rb .bad{color:var(--red)} .rb .warn{color:var(--amber)} .rb .info{color:var(--blue)}
-.rb input,.rb select,.rb textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font:inherit}
-.rb input[type=number]{width:72px}
-.rb input:focus,.rb select:focus,.rb textarea:focus,.rb button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
-.rb .btn{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:5px 10px;font-weight:600;color:var(--text);cursor:pointer;font:inherit}
-.rb .btn:hover{background:#25395A}
-.rb .btn.primary{background:var(--blue);color:#06111F;border-color:var(--blue)}
-.rb .btn.danger{border-color:var(--red);color:var(--red)}
-.rb .btn.sm{padding:2px 8px;font-size:12px}
-.rb .tab{padding:10px 14px;border:0;border-bottom:3px solid transparent;font-weight:600;color:var(--muted);background:none;cursor:pointer;font:inherit}
-.rb .tab.on{color:var(--text);border-bottom-color:var(--amber)}
-.rb .plate{color:#06111F;padding:6px 12px;font-weight:800;line-height:1;display:inline-block;font-size:24px}
-.rb .plate.aligned{background:var(--green)}
-.rb .plate.split{background:var(--amber)}
-.rb .plate.dead{background:#34465F;color:#C4CFDD}
-.rb .plate.wants{background:var(--blue)}
-.rb .plate.final{background:#34465F;color:#C4CFDD}
-.rb .chip{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--line);border-radius:3px;background:var(--panel2);font-size:12px;font-weight:600;white-space:nowrap}
-.rb table{border-collapse:collapse;width:100%}
-.rb th{text-align:left;font-weight:600;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px}
-.rb td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
-.rb tr:last-child td{border-bottom:0}
-.rb .cell{width:46px;height:30px;border:1px solid var(--line);border-radius:3px;background:var(--panel2);font-weight:700;color:var(--text);cursor:pointer;font:inherit;font-weight:700}
-.rb .cell.me{border-color:var(--blue)}
-.rb .cell.hit{background:rgba(52,199,123,.2);color:var(--green)}
-.rb .cell.miss{background:rgba(239,90,90,.2);color:var(--red)}
-.rb .cell.empty{color:var(--muted);font-weight:400}
-.rb .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;width:100%}
-.rb .bar>i{display:block;height:100%}
-.rb .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.rb .stat{padding:8px 12px;border-right:1px solid var(--line)}
-.rb .stat:last-child{border-right:0}
-.rb .kpi{font-size:22px;font-weight:700;line-height:1.1}
-.rb .runbest{background:rgba(52,199,123,.08)}
-.rb .grid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:760px){.rb .grid{grid-template-columns:1fr 1fr}}
-@media(min-width:1180px){.rb .grid{grid-template-columns:1fr 1fr 1fr}}
-.rb details>summary{cursor:pointer;color:var(--muted);font-weight:600}
-.rb .scroll{overflow-x:auto}
-.rb .tiles{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.rb .tile{flex:1;min-width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel2)}
-.rb .tile.edge{border-color:var(--green)}
-.rb .tile .lbl{font-size:11px;color:var(--muted)}
-.rb .tile .val{font-weight:700;font-size:13px}
-.rb .tile.none .val,.rb .tile.noedge .val,.rb .tile.noline .val{color:var(--muted);font-weight:500}
-.rb .rank{background:var(--text);color:#06111F;font-weight:800;padding:2px 8px;border-radius:3px;font-size:18px;line-height:1.2}
-.rb .slot{display:flex;align-items:baseline;gap:10px;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--line)}
-`,q=t=>t==null||isNaN(t)?"":t>0?`+${t}`:`${t}`,F=t=>`$${(Math.round((t||0)*100)/100).toFixed(2)}`,E=t=>(t||"").trim().toUpperCase(),_=t=>t.status!=="upcoming"&&t.awayScore!=null&&t.homeScore!=null&&t.awayScore!==""&&t.homeScore!=="",re=t=>Number(t.homeScore)-Number(t.awayScore),j=(t,n)=>t===n.home?o=>o>0?!0:o<0?!1:null:t===n.away?o=>o<0?!0:o>0?!1:null:null,Q=(t,n,o)=>o==null||isNaN(o)?null:t===n.home?l=>l+o>0?!0:l+o<0?!1:null:t===n.away?l=>-l+o>0?!0:-l+o<0?!1:null:null,Ce=t=>t.line==null||t.line===""||isNaN(t.line)?"no line":t.line<0?`${t.home} ${t.line}`:t.line>0?`${t.away} -${t.line}`:"PK";function Te(t){let n=(t||"").trim();if(!n)return null;let o=n.split(/\s+/),l="open",a=o[o.length-1].toLowerCase();["won","lost","void"].includes(a)&&(l=a,o.pop());let b=o[0].toLowerCase();if(b==="future")return{kind:"future",team:E(o[1]),desc:o.slice(2).join(" "),status:l};if(b==="other")return{kind:"other",desc:o.slice(1).join(" "),status:l};if(!o[0].includes("@"))return{kind:"other",desc:o.join(" "),status:l};let i=E(o[0]),d=(o[1]||"").toLowerCase();return d==="ml"?{kind:"game",game:i,type:d,side:E(o[2]),status:l}:d==="spread"?{kind:"game",game:i,type:d,side:E(o[2]),line:parseFloat(o[3]),status:l}:d==="total"?{kind:"game",game:i,type:d,side:(o[2]||"").toLowerCase().startsWith("u")?"under":"over",line:parseFloat(o[3]),status:l}:{kind:"game",game:i,type:"prop",desc:o.slice(d==="prop"?2:1).join(" "),status:l}}function fe(t){let n=t.status&&t.status!=="open"?" "+t.status:"";return t.kind==="future"?`future ${t.team} ${t.desc}${n}`:t.kind==="other"?`other ${t.desc}${n}`:t.type==="ml"?`${t.game} ml ${t.side}${n}`:t.type==="spread"?`${t.game} spread ${t.side} ${q(t.line)}${n}`:t.type==="total"?`${t.game} total ${t.side} ${t.line}${n}`:`${t.game} prop ${t.desc}${n}`}var D=(t,n,o,l,a="upcoming",b=null,i=null,d="")=>({id:`${t}@${n}`,away:t,home:n,kick:o,line:l,status:a,awayScore:b,homeScore:i,clock:d}),Ke=1,V=(t,n,o,l,a,b,i,d=[],m=!1)=>({id:"b"+Ke++,book:t,sport:n,placed:o,desc:l,stake:a,toPay:b,status:i,bonus:m,legs:d.map(Te).filter(Boolean)}),Ve=["Matthew Orefice","Bazil Sterling","Tilemachos Matkaris","Oliver Risch"],_e=["Bang bang bird gang","Njigbas in Paris","Cyrus 's 1st Entry","Shirtless Ben Johnson","Unc"],W=t=>Object.fromEntries(t.map(n=>{let[o,l]=n.split(":");return[o,l]})),X={version:1,updatedAt:"2026-09-13T18:05:00.000Z",season:2026,week:1,me:{spread:"Matthew Orefice",pickem:"Bang bang bird gang"},fanTeam:"PHI",survivor:"",weights:{spreadPoint:10,pickemPoint:10,survivorPoint:30,futurePoint:4,fanPoint:6},leagues:{spread:{name:"3635 Degens (CBS, spreads)",players:Ve},pickem:{name:"ESPN group (straight up)",players:_e}},games:[D("NE","SEA","Wed 9/9",-3.5,"final",10,13),D("SF","LAR","Thu 9/10",-3.5,"final",27,7),D("TB","CIN","Sun 1:00p",-3.5,"live",3,14,"2nd 6:26"),D("BUF","HOU","Sun 1:00p",-1.5,"live",10,14,"2nd 4:48"),D("BAL","IND","Sun 1:00p",3.5,"live",14,6,"2nd 9:22"),D("CHI","CAR","Sun 1:00p",2.5,"live",21,14,"2nd 12:34"),D("NO","DET","Sun 1:00p",-7.5,"live",0,7,"2nd 9:21"),D("CLE","JAX","Sun 1:00p",-7.5,"live",0,23,"2nd 6:18"),D("ATL","PIT","Sun 1:00p",-3.5,"live",7,13,"2nd 10:39"),D("NYJ","TEN","Sun 1:00p",-2.5,"live",10,3,"2nd 5:03"),D("MIA","LV","Sun 4:05p",null),D("GB","MIN","Sun 4:25p",-1.5),D("WAS","PHI","Sun 4:25p",null),D("DAL","NYG","Sun 8:20p",null)],spreadPicks:{"Matthew Orefice":W(["NE@SEA:SEA","SF@LAR:LAR","TB@CIN:CIN","BUF@HOU:BUF","BAL@IND:BAL","CHI@CAR:CHI","NO@DET:NO","CLE@JAX:JAX","ATL@PIT:PIT","NYJ@TEN:NYJ","GB@MIN:GB"]),"Bazil Sterling":W(["NE@SEA:SEA","SF@LAR:SF","TB@CIN:TB","BUF@HOU:HOU","BAL@IND:BAL","CHI@CAR:CHI","NO@DET:NO","CLE@JAX:JAX","ATL@PIT:PIT","NYJ@TEN:NYJ"]),"Tilemachos Matkaris":W(["NE@SEA:SEA","SF@LAR:SF","TB@CIN:TB","BUF@HOU:BUF","BAL@IND:IND","CHI@CAR:CHI","NO@DET:NO","CLE@JAX:JAX","ATL@PIT:PIT","NYJ@TEN:NYJ"]),"Oliver Risch":W(["NE@SEA:NE","SF@LAR:LAR","TB@CIN:TB","BUF@HOU:BUF","BAL@IND:IND","CHI@CAR:CAR","NO@DET:NO","CLE@JAX:JAX","ATL@PIT:ATL","NYJ@TEN:NYJ"])},pickemPicks:{"Bang bang bird gang":W(["NE@SEA:SEA","SF@LAR:LAR","TB@CIN:CIN","NYJ@TEN:TEN","ATL@PIT:PIT","CLE@JAX:JAX","NO@DET:DET","BAL@IND:BAL","CHI@CAR:CHI","BUF@HOU:BUF","MIA@LV:LV","GB@MIN:MIN"]),"Njigbas in Paris":W(["NE@SEA:SEA","SF@LAR:LAR","TB@CIN:CIN","NYJ@TEN:NYJ","ATL@PIT:PIT","CLE@JAX:JAX","NO@DET:DET","BAL@IND:BAL","CHI@CAR:CHI","BUF@HOU:HOU"]),"Cyrus 's 1st Entry":W(["NE@SEA:SEA","SF@LAR:LAR","TB@CIN:CIN","NYJ@TEN:TEN","ATL@PIT:PIT","CLE@JAX:JAX","NO@DET:DET","BAL@IND:BAL","CHI@CAR:CHI","BUF@HOU:BUF"]),"Shirtless Ben Johnson":W(["NE@SEA:SEA","SF@LAR:LAR","TB@CIN:CIN","NYJ@TEN:TEN","ATL@PIT:PIT","CLE@JAX:JAX","NO@DET:DET","BAL@IND:BAL","CHI@CAR:CHI","BUF@HOU:HOU"]),Unc:W(["NE@SEA:NE","SF@LAR:LAR","TB@CIN:TB","NYJ@TEN:TEN","ATL@PIT:PIT","CLE@JAX:JAX","NO@DET:NO","BAL@IND:BAL","CHI@CAR:CHI","BUF@HOU:BUF"])},bets:[V("DK","NFL","9/13","PHI -12.5 alt spread, +273 after 50% boost",10,37.3,"open",["WAS@PHI spread PHI -12.5"]),V("DK","NFL","9/12","DeVonta Smith anytime TD +180 (bonus bet)",10,18,"open",["WAS@PHI prop DeVonta Smith anytime TD"],!0),V("DK","NFL","9/12","NYG ML +177 after 30% boost",10,27.7,"open",["DAL@NYG ml NYG"]),V("DK","NFL","9/12","SGP +507: Over 57.5, 40+ yds, 1+ (25% boost)",10,60.7,"open",["DAL@NYG total over 57.5","DAL@NYG prop 40+ yds","DAL@NYG prop 1+"]),V("DK","NFL","9/9","3-leg parlay +478: SEA, PHI, GB (assumed ML \u2014 edit if spread)",10,57.8,"open",["NE@SEA ml SEA won","WAS@PHI ml PHI","GB@MIN ml GB"]),V("FD","NFL","9/13","NYG ML +208 after 50% profit boost",10,30.8,"open",["DAL@NYG ml NYG"])]};function de(t){let n={...X,...t};return n.weights={...X.weights,...t.weights||{}},n.leagues={spread:{...X.leagues.spread,...t.leagues?.spread||{}},pickem:{...X.leagues.pickem,...t.leagues?.pickem||{}}},n.me={...X.me,...t.me||{}},n.games=(t.games||[]).map(o=>({clock:"",...o})),n.bets=(t.bets||[]).map(o=>({legs:[],bonus:!1,sport:"NFL",...o})),n}var R=45;function Ze(t,n){let o=t.a<=-R?-1/0:t.a,l=t.b>=R?1/0:t.b;if(o===-1/0&&l===1/0)return"Any result";if(l<0){let i=-l,d=-o;return o===-1/0?i===1?`${n.away} win`:`${n.away} by ${i}+`:i===d?`${n.away} by ${i}`:`${n.away} by ${i}\u2013${d}`}if(o>0)return l===1/0?o===1?`${n.home} win`:`${n.home} by ${o}+`:o===l?`${n.home} by ${o}`:`${n.home} by ${o}\u2013${l}`;let a=o===-1/0?`${n.away} win`:`${n.away} by \u2264${-o}`,b=l===1/0?`${n.home} win`:`${n.home} by \u2264${l}`;return`${a} or ${b}`}function ye(t,n){let o=n.filter(i=>i.test&&i.weight>0);if(!o.length)return[];let l=i=>o.map(d=>{let m=d.test(i);return m===!0?1:m===!1?-1:0}),a=[],b=null;for(let i=-R;i<=R;i++){if(i===0)continue;let d=l(i),m=d.join(",");b&&b.key===m&&i!==1?b.b=i:(b={a:i,b:i,key:m,v:d},a.push(b))}for(let i=1;i<a.length;i++)if(a[i-1].b===-1&&a[i].a===1&&a[i].key===a[i-1].key){a[i-1].b=a[i].b,a.splice(i,1);break}return a.forEach(i=>{i.value=i.v.reduce((d,m,v)=>d+m*o[v].weight,0),i.label=Ze(i,t),i.hits=o.filter((d,m)=>i.v[m]===1),i.misses=o.filter((d,m)=>i.v[m]===-1)}),a}function qe(t,n){let o=n.weights,l=n.me,a=[],b=[],i=[],d=u=>u===t.home||u===t.away,m=t.line!=null&&t.line!==""&&!isNaN(t.line),v=m?Number(t.line):null,N=u=>u===t.home?v:-v,w=(u,C,P,H)=>{let S=C?.[P]?.[t.id];if(!S)return{state:"none",text:"no pick"};let y=u.players.filter(U=>U!==P).map(U=>C?.[U]?.[t.id]||""),J=y.filter(U=>U&&U!==S).length,se=y.filter(U=>!U).length,K=J+.5*se,He=K===0?`everyone picked ${S}`:`${J} opponent${J===1?"":"s"} on the other side${se?`, ${se} hidden (counted \xBD)`:""}`;H&&!m&&i.push(`Add the spread for ${t.away}@${t.home} in Setup so the pool pick can be scored`);let ne=!H||m,Je=H?`${S} ${m?q(N(S)):""}`.trim():S,oe=ne?K===0?{state:"noedge",text:`no edge, all on ${S}`}:{state:"edge",text:`${Je}, vs ${K}`}:{state:"noline",text:`${S}, line needed`};return oe.side=S,oe.eff=K,a.push({key:H?"spread":"pickem",short:H?"Spread pool":"Pick'em",label:H?`${S} ${m?q(N(S)):"(no line)"}`:`${S} to win`,side:S,weight:ne?K*(H?o.spreadPoint:o.pickemPoint):0,swing:K,test:ne?H?Q(S,t,N(S)):j(S,t):null,detail:He}),oe},I=w(n.leagues.spread,n.spreadPicks,l.spread,!0),x=w(n.leagues.pickem,n.pickemPicks,l.pickem,!1);n.survivor&&d(E(n.survivor))&&a.push({key:"survivor",short:"Survivor",label:`${E(n.survivor)} to win`,side:E(n.survivor),weight:o.survivorPoint,test:j(E(n.survivor),t),detail:"survivor pick, one loss and you're out"}),n.fanTeam&&d(E(n.fanTeam))&&a.push({key:"fan",short:"Fan",label:`${E(n.fanTeam)} to win`,side:E(n.fanTeam),weight:o.fanPoint,test:j(E(n.fanTeam),t),detail:"your team",minor:!0});for(let u of n.bets){if(u.status!=="open")continue;let C=u.legs||[],P=C.length>1,H=`${u.book}${P?" parlay":""}`,S=u.scoreWeight!=null?Number(u.scoreWeight):u.toPay;for(let y of C)if(!(y.status&&y.status!=="open"))if(y.kind==="game"&&y.game===t.id){let J={key:"bet:"+u.id+":"+(y.desc||y.side||""),betId:u.id,short:H,money:u.toPay,weight:S,parlay:P,detail:`${F(u.stake)} to pay ${F(u.toPay)}${P?", needs the other legs too":""}`};y.type==="ml"?a.push({...J,label:`${y.side} ML`,side:y.side,weight:S,test:j(y.side,t)}):y.type==="spread"?a.push({...J,label:`${y.side} ${q(y.line)}`,side:y.side,weight:S,test:Q(y.side,t,y.line)}):y.type==="total"?b.push({...J,label:`${y.side==="under"?"Under":"Over"} ${y.line}`,type:"total",side:y.side,line:y.line}):b.push({...J,label:y.desc,type:"prop"})}else y.kind==="future"&&d(y.team)&&a.push({key:"fut:"+u.id,short:`${u.book} future`,label:`${y.team} ${y.desc}`,side:y.team,weight:o.futurePoint,money:u.toPay,test:j(y.team,t),detail:`${F(u.toPay)} on the table, minor weight`,minor:!0})}let $=[];for(let u of b){let C=$.find(P=>P.betId===u.betId);C?C.label+=", "+u.label:$.push({...u})}let k=ye(t,a),A=a.reduce((u,C)=>u+C.weight,0),r=$.reduce((u,C)=>u+(C.weight!=null?C.weight:C.money||0),0),h=u=>{let C=-1/0;return u.forEach(P=>{P.value>C&&(C=P.value)}),{bv:C,best:u.filter(P=>Math.abs(P.value-C)<1e-9)}},s=a.filter(u=>!u.minor),g=s.some(u=>u.test&&u.weight>0),T=g?ye(t,s):k,{bv:p,best:f}=h(k),{best:L}=h(T),z=u=>{let C=S=>{let y=u.find(J=>S>=J.a&&S<=J.b);return y?y.value:0},P=0,H=0;for(let S=1;S<=21;S++)P+=C(S)/21,H+=C(-S)/21;return[P,H]},[Y,M]=z(T);Math.abs(Y-M)<1e-9&&([Y,M]=z(k));let c=A>0?Y>M+1e-9?t.home:M>Y+1e-9?t.away:null:null,O=L.length?L[0].misses.filter(u=>!u.minor):[],B=a.filter(u=>u.minor&&u.weight>0),G=c?B.filter(u=>u.side&&u.side!==c):[],ee=L.map(u=>u.label).join(" or "),pe=f.map(u=>u.label).join(" or "),Be=g&&B.length&&pe!==ee?pe:null,Ee=A>0&&!g,xe=A>0&&O.length===0,$e=t.status==="final"?"final":A>0?xe?"aligned":"split":r>0?"wants":"dead",te=_(t)?re(t):null,Le=u=>te==null||!u.test?void 0:u.test(te),Pe=_(t)?Number(t.homeScore)+Number(t.awayScore):null,De=a.filter(u=>u.betId&&!u.minor).reduce((u,C)=>u+(C.money||0),0)+$.reduce((u,C)=>u+(C.money||0),0),Fe=new Set([...a.filter(u=>u.betId&&!u.minor).map(u=>u.betId),...$.map(u=>u.betId)]).size,Oe=a.filter(u=>u.minor);return{g:t,ints:a,wants:$,notes:i,runs:k,W:A,wantsW:r,priority:A+r,bestVal:p,bestRuns:L,root:c,kind:$e,margin:te,cur:Le,currentTotal:Pe,minorMisses:G,minorOnly:Ee,sweet:Be,spread:I,pickem:x,betMoney:De,betCount:Fe,minors:Oe}}var Qe=["wed","thu","fri","sat","sun","mon","tue"];function Re(t){let n=(t||"").toLowerCase().trim(),o=Qe.findIndex(b=>n.startsWith(b)),l=n.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])/),a=0;if(l){let b=parseInt(l[1])%12;l[3]==="p"&&(b+=12),a=b*60+(l[2]?parseInt(l[2]):0)}return(o<0?9:o)*1e4+a}function et(t,n,o,l){return t.players.map(a=>{let b=0,i=0,d=0,m=0;for(let v of o){let N=n?.[a]?.[v.id];if(!N)continue;if(!_(v)){m++;continue}let w=l?Q(N,v,N===v.home?Number(v.line):-Number(v.line)):j(N,v);if(!w)continue;let I=w(re(v));v.status==="final"?I===!0?b++:I===!1&&i++:I===!0&&d++}return{p:a,w:b,l:i,live:d,pend:m,pts:b+d}}).sort((a,b)=>b.pts-a.pts)}var Z=({v:t})=>t===!0?e.default.createElement("span",{className:"ok",title:"currently hitting"},"\u2713"):t===!1?e.default.createElement("span",{className:"bad",title:"currently missing"},"\u2717"):t===null?e.default.createElement("span",{className:"muted",title:"push / tie"},"\u2014"):null;function tt({g:t,update:n}){let o=(l,a)=>n(b=>{let i=b.games.find(d=>d.id===t.id);i&&(i[l]=a)});return e.default.createElement("div",{className:"row",style:{marginTop:8}},e.default.createElement("label",{className:"row muted"},t.away,e.default.createElement("input",{type:"number",value:t.awayScore??"",onChange:l=>o("awayScore",l.target.value===""?null:Number(l.target.value))})),e.default.createElement("label",{className:"row muted"},t.home,e.default.createElement("input",{type:"number",value:t.homeScore??"",onChange:l=>o("homeScore",l.target.value===""?null:Number(l.target.value))})),e.default.createElement("select",{value:t.status,onChange:l=>o("status",l.target.value)},e.default.createElement("option",{value:"upcoming"},"upcoming"),e.default.createElement("option",{value:"live"},"live"),e.default.createElement("option",{value:"final"},"final")),e.default.createElement("input",{placeholder:"clock (2nd 6:26)",style:{width:120},value:t.clock||"",onChange:l=>o("clock",l.target.value)}))}var Ne=t=>{let n=new Map;return t.forEach(o=>{let l=n.get(o.label);l?l.n++:n.set(o.label,{label:o.label,n:1,first:o})}),[...n.values()]},ie=({label:t,info:n,mark:o})=>e.default.createElement("div",{className:`tile ${n.state}`},e.default.createElement("div",{className:"lbl"},t),e.default.createElement("div",{className:"val"},n.text," ",o));function st({a:t,update:n,rank:o}){let{g:l,ints:a,wants:b,runs:i,kind:d,root:m,bestRuns:v,W:N,margin:w,cur:I,notes:x,currentTotal:$}=t,[k,A]=(0,e.useState)(!1),r=l.status==="final",h=l.status==="live",s=r?"Final":h?l.clock||"Live":l.kick,g,T,p=null;if(r){let c=a.filter(B=>B.test&&B.weight>0),O=c.filter(B=>I(B)===!0).length;g="Final",T=c.length?`${O} of ${c.length} interests hit`:"nothing was riding on it"}else if(d==="dead")g="Doesn't matter",T=a.length?a.map(c=>c.detail).join("; "):"nothing riding on it";else if(d==="wants")g="No side",T="only totals or props riding";else{g=(t.minorOnly?"Mild lean ":d==="aligned"?"Root ":"Lean ")+(m||"either");let c=v.map(B=>B.label).join(" or ");T=c===`${m} win`?"any margin":c;let O=[];if(d==="split"){let B=v[0];O.push(`best case hits ${B.hits.map(G=>G.short).join(", ")}${B.misses.length?`, still loses ${B.misses.map(G=>G.short).join(", ")}`:""}`)}t.sweet&&O.push(`sweet spot: ${t.sweet}`),t.minorMisses.length&&O.push(`minor conflict: ${Ne(t.minorMisses).map(B=>B.n>1?`${B.label} \xD7${B.n}`:B.label).join(", ")}`),O.length&&(p=e.default.createElement("span",{className:"muted"},O.join(" \xB7 ")))}let f=w==null?null:i.find(c=>w>=c.a&&w<=c.b),L=Math.round(t.priority),z=a.find(c=>c.key==="spread"),Y=a.find(c=>c.key==="pickem"),M=h||r;return e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"row",style:{justifyContent:"space-between",alignItems:"flex-start"}},e.default.createElement("div",null,e.default.createElement("div",{className:"disp",style:{fontSize:26,fontWeight:700,lineHeight:1}},l.away," ",e.default.createElement("span",{className:"muted",style:{fontWeight:600}},"@")," ",l.home),e.default.createElement("div",{className:"muted",style:{marginTop:2}},Ce(l))),e.default.createElement("div",{style:{textAlign:"right"}},e.default.createElement("div",{className:h?"warn":"muted",style:{fontWeight:600}},s),_(l)&&e.default.createElement("div",{className:"disp tnum",style:{fontSize:22,fontWeight:700,lineHeight:1.1}},l.away," ",l.awayScore," ",e.default.createElement("span",{className:"muted"},"\u2013")," ",l.home," ",l.homeScore))),e.default.createElement("div",{className:"row",style:{marginTop:10,justifyContent:"space-between"}},e.default.createElement("div",{className:"row"},e.default.createElement("span",{className:`plate disp ${d}`},g),e.default.createElement("span",{style:{fontWeight:600}},T),p),!r&&L>0&&e.default.createElement("div",{className:"row",style:{gap:6}},o&&e.default.createElement("span",{className:"rank disp"},"#",o),e.default.createElement("span",{className:"tnum",style:{fontWeight:700}},L),e.default.createElement("span",{className:"muted",style:{fontSize:12}},"score"))),e.default.createElement("div",{className:"tiles"},e.default.createElement(ie,{label:"Spread pool",info:t.spread,mark:M&&z?e.default.createElement(Z,{v:I(z)}):null}),e.default.createElement(ie,{label:"Pick'em",info:t.pickem,mark:M&&Y?e.default.createElement(Z,{v:I(Y)}):null}),e.default.createElement(ie,{label:"Bets",info:t.betMoney>0?{state:"edge",text:`${F(t.betMoney)} riding, ${t.betCount} bet${t.betCount===1?"":"s"}`}:{state:"none",text:"none"}})),t.minors.length>0&&e.default.createElement("div",{className:"row",style:{marginTop:6,fontSize:12}},e.default.createElement("span",{className:"muted"},"Minor:"),Ne(t.minors).map(c=>e.default.createElement("span",{key:c.label,className:"chip"},c.label,c.n>1?` \xD7${c.n}`:""," ",M&&e.default.createElement(Z,{v:I(c.first)})))),e.default.createElement("details",{style:{marginTop:8},open:d==="split"},e.default.createElement("summary",null,"Details"),(a.length>0||b.length>0)&&e.default.createElement("table",{style:{marginTop:6}},e.default.createElement("tbody",null,a.map(c=>e.default.createElement("tr",{key:c.key,style:{opacity:c.weight>0?1:.55}},e.default.createElement("td",{style:{width:1}},e.default.createElement("span",{className:"chip"},c.short)),e.default.createElement("td",{style:{fontWeight:700,whiteSpace:"nowrap"}},c.label),e.default.createElement("td",{className:"muted"},c.detail),e.default.createElement("td",{className:"tnum",style:{textAlign:"right",whiteSpace:"nowrap"}},c.money!=null&&!c.minor?F(c.money):c.swing!=null?`\xB1${c.swing} vs field`:""),e.default.createElement("td",{style:{width:1,textAlign:"center"}},(h||r)&&e.default.createElement(Z,{v:I(c)})))),b.map(c=>e.default.createElement("tr",{key:c.key},e.default.createElement("td",null,e.default.createElement("span",{className:"chip"},c.short)),e.default.createElement("td",{style:{fontWeight:700,whiteSpace:"nowrap"}},c.label),e.default.createElement("td",{className:"muted"},c.type==="total"&&$!=null?`now ${$} total`:"no side, just need it to hit",c.parlay?", parlay leg":""),e.default.createElement("td",{className:"tnum",style:{textAlign:"right"}},F(c.money)),e.default.createElement("td",null))))),!r&&i.length>1&&e.default.createElement("div",{style:{marginTop:8}},e.default.createElement("div",{className:"muted",style:{fontWeight:600}},"Outcome map"),e.default.createElement("table",{style:{marginTop:4}},e.default.createElement("tbody",null,i.map((c,O)=>{let B=Math.abs(c.value-t.bestVal)<1e-9,G=N>0?(c.value+N)/(2*N):.5;return e.default.createElement("tr",{key:O,className:B?"runbest":""},e.default.createElement("td",{style:{fontWeight:B?700:500,whiteSpace:"nowrap"}},c.label,f===c&&e.default.createElement("span",{className:"warn"}," \u2190 now")),e.default.createElement("td",{className:"muted",style:{fontSize:12}},c.hits.map(ee=>ee.short).join(", ")||"nothing hits"),e.default.createElement("td",{style:{width:120}},e.default.createElement("div",{className:"bar"},e.default.createElement("i",{style:{width:`${Math.round(G*100)}%`,background:c.value>=0?"var(--green)":"var(--red)"}}))),e.default.createElement("td",{className:"tnum "+(c.value>0?"ok":c.value<0?"bad":"muted"),style:{textAlign:"right",width:1}},c.value>0?"+":"",Math.round(c.value)))}))))),x.map((c,O)=>e.default.createElement("div",{key:O,className:"warn",style:{marginTop:6,fontSize:12}},c)),e.default.createElement("div",{style:{marginTop:8}},e.default.createElement("button",{className:"btn sm",onClick:()=>A(!k)},k?"Done":"Update score"),k&&e.default.createElement(tt,{g:l,update:n})))}function nt({data:t,update:n,analyses:o}){let[l,a]=(0,e.useState)(!1),[b,i]=(0,e.useState)(!1),d=o.filter(p=>p.g.status!=="final"),m=[...d].filter(p=>p.priority>0).sort((p,f)=>f.priority-p.priority),v=Object.fromEntries(m.map((p,f)=>[p.g.id,f+1])),N=o.filter(p=>!(l&&p.g.status==="final")&&!(b&&p.kind==="dead"&&p.g.status!=="final")),w=[];for(let p of N){let f=p.g.kick||"TBD",L=w.find(z=>z.label===f);L||(L={label:f,key:Re(f),items:[]},w.push(L)),L.items.push(p)}w.sort((p,f)=>p.key-f.key||p.label.localeCompare(f.label)),w.forEach(p=>p.items.sort((f,L)=>L.priority-f.priority));let I=new Set(t.games.map(p=>p.id)),x=t.bets.filter(p=>p.status==="open"&&p.legs.some(f=>f.kind==="game"&&I.has(f.game))),$=x.reduce((p,f)=>p+(f.bonus?0:f.stake),0),k=x.reduce((p,f)=>p+f.toPay,0),A=p=>o.filter(p).length,r=p=>p&&p.state==="edge",h=d.filter(p=>r(p.spread)&&r(p.pickem)).length,s=d.filter(p=>r(p.spread)&&!r(p.pickem)).length,g=d.filter(p=>!r(p.spread)&&r(p.pickem)).length,T=d.filter(p=>!r(p.spread)&&!r(p.pickem)).length;return e.default.createElement("div",null,e.default.createElement("div",{className:"panel row",style:{padding:0,marginBottom:12,gap:0,overflowX:"auto"}},e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi warn tnum"},A(p=>p.g.status==="live"&&p.kind!=="dead"&&p.kind!=="final")),e.default.createElement("div",{className:"muted"},"live games that matter")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},A(p=>p.g.status==="upcoming"&&p.kind!=="dead")),e.default.createElement("div",{className:"muted"},"still to kick off")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi ok tnum"},h),e.default.createElement("div",{className:"muted"},"both pools")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},s),e.default.createElement("div",{className:"muted"},"spread pool only")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},g),e.default.createElement("div",{className:"muted"},"pick'em only")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi muted tnum"},T),e.default.createElement("div",{className:"muted"},"neither pool")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},F(k)),e.default.createElement("div",{className:"muted"},"to pay on this week's bets (",F($)," at risk, ",x.length," bets)"))),e.default.createElement("div",{className:"row",style:{marginBottom:4}},e.default.createElement("label",{className:"row muted"},e.default.createElement("input",{type:"checkbox",checked:l,onChange:p=>a(p.target.checked)})," hide finals"),e.default.createElement("label",{className:"row muted"},e.default.createElement("input",{type:"checkbox",checked:b,onChange:p=>i(p.target.checked)})," hide games that don't matter"),e.default.createElement("span",{className:"muted",style:{marginLeft:"auto"}},"Score = bets at their payout + pool points per opponent. Rank is across all games still to be decided.")),N.length===0&&e.default.createElement("div",{className:"panel",style:{padding:20}},"No games loaded. Add this week's slate in Setup, then fill in picks under Pools and bets under Bets."),w.map(p=>e.default.createElement("section",{key:p.label},e.default.createElement("div",{className:"slot"},e.default.createElement("span",{className:"disp",style:{fontSize:22,fontWeight:700}},p.label),e.default.createElement("span",{className:"muted"},p.items.length," game",p.items.length===1?"":"s",", ",p.items.filter(f=>f.kind!=="dead"&&f.kind!=="final").length," matter")),e.default.createElement("div",{className:"grid"},p.items.map(f=>e.default.createElement(st,{key:f.g.id,a:f,update:n,rank:v[f.g.id]}))))))}function ke({league:t,picksMap:n,mine:o,games:l,isSpread:a,onPick:b}){let i=(m,v)=>m===""?v.away:m===v.away?v.home:"",d=et(t,n,l,a);return e.default.createElement("div",{className:"panel",style:{padding:12,marginBottom:14}},e.default.createElement("div",{className:"row",style:{justifyContent:"space-between",marginBottom:8}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700}},t.name),e.default.createElement("div",{className:"row"},d.map(m=>e.default.createElement("span",{key:m.p,className:"chip",style:m.p===o?{borderColor:"var(--blue)"}:{}},m.p," ",e.default.createElement("span",{className:"tnum"},m.pts),m.live?e.default.createElement("span",{className:"muted tnum"},"(",m.live," live)"):null)))),e.default.createElement("div",{className:"scroll"},e.default.createElement("table",null,e.default.createElement("thead",null,e.default.createElement("tr",null,e.default.createElement("th",null,"Player"),l.map(m=>e.default.createElement("th",{key:m.id,style:{textAlign:"center"}},e.default.createElement("div",null,m.away,"@",m.home),e.default.createElement("div",{className:"muted",style:{fontWeight:400}},a?Ce(m):m.status==="final"?"final":m.status==="live"?"live":m.kick))))),e.default.createElement("tbody",null,t.players.map(m=>e.default.createElement("tr",{key:m},e.default.createElement("td",{style:{fontWeight:m===o?700:500,whiteSpace:"nowrap"}},m,m===o&&e.default.createElement("span",{className:"info"}," (you)")),l.map(v=>{let N=n?.[m]?.[v.id]||"",w="cell";if(m===o&&(w+=" me"),!N)w+=" empty";else if(_(v)){let I=a?Q(N,v,N===v.home?Number(v.line):-Number(v.line)):j(N,v),x=I?I(re(v)):null;x===!0?w+=" hit":x===!1&&(w+=" miss")}return e.default.createElement("td",{key:v.id,style:{textAlign:"center"}},e.default.createElement("button",{className:w,onClick:()=>b(m,v.id,i(N,v))},N||"\xB7"))})))))),e.default.createElement("div",{className:"muted",style:{marginTop:6,fontSize:12}},"Click a cell to cycle away \u2192 home \u2192 blank. Blank opponent picks (hidden until kickoff) count as half an opponent."))}function ot({data:t,update:n}){let o=l=>(a,b,i)=>n(d=>{d[l][a]=d[l][a]||{},i?d[l][a][b]=i:delete d[l][a][b]});return e.default.createElement("div",null,e.default.createElement(ke,{league:t.leagues.spread,picksMap:t.spreadPicks,mine:t.me.spread,games:t.games,isSpread:!0,onPick:o("spreadPicks")}),e.default.createElement(ke,{league:t.leagues.pickem,picksMap:t.pickemPicks,mine:t.me.pickem,games:t.games,isSpread:!1,onPick:o("pickemPicks")}))}var le={id:null,book:"DK",sport:"NFL",placed:"",desc:"",stake:"",toPay:"",status:"open",bonus:!1,legsText:""};function it({data:t,update:n}){let[o,l]=(0,e.useState)("open"),[a,b]=(0,e.useState)("all"),[i,d]=(0,e.useState)(le),m=t.bets,v=s=>s.status==="won"?s.toPay-(s.bonus?0:s.stake):s.status==="lost"?-(s.bonus?0:s.stake):0,N=m.filter(s=>s.status==="open"),w=m.filter(s=>s.status!=="open"),I={};w.forEach(s=>{I[s.book]=(I[s.book]||0)+v(s)});let x=m.filter(s=>o==="all"?!0:o==="open"?s.status==="open":s.status!=="open").filter(s=>a==="all"||s.book===a),$=[...new Set(m.map(s=>s.book))],k=()=>{let s=parseFloat(i.stake)||0,g=parseFloat(i.toPay)||0;if(!i.desc.trim())return;let T=i.legsText.split(`
-`).map(Te).filter(Boolean);n(p=>{if(i.id){let f=p.bets.find(L=>L.id===i.id);f&&Object.assign(f,{book:i.book,sport:i.sport,placed:i.placed,desc:i.desc,stake:s,toPay:g,status:i.status,bonus:i.bonus,legs:T})}else p.bets.unshift({id:"b"+Date.now(),book:i.book,sport:i.sport,placed:i.placed,desc:i.desc,stake:s,toPay:g,status:i.status,bonus:i.bonus,legs:T})}),d(le)},A=s=>d({id:s.id,book:s.book,sport:s.sport,placed:s.placed,desc:s.desc,stake:String(s.stake),toPay:String(s.toPay),status:s.status,bonus:!!s.bonus,legsText:s.legs.map(fe).join(`
-`)}),r=(s,g)=>n(T=>{let p=T.bets.find(f=>f.id===s);p&&(p.status=g,g!=="open"&&p.legs.forEach(f=>{f.status==="open"&&(f.status=g==="void"?"void":g)}))}),h=s=>n(g=>{g.bets=g.bets.filter(T=>T.id!==s)});return e.default.createElement("div",null,e.default.createElement("div",{className:"panel row",style:{padding:0,marginBottom:12,gap:0,overflowX:"auto"}},e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},N.length),e.default.createElement("div",{className:"muted"},"open bets")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},F(N.reduce((s,g)=>s+(g.bonus?0:g.stake),0))),e.default.createElement("div",{className:"muted"},"cash at risk")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum"},F(N.reduce((s,g)=>s+g.toPay,0))),e.default.createElement("div",{className:"muted"},"would pay if everything hit")),e.default.createElement("div",{className:"stat"},e.default.createElement("div",{className:"kpi tnum "+(w.reduce((s,g)=>s+v(g),0)>=0?"ok":"bad")},F(w.reduce((s,g)=>s+v(g),0))),e.default.createElement("div",{className:"muted"},"net on settled (",w.length," bets)")),Object.entries(I).map(([s,g])=>e.default.createElement("div",{key:s,className:"stat"},e.default.createElement("div",{className:"kpi tnum "+(g>=0?"ok":"bad")},F(g)),e.default.createElement("div",{className:"muted"},s," net")))),e.default.createElement("div",{className:"row",style:{marginBottom:10}},["open","settled","all"].map(s=>e.default.createElement("button",{key:s,className:"btn sm"+(o===s?" primary":""),onClick:()=>l(s)},s)),e.default.createElement("select",{value:a,onChange:s=>b(s.target.value)},e.default.createElement("option",{value:"all"},"all books"),$.map(s=>e.default.createElement("option",{key:s,value:s},s)))),e.default.createElement("div",{className:"panel scroll",style:{marginBottom:14}},e.default.createElement("table",null,e.default.createElement("thead",null,e.default.createElement("tr",null,e.default.createElement("th",null,"Book"),e.default.createElement("th",null,"Placed"),e.default.createElement("th",null,"Bet"),e.default.createElement("th",null,"Legs"),e.default.createElement("th",{style:{textAlign:"right"}},"Stake"),e.default.createElement("th",{style:{textAlign:"right"}},"To pay"),e.default.createElement("th",null,"Status"),e.default.createElement("th",null))),e.default.createElement("tbody",null,x.map(s=>e.default.createElement("tr",{key:s.id},e.default.createElement("td",null,e.default.createElement("span",{className:"chip"},s.book)),e.default.createElement("td",{className:"muted tnum"},s.placed),e.default.createElement("td",null,s.desc,s.bonus&&e.default.createElement("span",{className:"muted"}," (bonus)")),e.default.createElement("td",{className:"muted",style:{fontSize:12}},s.legs.map((g,T)=>e.default.createElement("div",{key:T},fe(g)))),e.default.createElement("td",{className:"tnum",style:{textAlign:"right"}},F(s.stake)),e.default.createElement("td",{className:"tnum",style:{textAlign:"right"}},F(s.toPay)),e.default.createElement("td",null,e.default.createElement("select",{value:s.status,onChange:g=>r(s.id,g.target.value),className:s.status==="won"?"ok":s.status==="lost"?"bad":""},e.default.createElement("option",{value:"open"},"open"),e.default.createElement("option",{value:"won"},"won"),e.default.createElement("option",{value:"lost"},"lost"),e.default.createElement("option",{value:"void"},"void"))),e.default.createElement("td",{style:{whiteSpace:"nowrap"}},e.default.createElement("button",{className:"btn sm",onClick:()=>A(s)},"Edit")," ",e.default.createElement("button",{className:"btn sm danger",onClick:()=>h(s.id)},"\xD7")))),x.length===0&&e.default.createElement("tr",null,e.default.createElement("td",{colSpan:8,className:"muted"},"No bets match this filter."))))),e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700,marginBottom:8}},i.id?"Edit bet":"Add a bet"),e.default.createElement("div",{className:"row"},e.default.createElement("select",{value:i.book,onChange:s=>d({...i,book:s.target.value})},e.default.createElement("option",null,"DK"),e.default.createElement("option",null,"FD"),e.default.createElement("option",null,"Other")),e.default.createElement("input",{placeholder:"placed (9/13)",style:{width:100},value:i.placed,onChange:s=>d({...i,placed:s.target.value})}),e.default.createElement("input",{placeholder:"description (PHI -12.5 alt +273)",style:{flex:1,minWidth:220},value:i.desc,onChange:s=>d({...i,desc:s.target.value})})),e.default.createElement("div",{className:"row",style:{marginTop:8}},e.default.createElement("label",{className:"row muted"},"stake ",e.default.createElement("input",{type:"number",step:"0.01",value:i.stake,onChange:s=>d({...i,stake:s.target.value})})),e.default.createElement("label",{className:"row muted"},"to pay ",e.default.createElement("input",{type:"number",step:"0.01",value:i.toPay,onChange:s=>d({...i,toPay:s.target.value})})),e.default.createElement("select",{value:i.status,onChange:s=>d({...i,status:s.target.value})},e.default.createElement("option",{value:"open"},"open"),e.default.createElement("option",{value:"won"},"won"),e.default.createElement("option",{value:"lost"},"lost"),e.default.createElement("option",{value:"void"},"void")),e.default.createElement("label",{className:"row muted"},e.default.createElement("input",{type:"checkbox",checked:i.bonus,onChange:s=>d({...i,bonus:s.target.checked})})," bonus bet (no cash at risk)")),e.default.createElement("textarea",{rows:3,style:{width:"100%",marginTop:8},placeholder:`one leg per line:
-WAS@PHI spread PHI -12.5
-DAL@NYG ml NYG
-DAL@NYG total over 57.5
-WAS@PHI prop DeVonta Smith anytime TD
-future BUF Super Bowl
-NE@SEA ml SEA won   (add won / lost at the end to settle one leg)`,value:i.legsText,onChange:s=>d({...i,legsText:s.target.value})}),e.default.createElement("div",{className:"row",style:{marginTop:8}},e.default.createElement("button",{className:"btn primary",onClick:k},i.id?"Save changes":"Add bet"),i.id&&e.default.createElement("button",{className:"btn",onClick:()=>d(le)},"Cancel"),e.default.createElement("span",{className:"muted",style:{fontSize:12}},"Legs tie the bet to a game so it shows up in the rooting guide. Game ids must match Setup (AWAY@HOME)."))))}function lt({data:t,update:n,setData:o}){let[l,a]=(0,e.useState)(""),[b,i]=(0,e.useState)(""),d=(r,h,s)=>n(g=>{let T=g.games[r];T&&(T[h]=s,(h==="away"||h==="home")&&(T.id=`${E(T.away)}@${E(T.home)}`))}),m=()=>n(r=>{r.games.push({id:"NEW@GAME",away:"NEW",home:"GAME",kick:"Sun 1:00p",line:null,status:"upcoming",awayScore:null,homeScore:null,clock:""})}),v=r=>n(h=>{h.games.splice(r,1)}),N=(r,h)=>n(s=>{s.leagues[r].players=h.split(",").map(g=>g.trim()).filter(Boolean)}),w=()=>{window.confirm("Start a new week? Clears games, picks and the survivor pick. Bets and futures are kept.")&&n(r=>{r.week+=1,r.games=[],r.spreadPicks={},r.pickemPicks={},r.survivor=""})},I=()=>{window.confirm("Reset everything to the Week 1 sample data?")&&(o(JSON.parse(JSON.stringify(X))),i("Reset to sample."))},x=()=>{a(JSON.stringify(t,null,2)),i("JSON below \u2014 copy it somewhere safe.")},$=()=>{try{let r=de(JSON.parse(l));o(r),i("Imported.")}catch(r){i("Couldn't parse that JSON: "+r.message)}},k=t.weights,A=(r,h)=>e.default.createElement("label",{key:r,className:"row muted"},h,e.default.createElement("input",{type:"number",value:k[r],onChange:s=>n(g=>{g.weights[r]=parseFloat(s.target.value)||0})}));return e.default.createElement("div",{style:{display:"grid",gap:14}},e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700,marginBottom:8}},"This week"),e.default.createElement("div",{className:"row"},e.default.createElement("label",{className:"row muted"},"season ",e.default.createElement("input",{type:"number",value:t.season,onChange:r=>n(h=>{h.season=parseInt(r.target.value)||0})})),e.default.createElement("label",{className:"row muted"},"week ",e.default.createElement("input",{type:"number",value:t.week,onChange:r=>n(h=>{h.week=parseInt(r.target.value)||0})})),e.default.createElement("label",{className:"row muted"},"survivor pick ",e.default.createElement("input",{style:{width:70},placeholder:"TEAM",value:t.survivor,onChange:r=>n(h=>{h.survivor=E(r.target.value)})})),e.default.createElement("label",{className:"row muted"},"fan team ",e.default.createElement("input",{style:{width:70},value:t.fanTeam,onChange:r=>n(h=>{h.fanTeam=E(r.target.value)})})),e.default.createElement("button",{className:"btn",onClick:w},"Start new week"))),e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"row",style:{justifyContent:"space-between",marginBottom:8}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700}},"Games"),e.default.createElement("button",{className:"btn",onClick:m},"Add game")),e.default.createElement("div",{className:"scroll"},e.default.createElement("table",null,e.default.createElement("thead",null,e.default.createElement("tr",null,e.default.createElement("th",null,"Away"),e.default.createElement("th",null,"Home"),e.default.createElement("th",null,"Kickoff"),e.default.createElement("th",null,"Home line"),e.default.createElement("th",null,"Status"),e.default.createElement("th",null,"Away pts"),e.default.createElement("th",null,"Home pts"),e.default.createElement("th",null,"Clock"),e.default.createElement("th",null))),e.default.createElement("tbody",null,t.games.map((r,h)=>e.default.createElement("tr",{key:h},e.default.createElement("td",null,e.default.createElement("input",{style:{width:60},value:r.away,onChange:s=>d(h,"away",E(s.target.value))})),e.default.createElement("td",null,e.default.createElement("input",{style:{width:60},value:r.home,onChange:s=>d(h,"home",E(s.target.value))})),e.default.createElement("td",null,e.default.createElement("input",{style:{width:100},value:r.kick,onChange:s=>d(h,"kick",s.target.value)})),e.default.createElement("td",null,e.default.createElement("input",{type:"number",step:"0.5",value:r.line??"",onChange:s=>d(h,"line",s.target.value===""?null:parseFloat(s.target.value))})),e.default.createElement("td",null,e.default.createElement("select",{value:r.status,onChange:s=>d(h,"status",s.target.value)},e.default.createElement("option",{value:"upcoming"},"upcoming"),e.default.createElement("option",{value:"live"},"live"),e.default.createElement("option",{value:"final"},"final"))),e.default.createElement("td",null,e.default.createElement("input",{type:"number",value:r.awayScore??"",onChange:s=>d(h,"awayScore",s.target.value===""?null:Number(s.target.value))})),e.default.createElement("td",null,e.default.createElement("input",{type:"number",value:r.homeScore??"",onChange:s=>d(h,"homeScore",s.target.value===""?null:Number(s.target.value))})),e.default.createElement("td",null,e.default.createElement("input",{style:{width:90},value:r.clock||"",onChange:s=>d(h,"clock",s.target.value)})),e.default.createElement("td",null,e.default.createElement("button",{className:"btn sm danger",onClick:()=>v(h)},"\xD7"))))))),e.default.createElement("div",{className:"muted",style:{marginTop:6,fontSize:12}},"Home line is negative when the home team is favored (CIN -3.5 \u2192 -3.5; BAL favored at IND by 3.5 \u2192 +3.5). Changing team codes changes the game id, which detaches existing picks and bet legs.")),e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700,marginBottom:8}},"Pools"),["spread","pickem"].map(r=>e.default.createElement("div",{key:r,className:"row",style:{marginBottom:8}},e.default.createElement("input",{style:{width:240},value:t.leagues[r].name,onChange:h=>n(s=>{s.leagues[r].name=h.target.value})}),e.default.createElement("input",{style:{flex:1,minWidth:260},value:t.leagues[r].players.join(", "),onChange:h=>N(r,h.target.value),placeholder:"players, comma separated"}),e.default.createElement("label",{className:"row muted"},"you are",e.default.createElement("select",{value:t.me[r],onChange:h=>n(s=>{s.me[r]=h.target.value})},t.leagues[r].players.map(h=>e.default.createElement("option",{key:h},h))))))),e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700,marginBottom:4}},"Weights"),e.default.createElement("div",{className:"muted",style:{marginBottom:8,fontSize:12}},"Bets count at their to-pay amount. Pool picks count as points \xD7 opponents on the other side. Tune these until the ranking matches how you actually feel about a game."),e.default.createElement("div",{className:"row"},A("spreadPoint","spread pool, per opponent"),A("pickemPoint","pick'em, per opponent"),A("survivorPoint","survivor pick"),A("futurePoint","each future"),A("fanPoint","fan team"))),e.default.createElement("div",{className:"panel",style:{padding:12}},e.default.createElement("div",{className:"disp",style:{fontSize:22,fontWeight:700,marginBottom:8}},"Backup, import, reset"),e.default.createElement("div",{className:"muted",style:{marginBottom:8,fontSize:12}},"Edits made here stay in this browser. The shared version everyone sees is the data.json published next to this page."),e.default.createElement("div",{className:"row",style:{marginBottom:8}},e.default.createElement("button",{className:"btn",onClick:x},"Export JSON"),e.default.createElement("button",{className:"btn",onClick:$},"Import JSON from box"),e.default.createElement("button",{className:"btn danger",onClick:I},"Reset to built-in sample"),b&&e.default.createElement("span",{className:"muted"},b)),e.default.createElement("textarea",{rows:6,style:{width:"100%",fontFamily:"monospace",fontSize:12},value:l,onChange:r=>a(r.target.value),placeholder:"Paste a JSON export here to load a week, or click Export to back up the current one."})))}var ae=t=>{try{return new Date(t).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}catch{return""}},at=()=>{try{let t=localStorage.getItem(Se);return t?de(JSON.parse(t)):null}catch{return null}},we=async()=>{try{let t=await fetch(`${je}?t=${Date.now()}`,{cache:"no-store"});return t.ok?de(await t.json()):null}catch{return null}};function Ie(){let[t,n]=(0,e.useState)(X),[o,l]=(0,e.useState)(!1),[a,b]=(0,e.useState)("root"),[i,d]=(0,e.useState)(null),[m,v]=(0,e.useState)("");(0,e.useEffect)(()=>{let k=!0;return(async()=>{let[A,r]=[await we(),at()];if(!k)return;d(A),A&&r&&((s,g)=>(s?.updatedAt||"")>(g?.updatedAt||""))(r,A)?(n(r),v("local")):A?(n(A),v("published")):r?(n(r),v("local")):v("sample"),l(!0)})(),()=>{k=!1}},[]),(0,e.useEffect)(()=>{if(o)try{localStorage.setItem(Se,JSON.stringify(t))}catch{}},[t,o]);let N=k=>n(A=>{let r=JSON.parse(JSON.stringify(A));return k(r),r.updatedAt=new Date().toISOString(),v("local"),r}),w=async()=>{let k=await we();k?(d(k),n(k),v("published")):v("nopub")},I=(0,e.useMemo)(()=>t.games.map(k=>qe(k,t)),[t]),x=m==="published"?`published ${ae(t.updatedAt)}`:m==="local"?`your edits ${ae(t.updatedAt)}${i?`, published ${ae(i.updatedAt)}`:""}`:m==="nopub"?"no published data.json found next to this page":m==="sample"?"sample data":"",$=[["root","Rooting guide"],["bets","Bets"],["leagues","Pools"],["setup","Setup"]];return e.default.createElement("div",{className:"rb"},e.default.createElement("style",null,Xe),e.default.createElement("div",{style:{maxWidth:1400,margin:"0 auto",padding:"14px 14px 40px"}},e.default.createElement("div",{className:"row",style:{justifyContent:"space-between",alignItems:"flex-end",borderBottom:"1px solid var(--line)"}},e.default.createElement("div",{className:"row",style:{alignItems:"baseline",gap:12,paddingBottom:6}},e.default.createElement("span",{className:"disp",style:{fontSize:30,fontWeight:800,lineHeight:1}},"Rooting board"),e.default.createElement("span",{className:"muted"},t.season," season, week ",t.week),e.default.createElement("span",{className:"muted",style:{fontSize:12}},x),m==="local"&&i&&e.default.createElement("button",{className:"btn sm",onClick:w},"Load published")),e.default.createElement("div",{className:"row",style:{gap:0}},$.map(([k,A])=>e.default.createElement("button",{key:k,className:"tab"+(a===k?" on":""),onClick:()=>b(k)},A)))),e.default.createElement("div",{style:{marginTop:14}},a==="root"&&e.default.createElement(nt,{data:t,update:N,analyses:I}),a==="bets"&&e.default.createElement(it,{data:t,update:N}),a==="leagues"&&e.default.createElement(ot,{data:t,update:N}),a==="setup"&&e.default.createElement(lt,{data:t,update:N,setData:k=>{n({...k,updatedAt:new Date().toISOString()}),v("local")}}))))}typeof document<"u"&&document.getElementById("root")&&(0,Ae.createRoot)(document.getElementById("root")).render(e.default.createElement(Ie,null));})();
+(() => {
+'use strict';
+const { useState, useEffect, useMemo } = React;
+const h = (sel, props, ...kids) => {
+  if (typeof sel !== 'string') return React.createElement(sel, props, ...kids);
+  const parts = sel.split('.');
+  const p = props ? Object.assign({}, props) : {};
+  if (parts.length > 1) p.className = parts.slice(1).join(' ') + (p.className ? ' ' + p.className : '');
+  return React.createElement(parts[0] || 'div', p, ...kids);
+};
+const KEY = 'nfl-rooting-board:v2';
+const DATA_URL = 'data.json';
+const NL = String.fromCharCode(10);
+const MINUS = '\u2212', ARROW = ' \u2192 ';
+
+// ---------- formatting ----------
+const cash = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '$' + (Number.isInteger(v) ? v : v.toFixed(2)); };
+const usd = (n) => '$' + Math.round(Number(n) || 0);
+const uc = (s) => (s == null ? '' : String(s)).trim().toUpperCase();
+const round1 = (x) => Math.round(x * 10) / 10;
+const fmtLine = (n) => (n == null || isNaN(n) ? '' : n > 0 ? '+' + n : n < 0 ? MINUS + Math.abs(n) : 'PK');
+const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+const american = (b) => { const st = Number(b.stake) || 0, pay = Number(b.toPay) || 0; if (!st || !pay) return ''; const dec = b.bonus ? 1 + pay / st : pay / st; if (dec <= 1) return ''; return dec >= 2 ? '+' + Math.round((dec - 1) * 100) : MINUS + Math.round(100 / (dec - 1)); };
+const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
+
+// ---------- games ----------
+const hasScore = (g) => g.status !== 'upcoming' && g.awayScore != null && g.homeScore != null && g.awayScore !== '' && g.homeScore !== '';
+const marginOf = (g) => Number(g.homeScore) - Number(g.awayScore);
+const hasLine = (g) => g.line != null && g.line !== '' && !isNaN(g.line);
+const lineText = (g) => { if (!hasLine(g)) return 'No line yet'; const l = Number(g.line); return l === 0 ? 'Pick (PK)' : l < 0 ? g.home + ' ' + fmtLine(l) : g.away + ' ' + fmtLine(-l); };
+const mlTest = (side, g) => (side === g.home ? (m) => (m > 0 ? true : m < 0 ? false : null) : side === g.away ? (m) => (m < 0 ? true : m > 0 ? false : null) : null);
+const coverTest = (side, g, line) => {
+  if (line == null || isNaN(line)) return null;
+  if (side === g.home) return (m) => (m + line > 0 ? true : m + line < 0 ? false : null);
+  if (side === g.away) return (m) => (-m + line > 0 ? true : -m + line < 0 ? false : null);
+  return null;
+};
+
+// ---------- teams ----------
+const TEAMS = { ARI: ['#97233F', 'ari'], ATL: ['#A71930', 'atl'], BAL: ['#241773', 'bal'], BUF: ['#00338D', 'buf'], CAR: ['#0085CA', 'car'], CHI: ['#0B162A', 'chi'], CIN: ['#FB4F14', 'cin'], CLE: ['#311D00', 'cle'], DAL: ['#041E42', 'dal'], DEN: ['#FB4F14', 'den'], DET: ['#0076B6', 'det'], GB: ['#203731', 'gb'], HOU: ['#03202F', 'hou'], IND: ['#002C5F', 'ind'], JAX: ['#006778', 'jax'], KC: ['#E31837', 'kc'], LV: ['#000000', 'lv'], LAC: ['#0080C6', 'lac'], LAR: ['#003594', 'lar'], MIA: ['#008E97', 'mia'], MIN: ['#4F2683', 'min'], NE: ['#002244', 'ne'], NO: ['#D3BC8D', 'no'], NYG: ['#0B2265', 'nyg'], NYJ: ['#125740', 'nyj'], PHI: ['#004C54', 'phi'], PIT: ['#FFB612', 'pit'], SF: ['#AA0000', 'sf'], SEA: ['#002244', 'sea'], TB: ['#D50A0A', 'tb'], TEN: ['#0C2340', 'ten'], WAS: ['#5A1414', 'wsh'] };
+TEAMS.WSH = TEAMS.WAS; TEAMS.JAC = TEAMS.JAX; TEAMS.LA = TEAMS.LAR;
+const teamColor = (t) => (TEAMS[uc(t)] || ['#2F5443'])[0];
+const ink = (hex) => { const n = parseInt(hex.slice(1), 16); const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#141A12' : '#FFFFFF'; };
+function Logo({ t, size }) {
+  const s = size || 24;
+  const [bad, setBad] = useState(false);
+  const info = TEAMS[uc(t)];
+  if (!t) return h('span.nologo', { style: { width: s, height: s } });
+  if (!info || bad) return h('span.logo-fb', { style: { width: s, height: s, background: info ? info[0] : '#2F5443', fontSize: Math.max(8, Math.round(s * 0.34)) } }, uc(t));
+  return h('img.logo', { src: 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/' + info[1] + '.png&h=' + s * 2 + '&w=' + s * 2, width: s, height: s, alt: uc(t), loading: 'lazy', onError: () => setBad(true) });
+}
+const Mark = ({ v }) => (v === true ? h('span.ok', { title: 'Hitting right now' }, '\u2713') : v === false ? h('span.bad', { title: 'Missing right now' }, '\u2717') : v === null ? h('span.dim', { title: 'Push' }, '\u2013') : null);
+
+// ---------- kickoff slots ----------
+const DAYS = ['wed', 'thu', 'fri', 'sat', 'sun', 'mon', 'tue'];
+const DAYNAME = { wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday', mon: 'Monday', tue: 'Tuesday' };
+function parseKick(kick) {
+  const s = (kick || '').toLowerCase().trim();
+  const day = DAYS.find((d) => s.startsWith(d)) || null;
+  const m = s.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])/);
+  let mins = null, time = '';
+  if (m) { let hr = parseInt(m[1], 10) % 12; if (m[3] === 'p') hr += 12; mins = hr * 60 + (m[2] ? parseInt(m[2], 10) : 0); time = parseInt(m[1], 10) + ':' + (m[2] || '00') + (m[3] === 'p' ? ' PM' : ' AM'); }
+  return { day, mins, time };
+}
+function slotOf(kick) {
+  const k = parseKick(kick);
+  const di = k.day ? DAYS.indexOf(k.day) : 9;
+  const dn = k.day ? DAYNAME[k.day] : 'Other';
+  if (k.mins == null) return { key: di * 10 + 5, title: dn };
+  if (k.mins < 12 * 60) return { key: di * 10, title: dn + ' morning' };
+  if (k.mins < 18 * 60) return { key: di * 10 + 1, title: dn + ' afternoon', redzone: k.day === 'sun' };
+  return { key: di * 10 + 2, title: dn + ' night' };
+}
+
+// ---------- bet legs ----------
+function parseLeg(s) {
+  const raw = (s || '').trim();
+  if (!raw) return null;
+  const t = raw.split(/\s+/);
+  let status = 'open';
+  const last = t[t.length - 1].toLowerCase();
+  if (['won', 'lost', 'void'].includes(last)) { status = last; t.pop(); }
+  const head = (t[0] || '').toLowerCase();
+  if (head === 'future') return { kind: 'future', team: uc(t[1]), desc: t.slice(2).join(' '), status };
+  if (head === 'other' || !(t[0] || '').includes('@')) return { kind: 'other', desc: (head === 'other' ? t.slice(1) : t).join(' '), status };
+  const game = uc(t[0]);
+  const type = (t[1] || '').toLowerCase();
+  if (type === 'ml') return { kind: 'game', game, type, side: uc(t[2]), status };
+  if (type === 'spread') return { kind: 'game', game, type, side: uc(t[2]), line: parseFloat(t[3]), status };
+  if (type === 'total') return { kind: 'game', game, type, side: (t[2] || '').toLowerCase().startsWith('u') ? 'under' : 'over', line: parseFloat(t[3]), status };
+  return { kind: 'game', game, type: 'prop', desc: t.slice(type === 'prop' ? 2 : 1).join(' '), status };
+}
+function legToString(l) {
+  const st = l.status && l.status !== 'open' ? ' ' + l.status : '';
+  if (l.kind === 'future') return 'future ' + l.team + ' ' + (l.desc || '') + st;
+  if (l.kind === 'other') return 'other ' + (l.desc || '') + st;
+  if (l.type === 'ml') return l.game + ' ml ' + l.side + st;
+  if (l.type === 'spread') return l.game + ' spread ' + l.side + ' ' + (l.line > 0 ? '+' : '') + l.line + st;
+  if (l.type === 'total') return l.game + ' total ' + l.side + ' ' + l.line + st;
+  return l.game + ' prop ' + (l.desc || '') + st;
+}
+const legText = (l) => (l.type === 'ml' ? l.side + ' ML' : l.type === 'spread' ? l.side + ' ' + fmtLine(Number(l.line)) : l.type === 'total' ? (l.side === 'under' ? 'Under ' : 'Over ') + l.line : l.desc || '');
+
+// ---------- outcomes by final margin (home minus away) ----------
+const BOUND = 45;
+function runLabel(r, g) {
+  const A = r.a <= -BOUND ? -Infinity : r.a, B = r.b >= BOUND ? Infinity : r.b;
+  if (A === -Infinity && B === Infinity) return 'Any result';
+  if (B < 0) { const lo = -B, hi = -A; if (A === -Infinity) return lo === 1 ? g.away + ' win' : g.away + ' by ' + lo + '+'; return lo === hi ? g.away + ' by ' + lo : g.away + ' by ' + lo + '\u2013' + hi; }
+  if (A > 0) { if (B === Infinity) return A === 1 ? g.home + ' win' : g.home + ' by ' + A + '+'; return A === B ? g.home + ' by ' + A : g.home + ' by ' + A + '\u2013' + B; }
+  const ap = A === -Infinity ? g.away + ' win' : g.away + ' by \u2264' + -A;
+  const hp = B === Infinity ? g.home + ' win' : g.home + ' by \u2264' + B;
+  return ap + ' or ' + hp;
+}
+function outcomeRuns(g, ints) {
+  const act = ints.filter((i) => i.test && i.weight > 0);
+  if (!act.length) return [];
+  const runs = [];
+  let cur = null;
+  for (let m = -BOUND; m <= BOUND; m++) {
+    if (m === 0) continue;
+    const v = act.map((i) => { const r = i.test(m); return r === true ? 1 : r === false ? -1 : 0; });
+    const key = v.join(',');
+    if (cur && cur.key === key && m !== 1) cur.b = m;
+    else { cur = { a: m, b: m, key, v }; runs.push(cur); }
+  }
+  for (let i = 1; i < runs.length; i++) if (runs[i - 1].b === -1 && runs[i].a === 1 && runs[i].key === runs[i - 1].key) { runs[i - 1].b = runs[i].b; runs.splice(i, 1); break; }
+  runs.forEach((r) => { r.value = r.v.reduce((s, x, k) => s + x * act[k].weight, 0); r.label = runLabel(r, g); r.hits = act.filter((_, k) => r.v[k] === 1); r.misses = act.filter((_, k) => r.v[k] === -1); });
+  return runs;
+}
+
+// ---------- data + scoring ----------
+const DEFAULT_WEIGHTS = { poolShare: 0.5, betMethod: 'sd', futureShare: 0.2, fan: 10, survivor: 25 };
+const EMPTY = { version: 2, updatedAt: '', season: 2026, week: 1, me: { spread: '', pickem: '' }, fanTeam: '', survivor: '', weights: DEFAULT_WEIGHTS,
+  leagues: { spread: { name: 'Spread pool', site: '', buyIn: 100, players: [], standings: [] }, pickem: { name: "Pick'em", site: '', buyIn: 100, players: [], standings: [] } },
+  games: [], spreadPicks: {}, pickemPicks: {}, bets: [] };
+function migrate(d) {
+  d = d || {};
+  const w = d.weights || {};
+  const weights = Object.assign({}, DEFAULT_WEIGHTS);
+  Object.keys(DEFAULT_WEIGHTS).forEach((k) => { if (w[k] != null && w[k] !== '') weights[k] = w[k]; });
+  const lg = (k) => Object.assign({}, EMPTY.leagues[k], (d.leagues || {})[k] || {});
+  return Object.assign({}, EMPTY, d, {
+    version: 2, weights, me: Object.assign({}, EMPTY.me, d.me || {}),
+    survivor: d.survivor && typeof d.survivor === 'object' ? d.survivor.pick || '' : d.survivor || '',
+    leagues: { spread: lg('spread'), pickem: lg('pickem') },
+    games: (d.games || []).map((g) => Object.assign({ clock: '', homeWP: null }, g)),
+    spreadPicks: d.spreadPicks || {}, pickemPicks: d.pickemPicks || {},
+    bets: (d.bets || []).map((b) => Object.assign({ legs: [], bonus: false }, b)),
+  });
+}
+const override = (b) => { const o = b.weight != null && b.weight !== '' ? b.weight : b.scoreWeight; return o != null && o !== '' ? Number(o) || 0 : null; };
+function betWeight(b, W) {
+  const o = override(b);
+  if (o != null) return o;
+  const stake = Number(b.stake) || 0, pay = Number(b.toPay) || 0;
+  const profit = Math.max(0, b.bonus ? pay : pay - stake);
+  if (W.betMethod === 'stake') return stake;
+  if (W.betMethod === 'payout') return pay;
+  return Math.sqrt(stake * profit);
+}
+const futureWeight = (b, W) => { const o = override(b); return o != null ? o : (Number(b.stake) || 0) * (Number(W.futureShare) || 0); };
+
+function poolInfo(g, data, which) {
+  const L = data.leagues[which] || { players: [] };
+  const picks = (which === 'spread' ? data.spreadPicks : data.pickemPicks) || {};
+  const me = data.me[which];
+  const isSpread = which === 'spread';
+  const mine = (picks[me] || {})[g.id];
+  const out = { which, src: isSpread ? 'Spread pool' : "Pick'em" };
+  if (!mine) return Object.assign(out, { state: 'none' });
+  if (isSpread && !hasLine(g)) return Object.assign(out, { state: 'noline', side: mine });
+  const opps = (L.players || []).filter((p) => p !== me);
+  let against = 0, hidden = 0;
+  opps.forEach((p) => { const x = (picks[p] || {})[g.id]; if (x) { if (x !== mine) against++; } else if (g.picksShown) against += 0.5; else hidden++; });
+  const n = Math.max(1, opps.length);
+  const per = (Number(L.buyIn) || 0) * (Number(data.weights.poolShare) || 0) / n;
+  const line = isSpread ? (mine === g.home ? Number(g.line) : -Number(g.line)) : null;
+  return Object.assign(out, { state: hidden ? 'pending' : against > 0 ? 'edge' : 'noedge', side: mine, weight: per * against, max: per * (against + hidden), n, against, hidden,
+    label: isSpread ? mine + ' ' + fmtLine(line) : mine + ' to win',
+    test: isSpread ? coverTest(mine, g, line) : mlTest(mine, g) });
+}
+const poolSub = (p) => (p.state === 'noedge' ? 'Everyone has it too' : p.state === 'pending' ? (p.hidden >= p.n ? 'Picks show at kickoff, worth up to ' + usd(p.max) : 'Against ' + p.against + ' of ' + (p.n - p.hidden) + ' shown, ' + p.hidden + ' still hidden') : 'Against ' + p.against + ' of ' + p.n);
+
+function analyze(g, data) {
+  const W = data.weights;
+  const ints = [], wants = [], notes = [];
+  const inGame = (t) => t === g.home || t === g.away;
+  const spread = poolInfo(g, data, 'spread'), pickem = poolInfo(g, data, 'pickem');
+  [spread, pickem].forEach((p) => {
+    if (p.state === 'noline') notes.push('Add the spread in Setup to score your ' + p.src.toLowerCase() + ' pick.');
+    if (p.state === 'edge' || p.state === 'pending') ints.push({ key: p.which, src: p.src, kind: 'pool', side: p.side, weight: p.weight + (p.state === 'pending' ? 0.01 : 0), test: p.test });
+  });
+  const surv = uc(data.survivor);
+  if (surv && inGame(surv)) ints.push({ key: 'surv', src: 'Survivor', kind: 'survivor', side: surv, label: surv + ' to win', sub: 'Lose and you\u2019re out', weight: Number(W.survivor) || 0, test: mlTest(surv, g) });
+  const fan = uc(data.fanTeam);
+  if (fan && inGame(fan)) ints.push({ key: 'fan', src: 'Fan', kind: 'fan', side: fan, label: 'fan', weight: Number(W.fan) || 0, test: mlTest(fan, g), minor: true });
+  (data.bets || []).forEach((b) => {
+    if (b.status !== 'open') return;
+    const all = b.legs || [];
+    const legs = all.filter((l) => !l.status || l.status === 'open');
+    const here = legs.filter((l) => l.kind === 'game' && l.game === g.id);
+    if (here.length) {
+      const others = new Set(legs.filter((l) => l.kind === 'game' && l.game !== g.id).map((l) => l.game)).size;
+      const type = all.length > 1 ? (others ? 'parlay' : 'SGP') : '';
+      const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + ')' + (others ? ', needs ' + others + ' other game' + (others > 1 ? 's' : '') : '');
+      const w = betWeight(b, W);
+      const side = here.find((l) => l.type === 'ml' || l.type === 'spread');
+      const label = here.map(legText).join(', ');
+      const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, weight: w, betId: b.id };
+      if (side) ints.push(Object.assign(rec, { side: side.side, test: side.type === 'ml' ? mlTest(side.side, g) : coverTest(side.side, g, Number(side.line)) }));
+      else wants.push(rec);
+    }
+    legs.forEach((l) => { if (l.kind === 'future' && inGame(uc(l.team))) ints.push({ key: 'fut:' + b.id + ':' + l.team, src: 'Future', kind: 'future', side: uc(l.team), label: l.desc || 'future', weight: futureWeight(b, W), test: mlTest(uc(l.team), g), minor: true }); });
+  });
+  const runs = outcomeRuns(g, ints);
+  const core = ints.filter((i) => !i.minor);
+  const hasCore = core.some((i) => i.test && i.weight > 0) || wants.length > 0;
+  const sideCore = core.some((i) => i.test && i.weight > 0);
+  const runsCore = sideCore ? outcomeRuns(g, core) : runs;
+  const vals = runs.map((r) => r.value);
+  const wantsW = wants.reduce((s, x) => s + x.weight, 0);
+  const score = (vals.length ? (Math.max.apply(null, vals) - Math.min.apply(null, vals)) / 2 : 0) + wantsW;
+  const bestOf = (rs) => { let bv = -Infinity; rs.forEach((r) => { if (r.value > bv) bv = r.value; }); return rs.filter((r) => Math.abs(r.value - bv) < 1e-9); };
+  const bestRuns = bestOf(runsCore), fullBest = bestOf(runs);
+  const sideOf = (rs) => { let aw = 0, hm = 0; rs.forEach((r) => { for (let m = Math.max(r.a, -21); m <= Math.min(r.b, 21); m++) { if (m < 0) aw++; else if (m > 0) hm++; } }); return hm > aw ? g.home : aw > hm ? g.away : null; };
+  const anySide = ints.some((i) => i.test && i.weight > 0);
+  const root = anySide ? sideOf(bestRuns) || sideOf(fullBest) : null;
+  const bounded = bestRuns.length === 1 && bestRuns[0].a > -BOUND && bestRuns[0].b < BOUND && (bestRuns[0].b < 0 || bestRuns[0].a > 0);
+  const ladder = runsCore.length >= 3 ? runsCore.map((r) => r.label + ' ' + (r.value >= 0 ? '+' : MINUS) + usd(Math.abs(r.value))).join(', ') : '';
+  const coreMisses = bestRuns.length ? bestRuns[0].misses.filter((i) => !i.minor) : [];
+  const minors = ints.filter((i) => i.minor && i.weight > 0);
+  const minorMisses = root ? minors.filter((i) => i.side !== root) : [];
+  const coreLabel = bestRuns.map((r) => r.label).join(' or '), fullLabel = fullBest.map((r) => r.label).join(' or ');
+  const sweet = sideCore && minors.length && fullLabel !== coreLabel ? fullLabel : null;
+  const minorOnly = anySide && !sideCore;
+  const kind = g.status === 'final' ? 'final' : anySide ? (coreMisses.length ? 'split' : 'aligned') : wantsW > 0 ? 'wants' : 'dead';
+  const margin = hasScore(g) ? marginOf(g) : null;
+  const cur = (i) => (margin == null || !i || !i.test ? undefined : i.test(margin));
+  return { g, ints, wants, notes, bestRuns, bounded, ladder, root, kind, pending: spread.state === 'pending' || pickem.state === 'pending', sweet, minorOnly, minors, minorMisses, score, spread, pickem, cur, margin, quiet: !hasCore };
+}
+const groupMinor = (list) => { const m = new Map(); list.forEach((i) => { const k = i.side + '|' + i.label; const e = m.get(k); if (e) e.n++; else m.set(k, { side: i.side, label: i.label, n: 1, first: i }); }); return [...m.values()]; };
+const standingOf = (L, me) => { const st = (L && L.standings) || []; const mine = st.find((x) => x.name === me); return mine ? { rank: 1 + st.filter((x) => x.pts > mine.pts).length, n: st.length, pts: mine.pts } : null; };
+function legend(data) {
+  const W = data.weights;
+  const bets = W.betMethod === 'stake' ? 'bets count their stake' : W.betMethod === 'payout' ? 'bets count their full payout' : 'bets count \u221a(stake \u00d7 profit), their typical swing';
+  return 'At stake is the money riding on the result. A pool pick counts up to ' + Math.round((Number(W.poolShare) || 0) * 100) + '% of the buy-in when every opponent took the other side, less as more of them agree with you. Opponents\u2019 picks are pulled in once they show at kickoff, and nothing is estimated before that. Other than that, ' + bets + ', and futures count ' + Math.round((Number(W.futureShare) || 0) * 100) + '% of their stake.';
+}
+
+// ---------- game card ----------
+function Row({ src, team, label, sub, w, mk, off }) {
+  return h('div.r' + (off ? '.off' : ''), null,
+    h('div.src', null, src),
+    h('div.what', null, h(Logo, { t: team, size: 20 }), h('div.txt', null, h('b', null, label), sub ? h('span.d', null, sub) : null)),
+    h('div.w.tnum', null, w != null && w >= 0.5 ? usd(w) : ''),
+    h('div.mk', null, h(Mark, { v: mk })));
+}
+function ScoreEditor({ g, update }) {
+  const set = (k, v) => update((d) => { const x = d.games.find((q) => q.id === g.id); if (x) x[k] = v; });
+  const num = (v) => (v === '' ? null : Number(v));
+  return h('div.row', { style: { alignItems: 'flex-end', gap: 10 } },
+    h('label.field', null, g.away, h('input', { type: 'number', value: g.awayScore == null ? '' : g.awayScore, onChange: (e) => set('awayScore', num(e.target.value)) })),
+    h('label.field', null, g.home, h('input', { type: 'number', value: g.homeScore == null ? '' : g.homeScore, onChange: (e) => set('homeScore', num(e.target.value)) })),
+    h('label.field', null, 'Status', h('select', { value: g.status, onChange: (e) => set('status', e.target.value) }, ['upcoming', 'live', 'final'].map((s) => h('option', { key: s, value: s }, s)))),
+    h('label.field', null, 'Clock', h('input', { value: g.clock || '', placeholder: '2nd 6:26', style: { width: 100 }, onChange: (e) => set('clock', e.target.value) })));
+}
+function GameCard({ a, rank, update }) {
+  const g = a.g;
+  const [edit, setEdit] = useState(false);
+  const final = g.status === 'final', live = g.status === 'live', scored = hasScore(g);
+  const k = parseKick(g.kick);
+  const when = final ? 'Final' : live ? 'Live' + (g.clock ? ', ' + g.clock : '') : [k.day ? DAYNAME[k.day].slice(0, 3) : '', k.time].filter(Boolean).join(' ') || g.kick || '';
+  const mk = live || final;
+  let pcls = 'plate.dead', pstyle = null, title = 'No stake', target = '';
+  const notes = [];
+  if (final) {
+    const sc = a.ints.filter((i) => i.test && i.weight > 0);
+    const hit = sc.filter((i) => a.cur(i) === true).length;
+    pcls = 'plate.final'; title = 'Final'; target = sc.length ? hit + ' of ' + sc.length + ' hit' : 'Nothing was riding on it';
+  } else if (a.kind === 'wants') {
+    pcls = 'plate.wants'; title = 'No side'; target = 'Props only: just need them to hit';
+  } else if (a.kind === 'aligned' || a.kind === 'split') {
+    title = (a.minorOnly ? 'Mild lean ' : a.kind === 'aligned' ? 'Root ' : 'Lean ') + (a.root || 'either side');
+    if (a.minorOnly) { pcls = 'plate.outline'; pstyle = { borderColor: teamColor(a.root), color: 'var(--text)' }; }
+    else if (a.kind === 'split') pcls = 'plate.split';
+    else { const c = teamColor(a.root); pcls = 'plate'; pstyle = { background: c, color: ink(c) }; }
+    target = a.bestRuns.map((r) => r.label).join(' or ');
+    if (a.kind === 'split' && a.bestRuns[0] && a.bestRuns[0].misses.length) notes.push('Best case still loses your ' + a.bestRuns[0].misses.map((i) => (i.kind === 'bet' ? i.src + ' ' + (i.type || 'bet') : i.src.toLowerCase())).join(' and ') + '.');
+    if (a.sweet) notes.push('Sweet spot: ' + a.sweet + '.');
+    if ((a.kind === 'split' || a.bounded) && a.ladder && !a.pending) notes.push('Outcomes: ' + a.ladder + '.');
+    if (a.minorMisses.length) notes.push('Cuts against ' + groupMinor(a.minorMisses).map((x) => (x.label === 'fan' ? x.side + ' (your team)' : x.side + ' ' + x.label + (x.n > 1 ? ' \u00d7' + x.n : ''))).join(', ') + '.');
+  }
+  const poolRow = (p) => {
+    if (p.state === 'none') return h(Row, { key: p.which, src: p.src, off: true, label: 'No pick yet' });
+    if (p.state === 'noline') return h(Row, { key: p.which, src: p.src, off: true, team: p.side, label: p.side, sub: 'Needs a line to score' });
+    return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p), w: p.weight, mk: mk && a.margin != null && p.test ? p.test(a.margin) : undefined });
+  };
+  const rows = [poolRow(a.spread), poolRow(a.pickem)];
+  const surv = a.ints.find((i) => i.kind === 'survivor');
+  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: surv.weight, mk: mk ? a.cur(surv) : undefined }));
+  a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
+    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, w: b.weight, mk: mk && b.test ? a.cur(b) : undefined })));
+  if (a.minors.length) rows.push(h('div.r', { key: 'minor' }, h('div.src', null, 'Futures & fan'),
+    h('div.chips', null, groupMinor(a.minors).map((x) => h('span.chip' + (a.root && x.side !== a.root ? '.against' : ''), { key: x.side + x.label, title: x.side + ' ' + x.label }, h(Logo, { t: x.side, size: 16 }), (x.label === 'fan' ? 'Your team' : x.label) + (x.n > 1 ? ' \u00d7' + x.n : ''), mk ? h(Mark, { v: a.cur(x.first) }) : null))),
+    h('div.w.tnum', null, usd(a.minors.reduce((s, i) => s + i.weight, 0))), h('div.mk')));
+  return h('div.card' + (live ? '.live' : '') + (final ? '.done' : ''), null,
+    h('div.card-top', null,
+      h('div', null,
+        h('div.matchup', null,
+          h('span.team', null, h(Logo, { t: g.away, size: 30 }), g.away, scored ? h('span.pts.tnum', null, g.awayScore) : null),
+          h('span.at', null, 'at'),
+          h('span.team', null, h(Logo, { t: g.home, size: 30 }), g.home, scored ? h('span.pts.tnum', null, g.homeScore) : null)),
+        h('div.sub', null, h('span' + (live ? '.livepill' : ''), null, when), h('span', null, lineText(g)))),
+      final ? null : a.pending ? h('div.stake', null, h('div.amt.tnum.dim', null, a.score >= 0.5 ? usd(a.score) : '\u2014'), h('div.cap', null, 'pools count at kickoff')) : a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum', null, rank ? h('span.rank', null, '#' + rank) : null, usd(a.score)), h('div.cap', null, 'at stake')) : null),
+    h('div.verdict', null, h('span.' + pcls, { style: pstyle }, title), target ? h('span.target', null, target) : null, notes.length ? h('span.note', null, notes.join(' ')) : null),
+    h('div.rows', null, rows),
+    a.notes.length ? h('div.warnline', null, a.notes.join(' ')) : null,
+    h('div.foot', null, h('button.linkbtn', { onClick: () => setEdit(!edit) }, edit ? 'Done' : 'Edit score')),
+    edit ? h(ScoreEditor, { g, update }) : null);
+}
+
+// ---------- tabs ----------
+const Stat = (v, l) => h('div.cell', { key: l }, h('div.v.tnum', null, v), h('div.l', null, l));
+function RootingTab({ data, analyses, update }) {
+  const [hideDone, setHideDone] = useState(false);
+  const [hideQuiet, setHideQuiet] = useState(false);
+  const open = analyses.filter((a) => a.g.status !== 'final');
+  const scores = open.filter((a) => !a.quiet && !a.pending && a.score >= 0.5).map((a) => a.score);
+  const rankOf = (a) => (a.quiet || a.pending || a.g.status === 'final' || a.score < 0.5 ? null : 1 + scores.filter((s) => s > a.score + 1e-9).length);
+  const groups = new Map();
+  analyses.forEach((a) => {
+    if (hideDone && a.g.status === 'final') return;
+    const s = slotOf(a.g.kick);
+    const k = s.key + '|' + s.title;
+    if (!groups.has(k)) groups.set(k, Object.assign({}, s, { items: [] }));
+    groups.get(k).items.push(a);
+  });
+  const slots = [...groups.values()].sort((x, y) => x.key - y.key);
+  const order = (a) => (a.g.status === 'live' ? 0 : a.g.status === 'final' ? 2 : 1);
+  const edge = (p) => p && (p.state === 'edge' || p.state === 'pending');
+  const both = open.filter((a) => edge(a.spread) && edge(a.pickem)).length;
+  const sOnly = open.filter((a) => edge(a.spread) && !edge(a.pickem)).length;
+  const pOnly = open.filter((a) => !edge(a.spread) && edge(a.pickem)).length;
+  const ids = new Set(data.games.map((g) => g.id));
+  const weekBets = data.bets.filter((b) => b.status === 'open' && (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game)));
+  const cashRisk = weekBets.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0);
+  const stats = [
+    Stat(usd(open.reduce((s, a) => s + a.score, 0)), open.some((a) => a.pending) ? 'At stake so far (pools count at kickoff)' : 'At stake on games left'),
+    Stat(open.filter((a) => !a.quiet).length + ' of ' + open.length, 'Games that matter'),
+    Stat(both + ' / ' + sOnly + ' / ' + pOnly, 'Both pools / spread only / pick\u2019em only'),
+    Stat(cash(cashRisk), 'Cash on ' + weekBets.length + ' bet' + (weekBets.length === 1 ? '' : 's') + ' this week'),
+  ];
+  ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(L, data.me[w]); if (s) stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts')); });
+  return h('div', null,
+    h('div.strip', null, stats),
+    h('div.toolbar', null,
+      h('label', null, h('input', { type: 'checkbox', checked: hideDone, onChange: (e) => setHideDone(e.target.checked) }), 'Hide completed games'),
+      h('label', null, h('input', { type: 'checkbox', checked: hideQuiet, onChange: (e) => setHideQuiet(e.target.checked) }), 'Hide games with nothing riding')),
+    h('p.legend', null, legend(data)),
+    !data.games.length ? h('div.panel.empty-state', null, 'No games loaded. Add this week\u2019s games in Setup.') : null,
+    slots.map((s) => {
+      const cards = s.items.filter((a) => !a.quiet).sort((x, y) => order(x) - order(y) || y.score - x.score);
+      const quiet = s.items.filter((a) => a.quiet);
+      const stake = s.items.filter((a) => a.g.status !== 'final').reduce((t, a) => t + a.score, 0);
+      const times = [...new Set(s.items.map((a) => parseKick(a.g.kick)).filter((x) => x.time).sort((x, y) => x.mins - y.mins).map((x) => x.time))];
+      return h('section', { key: s.key + s.title },
+        h('div.slot', null,
+          h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone ? h('span.rz', null, 'RedZone') : null),
+          h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (stake >= 0.5 ? ', ' + usd(stake) + ' at stake' + (s.items.some((a) => a.pending) ? ' so far' : '') : ''))),
+        cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update }))) : null,
+        quiet.length && !hideQuiet ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
+    }));
+}
+
+const EMPTY_FORM = { id: null, book: 'DK', placed: '', desc: '', stake: '', toPay: '', status: 'open', bonus: false, weight: '', legsText: '' };
+const LEG_HELP = ['One leg per line, for example:', 'ATL@GB ml ATL', 'ATL@GB spread ATL +6.5', 'ATL@GB total over 44.5', 'ATL@GB prop Bijan anytime TD', 'future PHI Super Bowl', 'Add won or lost at the end of a line to settle just that leg.'].join(NL);
+function BetsTab({ data, update }) {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const W = data.weights;
+  const ids = new Set(data.games.map((g) => g.id));
+  const isWeek = (b) => (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game));
+  const isFuture = (b) => (b.legs || []).some((l) => l.kind === 'future');
+  const open = data.bets.filter((b) => b.status === 'open');
+  const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b)), settled = data.bets.filter((b) => b.status !== 'open');
+  const net = (b) => (b.status === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : b.status === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0);
+  const wOf = (b) => (isFuture(b) && !isWeek(b) ? futureWeight(b, W) : betWeight(b, W));
+  const netAll = settled.reduce((s, b) => s + net(b), 0);
+  const setStatus = (id, s) => update((d) => { const b = d.bets.find((x) => x.id === id); if (b) { b.status = s; if (s !== 'open') (b.legs || []).forEach((l) => { if (!l.status || l.status === 'open') l.status = s; }); } });
+  const del = (id) => update((d) => { d.bets = d.bets.filter((x) => x.id !== id); });
+  const editBet = (b) => setForm({ id: b.id, book: b.book || 'DK', placed: b.placed || '', desc: b.desc || '', stake: String(b.stake), toPay: String(b.toPay), status: b.status, bonus: !!b.bonus, weight: override(b) == null ? '' : String(override(b)), legsText: (b.legs || []).map(legToString).join(NL) });
+  const save = () => {
+    if (!form.desc.trim()) return;
+    const rec = { book: form.book, placed: form.placed, desc: form.desc.trim(), stake: parseFloat(form.stake) || 0, toPay: parseFloat(form.toPay) || 0, status: form.status, bonus: form.bonus, legs: form.legsText.split(NL).map(parseLeg).filter(Boolean) };
+    update((d) => {
+      let b = form.id ? d.bets.find((x) => x.id === form.id) : null;
+      if (!b) { b = { id: 'b' + Date.now() }; d.bets.unshift(b); }
+      Object.assign(b, rec);
+      delete b.scoreWeight;
+      if (form.weight === '') delete b.weight; else b.weight = parseFloat(form.weight) || 0;
+    });
+    setForm(EMPTY_FORM);
+  };
+  const f = (k) => (e) => setForm(Object.assign({}, form, { [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const legLine = (l) => (l.kind === 'game' ? l.game + ' ' + legText(l) : l.kind === 'future' ? l.team + ' ' + (l.desc || '') : l.desc || '') + (l.status && l.status !== 'open' ? ' (' + l.status + ')' : '');
+  const right = { textAlign: 'right' };
+  const table = (title, list, mode) => (!list.length ? null : h('div.panel', { key: title },
+    h('div.row.between', null, h('h3', null, title), h('span.hint', null, list.length + ' bet' + (list.length === 1 ? '' : 's'))),
+    h('div.scroll', { style: { marginTop: 8 } }, h('table', null,
+      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Counts as', 'Status', ''].map((c, i) => h('th', { key: i, style: i >= 3 && i <= 5 ? right : null }, c)))),
+      h('tbody', null, list.map((b) => h('tr', { key: b.id },
+        h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
+        h('td.muted.tnum', null, b.placed || ''),
+        h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), (b.legs || []).length ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null),
+        h('td.tnum', { style: right }, cash(b.stake)),
+        h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
+        h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : usd(wOf(b))),
+        h('td', null, h('select', { value: b.status, onChange: (e) => setStatus(b.id, e.target.value) }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s)))),
+        h('td', { style: { whiteSpace: 'nowrap' } }, h('button.btn.sm', { onClick: () => editBet(b) }, 'Edit'), ' ', h('button.btn.sm.danger', { onClick: () => del(b.id), title: 'Delete bet' }, '\u00d7')))))))));
+  return h('div.stack', null,
+    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(open.reduce((s, b) => s + (Number(b.toPay) || 0), 0)), 'Paid if everything hits'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
+    table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'),
+    h('div.panel', null, h('h3', null, form.id ? 'Edit bet' : 'Add a bet'),
+      h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 12 } },
+        h('label.field', null, 'Book', h('select', { value: form.book, onChange: f('book') }, ['DK', 'FD', 'Other'].map((s) => h('option', { key: s, value: s }, s)))),
+        h('label.field', null, 'Placed', h('input', { value: form.placed, placeholder: '9/24', style: { width: 80 }, onChange: f('placed') })),
+        h('label.field', { style: { flex: '1 1 220px' } }, 'Description', h('input', { value: form.desc, placeholder: 'ATL ML +220', onChange: f('desc') })),
+        h('label.field', null, 'Stake', h('input', { type: 'number', step: 0.01, value: form.stake, onChange: f('stake') })),
+        h('label.field', null, 'To pay', h('input', { type: 'number', step: 0.01, value: form.toPay, onChange: f('toPay') })),
+        h('label.field', null, 'Counts as ($)', h('input', { type: 'number', step: 1, value: form.weight, placeholder: 'auto', onChange: f('weight') })),
+        h('label.field', null, 'Status', h('select', { value: form.status, onChange: f('status') }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s)))),
+        h('label', { className: 'row muted', style: { fontSize: 12, paddingBottom: 6 } }, h('input', { type: 'checkbox', checked: form.bonus, onChange: f('bonus') }), 'Bonus bet')),
+      h('textarea', { rows: 4, style: { width: '100%', marginTop: 10 }, value: form.legsText, onChange: f('legsText'), placeholder: LEG_HELP }),
+      h('div.row', { style: { marginTop: 10 } }, h('button.btn.primary', { onClick: save }, form.id ? 'Save changes' : 'Add bet'), form.id ? h('button.btn', { onClick: () => setForm(EMPTY_FORM) }, 'Cancel') : null,
+        h('span.hint', null, 'Legs tie a bet to a game (AWAY@HOME) so it shows up in the rooting guide. Leave \u201ccounts as\u201d blank to use the scoring rule.'))));
+}
+
+function PoolPanel({ data, which, update }) {
+  const L = data.leagues[which], isSpread = which === 'spread';
+  const key = isSpread ? 'spreadPicks' : 'pickemPicks';
+  const picks = data[key] || {};
+  const me = data.me[which];
+  const games = data.games;
+  const st = (L.standings || []).slice().sort((x, y) => y.pts - x.pts);
+  const setPick = (p, gid, v) => update((d) => { d[key][p] = d[key][p] || {}; if (v) d[key][p][gid] = v; else delete d[key][p][gid]; });
+  const cycle = (v, g) => (v === '' ? g.away : v === g.away ? g.home : '');
+  const result = (x, g) => { if (!x || !hasScore(g)) return null; const t = isSpread ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g); return t ? t(marginOf(g)) : null; };
+  const wl = (p) => { let w = 0, l = 0; games.forEach((g) => { const r = result((picks[p] || {})[g.id], g); if (r === true) w++; else if (r === false) l++; }); return w + '-' + l; };
+  return h('div.panel', null,
+    h('div.row.between', { style: { marginBottom: 12, alignItems: 'flex-end' } },
+      h('div', null, h('h3', null, L.name), h('div.hint', null, [L.site, isSpread ? 'against the spread' : 'straight up', cash(L.buyIn) + ' buy-in'].filter(Boolean).join(', '))),
+      st.length ? h('div.chips', null, st.map((x) => h('span.chip.plain' + (x.name === me ? '.me' : ''), { key: x.name }, ordinal(1 + st.filter((y) => y.pts > x.pts).length) + ' ' + x.name + ' ', h('b.tnum', null, x.pts)))) : null),
+    h('div.scroll', null, h('table', null,
+      h('thead', null, h('tr', null, h('th', null, 'Week ' + data.week), h('th', null, 'W-L'), games.map((g) => h('th', { key: g.id, style: { textAlign: 'center' } }, h('div.mini', null, h(Logo, { t: g.away, size: 16 }), h(Logo, { t: g.home, size: 16 })), h('div.hint', null, isSpread ? lineText(g) : g.away + ' at ' + g.home))))),
+      h('tbody', null, (L.players || []).map((p) => h('tr', { key: p },
+        h('td', { style: { fontWeight: p === me ? 700 : 500, whiteSpace: 'nowrap' } }, p, p === me ? h('span.you', null, 'you') : null),
+        h('td.tnum.muted', null, wl(p)),
+        games.map((g) => { const v = (picks[p] || {})[g.id] || ''; const r = result(v, g); return h('td', { key: g.id, style: { textAlign: 'center' } }, h('button', { className: 'pick' + (p === me ? ' me' : '') + (!v ? ' empty' : r === true ? ' hit' : r === false ? ' miss' : ''), onClick: () => setPick(p, g.id, cycle(v, g)), title: 'Click to cycle away, home, blank' }, v || '\u00b7')); })))))),
+    h('p.hint', null, 'Opponents\u2019 picks stay hidden until each game kicks off. They\u2019re pulled in at kickoff and don\u2019t count until then. Click a cell to change a pick.'));
+}
+const PoolsTab = ({ data, update }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', update }), h(PoolPanel, { data, which: 'pickem', update }));
+
+function SetupTab({ data, update, replaceData, onDiscard }) {
+  const [io, setIo] = useState('');
+  const [msg, setMsg] = useState('');
+  const W = data.weights;
+  const num = (v) => (v === '' ? null : Number(v));
+  const setG = (i, k, v) => update((d) => { const g = d.games[i]; if (!g) return; g[k] = v; if (k === 'away' || k === 'home') g.id = uc(g.away) + '@' + uc(g.home); });
+  const setW = (k, v) => update((d) => { d.weights[k] = v; });
+  const wIn = (k, label, step, hint) => h('label.field', { key: k }, label, h('input', { type: 'number', step, value: W[k], onChange: (e) => setW(k, parseFloat(e.target.value) || 0) }), hint ? h('span.hint', null, hint) : null);
+  const field = (label, el) => h('label.field', null, label, el);
+  const addGame = () => update((d) => { d.games.push({ id: 'AWY@HOM', away: 'AWY', home: 'HOM', kick: 'Sun 1:00p', line: null, homeWP: null, status: 'upcoming', awayScore: null, homeScore: null, clock: '' }); });
+  const newWeek = () => { if (window.confirm('Start a new week? This clears the games and picks. Bets stay.')) update((d) => { d.week = (Number(d.week) || 0) + 1; d.games = []; d.spreadPicks = {}; d.pickemPicks = {}; d.survivor = ''; }); };
+  return h('div.stack', null,
+    h('div.panel', null, h('h3', null, 'This week'),
+      h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 14 } },
+        field('Season', h('input', { type: 'number', value: data.season, onChange: (e) => update((d) => { d.season = parseInt(e.target.value, 10) || 0; }) })),
+        field('Week', h('input', { type: 'number', value: data.week, onChange: (e) => update((d) => { d.week = parseInt(e.target.value, 10) || 0; }) })),
+        field('Survivor pick', h('input', { value: data.survivor || '', placeholder: 'Team', style: { width: 90 }, onChange: (e) => update((d) => { d.survivor = uc(e.target.value); }) })),
+        field('Fan team', h('input', { value: data.fanTeam || '', style: { width: 90 }, onChange: (e) => update((d) => { d.fanTeam = uc(e.target.value); }) })),
+        h('button.btn', { onClick: newWeek }, 'Start new week'))),
+    h('div.panel', null, h('h3', null, 'Scoring'), h('p.hint', { style: { maxWidth: '78ch' } }, legend(data)),
+      h('div.row', { style: { alignItems: 'flex-start', gap: 16, marginTop: 8 } },
+        wIn('poolShare', 'Pool pick, share of buy-in', 0.05, 'When every opponent is against you'),
+        field('Bets count as', h('select', { value: W.betMethod, onChange: (e) => setW('betMethod', e.target.value) }, h('option', { value: 'sd' }, '\u221a(stake \u00d7 profit)'), h('option', { value: 'stake' }, 'Stake'), h('option', { value: 'payout' }, 'Payout'))),
+        wIn('futureShare', 'Futures, share of stake', 0.05),
+        wIn('fan', 'Fan team ($)', 1),
+        wIn('survivor', 'Survivor pick ($)', 1))),
+    h('div.panel', null, h('div.row.between', null, h('h3', null, 'Games'), h('button.btn', { onClick: addGame }, 'Add game')),
+      h('div.scroll', { style: { marginTop: 10 } }, h('table', null,
+        h('thead', null, h('tr', null, ['Away', 'Home', 'Kickoff', 'Home line', 'Status', 'Away pts', 'Home pts', 'Clock', ''].map((c, i) => h('th', { key: i }, c)))),
+        h('tbody', null, data.games.map((g, i) => h('tr', { key: i },
+          h('td', null, h('input', { value: g.away, style: { width: 64 }, onChange: (e) => setG(i, 'away', uc(e.target.value)) })),
+          h('td', null, h('input', { value: g.home, style: { width: 64 }, onChange: (e) => setG(i, 'home', uc(e.target.value)) })),
+          h('td', null, h('input', { value: g.kick || '', style: { width: 104 }, onChange: (e) => setG(i, 'kick', e.target.value) })),
+          h('td', null, h('input', { type: 'number', step: 0.5, value: g.line == null ? '' : g.line, onChange: (e) => setG(i, 'line', num(e.target.value)) })),
+          h('td', null, h('select', { value: g.status, onChange: (e) => setG(i, 'status', e.target.value) }, ['upcoming', 'live', 'final'].map((s) => h('option', { key: s, value: s }, s)))),
+          h('td', null, h('input', { type: 'number', value: g.awayScore == null ? '' : g.awayScore, onChange: (e) => setG(i, 'awayScore', num(e.target.value)) })),
+          h('td', null, h('input', { type: 'number', value: g.homeScore == null ? '' : g.homeScore, onChange: (e) => setG(i, 'homeScore', num(e.target.value)) })),
+          h('td', null, h('input', { value: g.clock || '', style: { width: 96 }, onChange: (e) => setG(i, 'clock', e.target.value) })),
+          h('td', null, h('button.btn.sm.danger', { onClick: () => update((d) => { d.games.splice(i, 1); }), title: 'Remove game' }, '\u00d7'))))))),
+      h('p.hint', null, 'Home line is negative when the home team is favored. Changing a team code detaches picks and bet legs for that game.')),
+    h('div.panel', null, h('h3', null, 'Pools'),
+      ['spread', 'pickem'].map((w) => { const L = data.leagues[w]; const set = (k, v) => update((d) => { d.leagues[w][k] = v; }); return h('div.row', { key: w, style: { marginTop: 12, alignItems: 'flex-end', gap: 12 } },
+        field('Name', h('input', { value: L.name, style: { width: 190 }, onChange: (e) => set('name', e.target.value) })),
+        field('Site', h('input', { value: L.site || '', style: { width: 80 }, onChange: (e) => set('site', e.target.value) })),
+        field('Buy-in ($)', h('input', { type: 'number', value: L.buyIn, onChange: (e) => set('buyIn', parseFloat(e.target.value) || 0) })),
+        h('label.field', { style: { flex: '1 1 240px' } }, 'Players, comma separated', h('input', { value: (L.players || []).join(', '), onChange: (e) => set('players', e.target.value.split(',').map((s) => s.trim()).filter(Boolean)) })),
+        field('You are', h('select', { value: data.me[w], onChange: (e) => update((d) => { d.me[w] = e.target.value; }) }, (L.players || []).map((p) => h('option', { key: p, value: p }, p))))); })),
+    h('div.panel', null, h('h3', null, 'Backup and restore'),
+      h('p.hint', null, 'Edits made here stay in this browser. Everyone else sees the published data.'),
+      h('div.row', { style: { margin: '8px 0' } },
+        h('button.btn', { onClick: () => { setIo(JSON.stringify(data, null, 2)); setMsg('Current data is in the box below.'); } }, 'Export JSON'),
+        h('button.btn', { onClick: () => { try { replaceData(migrate(JSON.parse(io))); setMsg('Imported.'); } catch (e) { setMsg('That isn\u2019t valid JSON: ' + e.message); } } }, 'Import JSON'),
+        h('button.btn.danger', { onClick: () => { if (window.confirm('Discard your edits and reload the published data?')) { onDiscard(); setMsg('Reloaded the published data.'); } } }, 'Discard my edits'),
+        msg ? h('span.hint', null, msg) : null),
+      h('textarea', { rows: 6, style: { width: '100%', fontFamily: 'ui-monospace,Consolas,monospace', fontSize: 12 }, value: io, onChange: (e) => setIo(e.target.value), placeholder: 'Paste exported JSON here, then choose Import JSON.' })));
+}
+
+// ---------- app ----------
+const readLocal = () => { try { const v = localStorage.getItem(KEY); return v ? migrate(JSON.parse(v)) : null; } catch (e) { return null; } };
+const fetchPublished = async () => { try { const r = await fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' }); return r.ok ? migrate(await r.json()) : null; } catch (e) { return null; } };
+function App() {
+  const [data, setData] = useState(() => migrate(EMPTY));
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState('root');
+  const [published, setPublished] = useState(null);
+  const [source, setSource] = useState('');
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const pub = await fetchPublished();
+      const loc = readLocal();
+      if (!alive) return;
+      setPublished(pub);
+      const newer = (x, y) => ((x && x.updatedAt) || '') > ((y && y.updatedAt) || '');
+      if (pub && loc && newer(loc, pub)) { setData(loc); setSource('local'); }
+      else if (pub) { setData(pub); setSource('published'); }
+      else if (loc) { setData(loc); setSource('local'); }
+      else setSource('none');
+      setLoaded(true);
+    })();
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => { if (loaded) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ } } }, [data, loaded]);
+  const update = (fn) => { setData((d) => { const c = JSON.parse(JSON.stringify(d)); fn(c); c.updatedAt = new Date().toISOString(); return c; }); setSource('local'); };
+  const replaceData = (d) => { setData(Object.assign({}, d, { updatedAt: new Date().toISOString() })); setSource('local'); };
+  const loadPublished = async () => { const pub = await fetchPublished(); if (pub) { setPublished(pub); setData(pub); setSource('published'); } };
+  const analyses = useMemo(() => data.games.map((g) => analyze(g, data)), [data]);
+  const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
+  const tabs = [['root', 'Rooting guide'], ['bets', 'Bets'], ['pools', 'Pools'], ['setup', 'Setup']];
+  return h('div.wrap', null,
+    h('header.top', null,
+      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + data.week + ', ' + data.season), src ? h('span.src', null, src) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
+      h('nav.tabs', null, tabs.map(([k, l]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, l)))),
+    !loaded ? h('div.empty-state', null, 'Loading\u2026')
+      : tab === 'root' ? h(RootingTab, { data, analyses, update })
+      : tab === 'bets' ? h(BetsTab, { data, update })
+      : tab === 'pools' ? h(PoolsTab, { data, update })
+      : h(SetupTab, { data, update, replaceData, onDiscard: loadPublished }));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+})();
 </script>
 </body>
 </html>
