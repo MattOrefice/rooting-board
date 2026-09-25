@@ -277,6 +277,7 @@ function migrate(d) {
   const lg = (k) => Object.assign({}, EMPTY.leagues[k], (d.leagues || {})[k] || {});
   return Object.assign({}, EMPTY, d, {
     version: 2, weights, me: Object.assign({}, EMPTY.me, d.me || {}),
+    gamesLeft: d.gamesLeft != null ? d.gamesLeft : 240, model: Object.assign({ spreadAgree: 0.55, favWin: 0.66, favPick: 0.8 }, d.model || {}),
     survivor: d.survivor && typeof d.survivor === 'object' ? d.survivor.pick || '' : d.survivor || '',
     leagues: { spread: lg('spread'), pickem: lg('pickem') },
     games: (d.games || []).map((g) => Object.assign({ clock: '', homeWP: null }, g)),
@@ -296,6 +297,42 @@ function betWeight(b, W) {
 }
 const futureWeight = (b, W) => { const o = override(b); return o != null ? o : (Number(b.stake) || 0) * (Number(W.futureShare) || 0); };
 
+// ---------- pool equity: simulate the rest of the season from the standings (winner-take-all) ----------
+const SIMS = 5000;
+const simCache = new Map();
+const rng = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+function poolSim(data, which) {
+  const L = data.leagues[which] || {};
+  const players = L.players || [], nP = players.length, me = players.indexOf(data.me[which]);
+  const M = data.model || {}, ppw = Number(L.ptsPerWin) || 1;
+  const left = Math.max(0, (Number(data.gamesLeft) || 0) - data.games.filter((g) => g.status === 'final').length - 1);
+  const base = players.map((p) => { const s = (L.standings || []).find((x) => x.name === p); return s ? Math.round(Number(s.pts) / ppw) : 0; });
+  const agree = M.spreadAgree == null ? 0.55 : Number(M.spreadAgree), favWin = M.favWin == null ? 0.66 : Number(M.favWin), favPick = M.favPick == null ? 0.8 : Number(M.favPick);
+  const key = [which, nP, me, left, base.join(','), agree, favWin, favPick, L.buyIn].join('|');
+  if (simCache.has(key)) return simCache.get(key);
+  const inc = new Int16Array(SIMS * nP), rnd = rng(which === 'spread' ? 20260901 : 20260902);
+  for (let s = 0; s < SIMS; s++) {
+    const o = s * nP;
+    for (let k = 0; k < left; k++) {
+      if (which === 'spread') { const right = rnd() < 0.5; for (let j = 0; j < nP; j++) if (j === me ? right : (rnd() < agree) === right) inc[o + j]++; }
+      else { const fav = rnd() < favWin; for (let j = 0; j < nP; j++) if ((rnd() < favPick) === fav) inc[o + j]++; }
+    }
+  }
+  const pot = (Number(L.buyIn) || 0) * nP;
+  const equity = (bonus) => {
+    if (me < 0 || !nP) return 0;
+    let tot = 0;
+    for (let s = 0; s < SIMS; s++) {
+      const o = s * nP; let best = -Infinity, cnt = 0, mine = 0;
+      for (let j = 0; j < nP; j++) { const v = base[j] + inc[o + j] + (bonus ? bonus[j] : 0); if (j === me) mine = v; if (v > best) { best = v; cnt = 1; } else if (v === best) cnt++; }
+      if (mine === best) tot += 1 / cnt;
+    }
+    return pot * tot / SIMS;
+  };
+  const sim = { players, me, pot, left, equity };
+  simCache.set(key, sim);
+  return sim;
+}
 function poolInfo(g, data, which) {
   const L = data.leagues[which] || { players: [] };
   const picks = (which === 'spread' ? data.spreadPicks : data.pickemPicks) || {};
@@ -305,17 +342,28 @@ function poolInfo(g, data, which) {
   const out = { which, src: isSpread ? 'Spread pool' : "Pick'em" };
   if (!mine) return Object.assign(out, { state: 'none' });
   if (isSpread && !hasLine(g)) return Object.assign(out, { state: 'noline', side: mine });
-  const opps = (L.players || []).filter((p) => p !== me);
-  let against = 0, hidden = 0;
-  opps.forEach((p) => { const x = (picks[p] || {})[g.id]; if (x) { if (x !== mine) against++; } else if (g.picksShown) against += 0.5; else hidden++; });
-  const n = Math.max(1, opps.length);
-  const per = (Number(L.buyIn) || 0) * (Number(data.weights.poolShare) || 0) / n;
+  const sim = poolSim(data, which);
+  const hit = [], miss = [], hitMax = [], missMax = [], vs = [];
+  let hidden = 0, noPick = 0, n = 0;
+  sim.players.forEach((p, j) => {
+    let h1 = 1, m1 = 0, h2 = 1, m2 = 0;
+    if (j !== sim.me) {
+      n++;
+      const x = (picks[p] || {})[g.id];
+      if (x && x !== mine) { vs.push(p.split(' ')[0]); h1 = h2 = 0; m1 = m2 = 1; }
+      else if (!x && g.picksShown) { noPick++; h1 = h2 = 0; }
+      else if (!x) { hidden++; h2 = 0; m2 = 1; }
+    }
+    hit[j] = h1; miss[j] = m1; hitMax[j] = h2; missMax[j] = m2;
+  });
+  const weight = Math.max(0, (sim.equity(hit) - sim.equity(miss)) / 2);
+  const max = hidden ? Math.max(0, (sim.equity(hitMax) - sim.equity(missMax)) / 2) : weight;
   const line = isSpread ? (mine === g.home ? Number(g.line) : -Number(g.line)) : null;
-  return Object.assign(out, { state: hidden ? 'pending' : against > 0 ? 'edge' : 'noedge', side: mine, weight: per * against, max: per * (against + hidden), n, against, hidden,
+  return Object.assign(out, { state: hidden ? 'pending' : vs.length || noPick ? 'edge' : 'noedge', side: mine, weight, max, n: Math.max(1, n), against: vs.length, hidden, noPick, vs,
     label: isSpread ? mine + ' ' + fmtLine(line) : mine + ' to win',
     test: isSpread ? coverTest(mine, g, line) : mlTest(mine, g) });
 }
-const poolSub = (p) => (p.state === 'noedge' ? 'Everyone has it too' : p.state === 'pending' ? (p.hidden >= p.n ? 'Picks show at kickoff, worth up to ' + usd(p.max) : 'Against ' + p.against + ' of ' + (p.n - p.hidden) + ' shown, ' + p.hidden + ' still hidden') : 'Against ' + p.against + ' of ' + p.n);
+const poolSub = (p) => { if (p.state === 'noedge') return 'Everyone has it too'; const who = p.vs.concat(p.noPick ? [p.noPick + ' with no pick'] : []).join(', '); if (p.state === 'pending') return p.hidden >= p.n ? 'Picks show at kickoff, worth up to ' + usd(p.max) : (who ? 'Against ' + who + ' so far' : 'Nobody against you yet') + ', ' + p.hidden + ' still hidden'; return 'Against ' + who; };
 
 function analyze(g, data) {
   const W = data.weights;
@@ -379,7 +427,7 @@ const standingOf = (L, me) => { const st = (L && L.standings) || []; const mine 
 function legend(data) {
   const W = data.weights;
   const bets = W.betMethod === 'stake' ? 'bets count their stake' : W.betMethod === 'payout' ? 'bets count their full payout' : 'bets count \u221a(stake \u00d7 profit), their typical swing';
-  return 'At stake is the money riding on the result. A pool pick counts up to ' + Math.round((Number(W.poolShare) || 0) * 100) + '% of the buy-in when every opponent took the other side, less as more of them agree with you. Opponents\u2019 picks are pulled in once they show at kickoff, and nothing is estimated before that. Other than that, ' + bets + ', and futures count ' + Math.round((Number(W.futureShare) || 0) * 100) + '% of their stake.';
+  return 'At stake is the money riding on the result. A pool pick counts half the change in your expected winnings between it hitting and missing, from simulating the rest of the season off the current standings (winner-take-all). Opponents\u2019 picks count once they show at kickoff; nothing is estimated before that. Otherwise, ' + bets + ', and futures count ' + Math.round((Number(W.futureShare) || 0) * 100) + '% of their stake.';
 }
 
 // ---------- game card ----------
@@ -485,7 +533,7 @@ function RootingTab({ data, analyses, update }) {
     Stat(both + ' / ' + sOnly + ' / ' + pOnly, 'Both pools / spread only / pick\u2019em only'),
     Stat(cash(cashRisk), 'Cash on ' + weekBets.length + ' bet' + (weekBets.length === 1 ? '' : 's') + ' this week'),
   ];
-  ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(L, data.me[w]); if (s) stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts')); });
+  ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(L, data.me[w]); if (s) { const sim = poolSim(data, w); const pct = sim.pot ? Math.round(100 * sim.equity(null) / sim.pot) : 0; stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts, ' + pct + '% to win')); } });
   return h('div', null,
     h('div.strip', null, stats),
     h('div.toolbar', null,
@@ -603,6 +651,7 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
   const setW = (k, v) => update((d) => { d.weights[k] = v; });
   const wIn = (k, label, step, hint) => h('label.field', { key: k }, label, h('input', { type: 'number', step, value: W[k], onChange: (e) => setW(k, parseFloat(e.target.value) || 0) }), hint ? h('span.hint', null, hint) : null);
   const field = (label, el) => h('label.field', null, label, el);
+  const mIn = (k, label, step) => h('label.field', { key: k }, label, h('input', { type: 'number', step, value: (data.model || {})[k], onChange: (e) => update((d) => { d.model = Object.assign({}, d.model, { [k]: parseFloat(e.target.value) || 0 }); }) }));
   const addGame = () => update((d) => { d.games.push({ id: 'AWY@HOM', away: 'AWY', home: 'HOM', kick: 'Sun 1:00p', line: null, homeWP: null, status: 'upcoming', awayScore: null, homeScore: null, clock: '' }); });
   const newWeek = () => { if (window.confirm('Start a new week? This clears the games and picks. Bets stay.')) update((d) => { d.week = (Number(d.week) || 0) + 1; d.games = []; d.spreadPicks = {}; d.pickemPicks = {}; d.survivor = ''; }); };
   return h('div.stack', null,
@@ -615,7 +664,10 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
         h('button.btn', { onClick: newWeek }, 'Start new week'))),
     h('div.panel', null, h('h3', null, 'Scoring'), h('p.hint', { style: { maxWidth: '78ch' } }, legend(data)),
       h('div.row', { style: { alignItems: 'flex-start', gap: 16, marginTop: 8 } },
-        wIn('poolShare', 'Pool pick, share of buy-in', 0.05, 'When every opponent is against you'),
+        field('Games left at start of week', h('input', { type: 'number', value: data.gamesLeft, onChange: (e) => update((d) => { d.gamesLeft = parseInt(e.target.value, 10) || 0; }) })),
+        mIn('spreadAgree', 'Spread: opponents share your side', 0.05),
+        mIn('favWin', 'Pick\u2019em: favorites win', 0.01),
+        mIn('favPick', 'Pick\u2019em: picks on favorites', 0.05),
         field('Bets count as', h('select', { value: W.betMethod, onChange: (e) => setW('betMethod', e.target.value) }, h('option', { value: 'sd' }, '\u221a(stake \u00d7 profit)'), h('option', { value: 'stake' }, 'Stake'), h('option', { value: 'payout' }, 'Payout'))),
         wIn('futureShare', 'Futures, share of stake', 0.05),
         wIn('fan', 'Fan team ($)', 1),
@@ -639,6 +691,7 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
         field('Name', h('input', { value: L.name, style: { width: 190 }, onChange: (e) => set('name', e.target.value) })),
         field('Site', h('input', { value: L.site || '', style: { width: 80 }, onChange: (e) => set('site', e.target.value) })),
         field('Buy-in ($)', h('input', { type: 'number', value: L.buyIn, onChange: (e) => set('buyIn', parseFloat(e.target.value) || 0) })),
+        field('Points per win', h('input', { type: 'number', value: L.ptsPerWin || 1, onChange: (e) => set('ptsPerWin', parseFloat(e.target.value) || 1) })),
         h('label.field', { style: { flex: '1 1 240px' } }, 'Players, comma separated', h('input', { value: (L.players || []).join(', '), onChange: (e) => set('players', e.target.value.split(',').map((s) => s.trim()).filter(Boolean)) })),
         field('You are', h('select', { value: data.me[w], onChange: (e) => update((d) => { d.me[w] = e.target.value; }) }, (L.players || []).map((p) => h('option', { key: p, value: p }, p))))); })),
     h('div.panel', null, h('h3', null, 'Backup and restore'),
