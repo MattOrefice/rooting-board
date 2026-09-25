@@ -202,8 +202,9 @@ function slotOf(kick) {
   const dn = k.day ? DAYNAME[k.day] : 'Other';
   if (k.mins == null) return { key: di * 10 + 5, title: dn };
   if (k.mins < 12 * 60) return { key: di * 10, title: dn + ' morning' };
-  if (k.mins < 18 * 60) return { key: di * 10 + 1, title: dn + ' afternoon', redzone: k.day === 'sun' };
-  return { key: di * 10 + 2, title: dn + ' night' };
+  if (k.mins < 15 * 60) return { key: di * 10 + 1, title: dn + ' early', redzone: k.day === 'sun' };
+  if (k.mins < 18 * 60) return { key: di * 10 + 2, title: dn + ' late', redzone: k.day === 'sun' };
+  return { key: di * 10 + 3, title: dn + ' night' };
 }
 
 // ---------- bet legs ----------
