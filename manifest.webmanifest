@@ -1,0 +1,17 @@
+{
+  "id": "/rooting-board/",
+  "name": "Rooting Board",
+  "short_name": "Rooting Board",
+  "description": "Who to root for in every NFL game, and how much is riding on it.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F201A",
+  "theme_color": "#0F201A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

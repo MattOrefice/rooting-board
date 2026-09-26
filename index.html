@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rooting Board</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0F201A">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1193,7 +1196,8 @@ const fetchPublished = async () => { try { const r = await fetch(DATA_URL + '?t=
 function App() {
   const [data, setData] = useState(() => migrate(EMPTY));
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState('root');
+  const [tab, setTab] = useState(() => { try { return localStorage.getItem('rb-tab') || 'root'; } catch (e) { return 'root'; } });
+  useEffect(() => { try { localStorage.setItem('rb-tab', tab); } catch (e) { /* storage unavailable */ } }, [tab]);
   const [published, setPublished] = useState(null);
   const [source, setSource] = useState('');
   const [rolled, setRolled] = useState(null);
@@ -1224,6 +1228,7 @@ function App() {
   const [liveErr, setLiveErr] = useState(false);
   const [boxes, setBoxes] = useState({});
   const [espn, setEspn] = useState(null);
+  const pubCheckRef = useRef(Date.now());
   const dataRef = useRef(data);
   dataRef.current = data;
   const rolledRef = useRef(rolled);
@@ -1236,7 +1241,13 @@ function App() {
   useEffect(() => {
     if (!loaded || !data.games.length) return undefined;
     let alive = true, timer = null;
-    const tick = async () => {
+    let running = false;
+    const tickBody = async () => {
+      if (Date.now() - pubCheckRef.current > 180000) {
+        pubCheckRef.current = Date.now();
+        const pub = await fetchPublished();
+        if (alive && pub && (pub.updatedAt || '') > (dataRef.current.updatedAt || '')) { setPublished(pub); setData(pub); setSource('published'); }
+      }
       const cur = rolledRef.current || dataRef.current;
       const res = await fetchLive(cur.season, cur.week);
       let epNow = null, boxNow = null;
@@ -1264,8 +1275,11 @@ function App() {
       const anyLive = !!res && Object.keys(res).some((k) => res[k].status === 'live');
       timer = setTimeout(tick, anyLive ? 60000 : 180000);
     };
+    const tick = async () => { if (running) return; running = true; try { await tickBody(); } finally { running = false; } };
+    const onVis = () => { if (document.visibilityState === 'visible') { clearTimeout(timer); pubCheckRef.current = 0; tick(); } };
+    document.addEventListener('visibilitychange', onVis);
     tick();
-    return () => { alive = false; clearTimeout(timer); };
+    return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
   }, [loaded, data.season, data.week, data.games.length]);
   const view = useMemo(() => (rolled && showPrev && prevView ? prevView : withLive(rolled || data, live, boxes, espn)), [data, rolled, showPrev, prevView, live, boxes, espn]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
@@ -1282,6 +1296,7 @@ function App() {
       : tab === 'advisor' ? h(AdvisorTab, { data: view })
       : h(SetupTab, { data, viewData: view, update, replaceData, onDiscard: loadPublished }));
 }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 })();
 </script>
