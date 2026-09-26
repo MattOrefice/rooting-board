@@ -56,6 +56,10 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font
 .lb-row .amt{font:700 18px/1 "Barlow Condensed",sans-serif;text-align:right}
 .plate.sm{font-size:15px;padding:4px 8px 3px}
 .livesrc{color:var(--dim);font-size:12px}
+.prog{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:12px;margin-top:2px}
+.prog .pg{color:var(--text)}
+.flag{color:var(--flag);font-weight:600}
+.edgeamt{font:700 17px/1 "Barlow Condensed",sans-serif}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
 .team{display:inline-flex;align-items:center;gap:7px}
@@ -146,7 +150,7 @@ input[type=checkbox]{accent-color:var(--flag);width:15px;height:15px}
 <script>
 (() => {
 'use strict';
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 const h = (sel, props, ...kids) => {
   if (typeof sel !== 'string') return React.createElement(sel, props, ...kids);
   const parts = sel.split('.');
@@ -201,31 +205,177 @@ async function fetchLive(season, week) {
       const home = team('home'), away = team('away');
       const st = (c.status && c.status.type) || (ev.status && ev.status.type) || {};
       const status = st.state === 'in' ? 'live' : st.state === 'post' && st.completed !== false ? 'final' : 'upcoming';
-      const rec = { status, clock: status === 'live' ? String(st.shortDetail || '').replace(' - ', ' ') : '' };
+      const rec = { status, clock: status === 'live' ? String(st.shortDetail || '').replace(' - ', ' ') : '', eventId: ev.id, period: c.status && c.status.period, secLeft: c.status && c.status.clock };
       if (status !== 'upcoming') { rec.awayScore = Number(away.score) || 0; rec.homeScore = Number(home.score) || 0; }
+      const od = (c.odds || [])[0] || {}, mkt = {}, det = String(od.details || '').trim();
+      const dm = det.match(/^([A-Z]{2,3})\s+(-?\d+(?:\.\d+)?)$/);
+      if (/^(EVEN|PK|PICK)/i.test(det)) mkt.homeLine = 0;
+      else if (dm) { const fav = ESPN_ABBR[dm[1]] || dm[1], n = Math.abs(parseFloat(dm[2])); mkt.homeLine = fav === ab(home) ? -n : n; }
+      const hml = Number(od.homeTeamOdds && od.homeTeamOdds.moneyLine), aml = Number(od.awayTeamOdds && od.awayTeamOdds.moneyLine);
+      if (hml && aml) { const ih = 1 / decOdds(hml), ia = 1 / decOdds(aml); mkt.homeWP = ih / (ih + ia); }
+      rec.mkt = mkt;
       out[ab(away) + '@' + ab(home)] = rec;
     });
     return out;
   } catch (e) { return null; }
 }
-const withLive = (data, live) => (Object.keys(live || {}).length ? Object.assign({}, data, { games: data.games.map((g) => (live[g.id] && live[g.id].status !== 'upcoming' ? Object.assign({}, g, live[g.id]) : g)) }) : data);
+const withLive = (data, live, boxes) => {
+  if (!Object.keys(live || {}).length && !Object.keys(boxes || {}).length) return data;
+  return Object.assign({}, data, { boxes: boxes || {}, games: data.games.map((g) => { const r = (live || {})[g.id]; if (!r) return g; const x = Object.assign({}, g, { lv: r }); if (r.status !== 'upcoming') Object.assign(x, { status: r.status, clock: r.clock, awayScore: r.awayScore, homeScore: r.homeScore }); return x; }) });
+};
 
 // ---------- auto-settling game-line bets ----------
-function legResult(l, g) {
+function legResult(l, g, boxes) {
   if (l.status && l.status !== 'open') return l.status;
-  if (l.kind !== 'game' || !g || g.status !== 'final' || !hasScore(g)) return 'open';
+  if (l.kind !== 'game' || !g) return 'open';
+  if (l.type === 'prop') { if (g.status === 'upcoming') return 'open'; const ps = propState(l, g, boxes && boxes[g.id]); return ps && ps.pl ? ps.res : 'open'; }
+  if (g.status !== 'final' || !hasScore(g)) return 'open';
   const m = marginOf(g);
   if (l.type === 'ml' || l.type === 'spread') { const t = l.type === 'ml' ? mlTest(l.side, g) : coverTest(l.side, g, Number(l.line)); const r = t ? t(m) : null; return r === true ? 'won' : r === false ? 'lost' : 'void'; }
   if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line); return T === L ? 'void' : (l.side === 'under' ? T < L : T > L) ? 'won' : 'lost'; }
   return 'open';
 }
-function betStatus(b, byId) {
+function betStatus(b, byId, boxes) {
   if (b.status !== 'open' || b.manualSettle) return b.status;
-  const rs = (b.legs || []).map((l) => legResult(l, byId[l.game]));
+  const rs = (b.legs || []).map((l) => legResult(l, byId[l.game], boxes));
   if (!rs.length) return 'open';
   if (rs.indexOf('lost') >= 0) return 'lost';
   if (rs.every((r) => r === 'won' || r === 'void')) return rs.every((r) => r === 'void') ? 'void' : 'won';
   return 'open';
+}
+
+// ---------- player props from ESPN box scores ----------
+const STAT_RE = [
+  [/rush(?:ing)?\s*(?:\+|and|&)\s*rec(?:eiving)?(?:\s*(?:yds|yards))?/i, 'rushRecYds'],
+  [/pass(?:ing)?\s*(?:yds|yards)/i, 'passYds'],
+  [/pass(?:ing)?\s*(?:td|tds|touchdowns?)/i, 'passTD'],
+  [/rush(?:ing)?\s*(?:yds|yards)/i, 'rushYds'],
+  [/rec(?:eiving)?\s*(?:yds|yards)/i, 'recYds'],
+  [/rush(?:ing)?\s*(?:td|tds|touchdowns?)/i, 'rushTD'],
+  [/rec(?:eiving)?\s*(?:td|tds|touchdowns?)/i, 'recTD'],
+  [/receptions|catches/i, 'rec'],
+  [/any\s*time\s*(?:td|touchdown)|td\s*scorer|to\s*score/i, 'td'],
+];
+const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds' };
+const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0) };
+const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1 };
+const SUFFIX = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
+const nameTokens = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((t) => t.replace(/'/g, '')).filter((t) => t && SUFFIX.indexOf(t) < 0);
+function propSpec(l) {
+  if (l.player && l.stat && STATV[l.stat]) return { player: l.player, stat: l.stat, side: l.side === 'under' ? 'under' : 'over', line: l.line != null && l.line !== '' ? Number(l.line) : 0.5 };
+  const d = String(l.desc || '');
+  let stat = null, rest = d;
+  for (let i = 0; i < STAT_RE.length; i++) { const m = d.match(STAT_RE[i][0]); if (m) { stat = STAT_RE[i][1]; rest = rest.replace(m[0], ' '); break; } }
+  if (!stat) return null;
+  let side = 'over', line = 0.5;
+  const m1 = rest.match(/(?:^|\s)(o|over|u|under)\s*(\d+(?:\.\d+)?)/i), m2 = rest.match(/(\d+)\s*\+/);
+  if (m1) { side = /^u/i.test(m1[1]) ? 'under' : 'over'; line = parseFloat(m1[2]); rest = rest.replace(m1[0], ' '); }
+  else if (m2) { line = parseInt(m2[1], 10) - 0.5; rest = rest.replace(m2[0], ' '); }
+  const player = rest.replace(/[^A-Za-z.' -]/g, ' ').replace(/\s+/g, ' ').trim();
+  return player ? { player, stat, side, line } : null;
+}
+function parseBox(j) {
+  const byName = {};
+  (((j || {}).boxscore || {}).players || []).forEach((tm) => {
+    const team = uc(tm.team && tm.team.abbreviation);
+    (tm.statistics || []).forEach((cat) => {
+      const keys = cat.keys || [], labels = (cat.labels || []).map((x) => String(x).toUpperCase());
+      const col = (k, lab) => { const i = keys.indexOf(k); return i >= 0 ? i : labels.indexOf(lab); };
+      (cat.athletes || []).forEach((a) => {
+        const name = (a.athlete && (a.athlete.displayName || a.athlete.shortName)) || '';
+        if (!name) return;
+        const p = byName[name] || (byName[name] = { name, team, tokens: nameTokens(name), s: {} });
+        const v = (i) => (i >= 0 && a.stats && a.stats[i] != null ? parseFloat(String(a.stats[i]).split('/')[0]) || 0 : 0);
+        if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); }
+        else if (cat.name === 'rushing') { p.s.rushYds = v(col('rushingYards', 'YDS')); p.s.rushTD = v(col('rushingTouchdowns', 'TD')); }
+        else if (cat.name === 'receiving') { p.s.rec = v(col('receptions', 'REC')); p.s.recYds = v(col('receivingYards', 'YDS')); p.s.recTD = v(col('receivingTouchdowns', 'TD')); }
+      });
+    });
+  });
+  return Object.keys(byName).map((k) => byName[k]);
+}
+async function fetchBox(eventId) {
+  try { const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + eventId, { cache: 'no-store' }); return r.ok ? parseBox(await r.json()) : null; } catch (e) { return null; }
+}
+const findPlayer = (box, name) => { const t = nameTokens(name); return t.length ? box.find((p) => t.every((x) => p.tokens.indexOf(x) >= 0)) || null : null; };
+function propState(l, g, box) {
+  const sp = propSpec(l);
+  if (!sp) return null;
+  const pl = box ? findPlayer(box, sp.player) : null;
+  if (!pl) return { sp, pl: null, val: null, res: 'open', loaded: !!box };
+  const val = STATV[sp.stat](pl.s);
+  const fin = !!g && g.status === 'final';
+  let res = 'open';
+  if (sp.side === 'over') { if (val > sp.line) res = 'won'; else if (fin) res = val === sp.line ? 'void' : 'lost'; }
+  else { if (val > sp.line) res = 'lost'; else if (fin) res = val === sp.line ? 'void' : 'won'; }
+  return { sp, pl, val, res, loaded: true };
+}
+function propLine(l, g, box) {
+  const ps = propState(l, g, box);
+  if (!ps) return null;
+  const sp = ps.sp;
+  if (!ps.pl) return { text: sp.player + ': ' + (ps.loaded ? 'no stats yet' : 'loading stats'), res: 'open' };
+  const v = Math.round(ps.val * 10) / 10, showLine = ps.res === 'open' && !(sp.side === 'over' && sp.line === 0.5);
+  return { text: sp.player + ' ' + v + (showLine ? '/' + sp.line : '') + ' ' + STATLBL[sp.stat] + (sp.side === 'under' ? ' (under)' : '') + (ps.res === 'won' ? ' \u2713' : ps.res === 'lost' ? ' \u2717' : ps.res === 'void' ? ' (push)' : ''), res: ps.res };
+}
+
+// ---------- fair value of open bets ----------
+function normCdf(x) { const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x / 2); return x >= 0 ? (1 + y) / 2 : (1 - y) / 2; }
+function invNorm(p) {
+  if (p <= 0) return -8; if (p >= 1) return 8;
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  if (p < 0.02425) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 0.97575) { const q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  const q = p - 0.5, r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+const poissonAtLeast = (k, lam) => { if (k <= 0) return 1; let term = Math.exp(-lam), cdf = term; for (let i = 1; i < k; i++) { term *= lam / i; cdf += term; } return Math.max(0, 1 - cdf); };
+function lambdaFor(p, k) { let lo = 0.0001, hi = 60; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (poissonAtLeast(k, mid) < p) lo = mid; else hi = mid; } return (lo + hi) / 2; }
+function fracLeft(g) {
+  if (!g || g.status === 'final') return 0;
+  if (g.status !== 'live') return 1;
+  const lv = g.lv || {}, per = Number(lv.period) || 1, sec = Number(lv.secLeft);
+  if (per > 4) return 0.03;
+  return Math.max(0.005, Math.min(1, ((4 - per) * 900 + (isNaN(sec) ? 450 : sec)) / 3600));
+}
+function legProbLive(l, g) {
+  const f = fracLeft(g), m = marginOf(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), mu = m - (Number(g.line) || 0) * f;
+  if (l.type === 'ml') return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd);
+  if (l.type === 'spread') { const L = Number(l.line); return l.side === g.home ? 1 - normCdf((-L - mu) / sd) : normCdf((L - mu) / sd); }
+  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); const pOver = 1 - normCdf((L - (T + L * f)) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
+  return null;
+}
+function propProbLive(ps, p0, f) {
+  const sp = ps.sp, pOver0 = sp.side === 'over' ? p0 : 1 - p0;
+  let pOver;
+  if (COUNT_STATS[sp.stat]) { const k = Math.floor(sp.line) + 1; pOver = poissonAtLeast(k - ps.val, lambdaFor(pOver0, k) * f); }
+  else { const sd0 = Math.max(8, 0.4 * sp.line), mu0 = sp.line + sd0 * invNorm(pOver0); pOver = 1 - normCdf((sp.line - (ps.val + mu0 * f)) / Math.max(1, sd0 * Math.sqrt(f))); }
+  return sp.side === 'over' ? pOver : 1 - pOver;
+}
+function betFair(b, data) {
+  const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
+  const boxes = data.boxes || {}, legs = b.legs || [], pay = Number(b.toPay) || 0;
+  const st = betStatus(b, byId, boxes);
+  if (st === 'won') return pay;
+  if (st === 'lost') return 0;
+  if (st === 'void') return b.bonus ? 0 : Number(b.stake) || 0;
+  if (!legs.length || override(b) != null || b.manualSettle && legs.some((l) => byId[l.game] && byId[l.game].status === 'final') || legs.some((l) => l.kind === 'future' || l.kind === 'other' || (l.kind === 'game' && byId[l.game] && byId[l.game].status === 'final' && legResult(l, byId[l.game], boxes) === 'open'))) return null;
+  const pT = betProb(b, data.weights), p0 = Math.pow(pT, 1 / legs.length);
+  let ratio = 1;
+  legs.forEach((l) => {
+    const g = byId[l.game], r = legResult(l, g, boxes);
+    if (r === 'won' || r === 'void') { ratio *= 1 / p0; return; }
+    if (r === 'lost') { ratio = 0; return; }
+    if (!g || g.status !== 'live' || !hasScore(g)) return;
+    let pn = null;
+    if (l.type === 'prop') { const ps = propState(l, g, boxes[g.id]); if (ps && ps.pl) pn = propProbLive(ps, p0, fracLeft(g)); }
+    else pn = legProbLive(l, g);
+    if (pn != null) ratio *= Math.max(0, pn) / p0;
+  });
+  return Math.max(0, Math.min(pay, pay * pT * ratio));
 }
 
 // ---------- teams ----------
@@ -504,24 +654,26 @@ function analyze(g, data) {
   const fan = uc(data.fanTeam);
   if (fan && inGame(fan)) ints.push({ key: 'fan', src: 'Fan', kind: 'fan', side: fan, label: 'fan', weight: Number(W.fan) || 0, test: mlTest(fan, g), cush: mlCush(fan, g), ctype: 'su', minor: true });
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
+  const boxes = data.boxes || {};
   (data.bets || []).forEach((b) => {
     if (b.status !== 'open') return;
-    if (g.status !== 'final' && betStatus(b, byId) !== 'open') return;
     const all = b.legs || [];
-    const legs = all.filter((l) => (l.game === g.id ? !l.status || l.status === 'open' : legResult(l, byId[l.game]) === 'open'));
-    const here = legs.filter((l) => l.kind === 'game' && l.game === g.id);
+    const here = all.filter((l) => l.kind === 'game' && l.game === g.id && (!l.status || l.status === 'open'));
+    const bs = betStatus(b, byId, boxes);
     if (here.length) {
-      const others = new Set(legs.filter((l) => l.kind === 'game' && l.game !== g.id).map((l) => l.game)).size;
+      const openElsewhere = new Set(all.filter((l) => l.kind === 'game' && l.game !== g.id && legResult(l, byId[l.game], boxes) === 'open').map((l) => l.game)).size;
       const type = all.length > 1 ? (new Set(all.filter((l) => l.kind === 'game').map((l) => l.game)).size > 1 ? 'parlay' : 'SGP') : '';
-      const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + '), ' + Math.round(100 * betProb(b, W)) + '% to hit' + (others ? ', needs ' + others + ' other game' + (others > 1 ? 's' : '') : '');
-      const w = betWeight(b, W, g.id);
+      const fv = bs === 'open' ? betFair(b, data) : null;
+      const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + '), ' + (bs === 'open' ? (g.status === 'final' && fv == null ? 'final, settle by hand' : Math.round(100 * betProb(b, W)) + '% to hit' + (fv != null ? ', worth ' + cash(fv) + ' now' : '')) : bs) + (bs === 'open' && openElsewhere ? ', needs ' + openElsewhere + ' other game' + (openElsewhere > 1 ? 's' : '') : '');
+      const w = bs === 'open' || g.status === 'final' ? betWeight(b, W, g.id) : 0;
       const side = here.find((l) => l.type === 'ml' || l.type === 'spread');
       const label = here.map(legText).join(', ');
-      const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, weight: w, betId: b.id };
+      const prog = g.status === 'upcoming' ? [] : here.filter((l) => l.type === 'prop').map((l) => propLine(l, g, boxes[g.id])).filter(Boolean);
+      const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, prog, done: bs, weight: w, betId: b.id };
       if (side) ints.push(Object.assign(rec, { side: side.side, test: side.type === 'ml' ? mlTest(side.side, g) : coverTest(side.side, g, Number(side.line)), cush: side.type === 'ml' ? mlCush(side.side, g) : coverCush(side.side, g, Number(side.line)), ctype: side.type === 'ml' ? 'su' : 'ats' }));
       else wants.push(rec);
     }
-    legs.forEach((l) => { if (l.kind === 'future' && inGame(uc(l.team))) ints.push({ key: 'fut:' + b.id + ':' + l.team, src: 'Future', kind: 'future', side: uc(l.team), label: l.desc || 'future', weight: futureWeight(b, W), test: mlTest(uc(l.team), g), cush: mlCush(uc(l.team), g), ctype: 'su', minor: true }); });
+    all.forEach((l) => { if (l.kind === 'future' && (!l.status || l.status === 'open') && inGame(uc(l.team))) ints.push({ key: 'fut:' + b.id + ':' + l.team, src: 'Future', kind: 'future', side: uc(l.team), label: l.desc || 'future', weight: futureWeight(b, W), test: mlTest(uc(l.team), g), cush: mlCush(uc(l.team), g), ctype: 'su', minor: true }); });
   });
   const runs = outcomeRuns(g, ints);
   const core = ints.filter((i) => !i.minor);
@@ -558,10 +710,11 @@ function legend(data) {
 }
 
 // ---------- game card ----------
-function Row({ src, team, label, sub, w, mk, cush, off }) {
+function Row({ src, team, label, sub, prog, w, mk, cush, off }) {
   return h('div.r' + (off ? '.off' : ''), null,
     h('div.src', null, src),
-    h('div.what', null, h(Logo, { t: team, size: 20 }), h('div.txt', null, h('b', null, label), sub ? h('span.d', null, sub) : null)),
+    h('div.what', null, h(Logo, { t: team, size: 20 }), h('div.txt', null, h('b', null, label), sub ? h('span.d', null, sub) : null,
+      prog && prog.length ? h('span.prog', null, prog.map((p, i) => h('span.' + (p.res === 'won' ? 'ok' : p.res === 'lost' ? 'bad' : 'pg'), { key: i }, p.text))) : null)),
     h('div.w.tnum', null, w != null && w >= 0.5 ? usd(w) : ''),
     h('div.mk.tnum', null, cush != null ? h('span.' + (cush > 0 ? 'ok' : cush < 0 ? 'bad' : 'dim'), { title: cush > 0 ? 'Ahead by this much right now' : cush < 0 ? 'Behind by this much right now' : 'Even right now' }, (cush > 0 ? '+' : cush < 0 ? MINUS : '') + Math.abs(cush)) : h(Mark, { v: mk })));
 }
@@ -579,9 +732,9 @@ function verdictOf(a) {
   let pcls = 'plate.dead', pstyle = null, title = 'No stake', target = '';
   const notes = [];
   if (g.status === 'final') {
-    const sc = a.ints.filter((i) => i.test && i.weight > 0);
-    const hit = sc.filter((i) => a.cur(i) === true).length;
-    pcls = 'plate.final'; title = 'Final'; target = sc.length ? hit + ' of ' + sc.length + ' hit' : 'Nothing was riding on it';
+    const outs = a.ints.filter((i) => i.test && i.weight > 0 && !i.minor).map((i) => (i.done && i.done !== 'open' ? i.done === 'won' : a.cur(i) === true)).concat(a.wants.filter((x) => x.done === 'won' || x.done === 'lost').map((x) => x.done === 'won'));
+    const hit = outs.filter(Boolean).length;
+    pcls = 'plate.final'; title = 'Final'; target = outs.length ? hit + ' of ' + outs.length + ' hit' : 'Nothing was riding on it';
   } else if (a.kind === 'wants') {
     pcls = 'plate.wants'; title = 'No side'; target = 'Props only: just need them to hit';
   } else if (a.kind === 'aligned' || a.kind === 'split') {
@@ -616,7 +769,7 @@ function GameCard({ a, rank, update }) {
   const surv = a.ints.find((i) => i.kind === 'survivor');
   if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: surv.weight, mk: res(surv), cush: cushOf(surv) }));
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
-    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, w: b.weight, mk: b.test ? res(b) : undefined, cush: cushOf(b) })));
+    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, prog: b.prog, w: b.weight, mk: b.done === 'won' ? true : b.done === 'lost' ? false : b.test ? res(b) : undefined, cush: b.done && b.done !== 'open' ? undefined : cushOf(b) })));
   if (a.minors.length) rows.push(h('div.r', { key: 'minor' }, h('div.src', null, 'Futures & fan'),
     h('div.chips', null, groupMinor(a.minors).map((x) => h('span.chip' + (a.root && x.side !== a.root ? '.against' : ''), { key: x.side + x.label, title: x.side + ' ' + x.label }, h(Logo, { t: x.side, size: 16 }), (x.label === 'fan' ? 'Your team' : x.label) + (x.n > 1 ? ' \u00d7' + x.n : ''), final ? h(Mark, { v: a.cur(x.first) }) : null))),
     h('div.w.tnum', null, usd(a.minors.reduce((s2, i) => s2 + i.weight, 0))), h('div.mk')));
@@ -712,12 +865,13 @@ const EMPTY_FORM = { id: null, book: 'DK', placed: '', desc: '', stake: '', toPa
 const LEG_HELP = ['One leg per line, for example:', 'ATL@GB ml ATL', 'ATL@GB spread ATL +6.5', 'ATL@GB total over 44.5', 'ATL@GB prop Bijan anytime TD', 'future PHI Super Bowl', 'Add won or lost at the end of a line to settle just that leg.'].join(NL);
 function BetsTab({ data, update }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [offers, setOffers] = useState({});
   const W = data.weights;
   const ids = new Set(data.games.map((g) => g.id));
   const isWeek = (b) => (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game));
   const isFuture = (b) => (b.legs || []).some((l) => l.kind === 'future');
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
-  const stOf = (b) => betStatus(b, byId);
+  const stOf = (b) => betStatus(b, byId, data.boxes || {});
   const open = data.bets.filter((b) => stOf(b) === 'open');
   const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b)), settled = data.bets.filter((b) => stOf(b) !== 'open');
   const net = (b) => { const st = stOf(b); return st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0; };
@@ -742,10 +896,18 @@ function BetsTab({ data, update }) {
   const f = (k) => (e) => setForm(Object.assign({}, form, { [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const legLine = (l) => (l.kind === 'game' ? l.game + ' ' + legText(l) : l.kind === 'future' ? l.team + ' ' + (l.desc || '') : l.desc || '') + (l.status && l.status !== 'open' ? ' (' + l.status + ')' : '');
   const right = { textAlign: 'right' };
+  const fairCell = (b) => {
+    const fv = betFair(b, data);
+    if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settle by hand' : 'n/a');
+    const o = parseFloat(offers[b.id]), diff = o > 0 && fv > 0 ? (o - fv) / fv : null;
+    return h('div', null, cash(fv),
+      h('div', null, h('input', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', style: { width: 104, marginTop: 4, fontSize: 12 }, value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
+      diff == null ? null : h('div' + (diff < -0.03 ? '.bad' : diff > 0.03 ? '.ok' : '.muted'), { style: { fontSize: 12, marginTop: 2 } }, diff < -0.03 ? Math.round(-diff * 100) + '% below fair' : diff > 0.03 ? Math.round(diff * 100) + '% above fair: take it' : 'about fair'));
+  };
   const table = (title, list, mode) => (!list.length ? null : h('div.panel', { key: title },
     h('div.row.between', null, h('h3', null, title), h('span.hint', null, list.length + ' bet' + (list.length === 1 ? '' : 's'))),
     h('div.scroll', { style: { marginTop: 8 } }, h('table', null,
-      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Counts as', 'Status', ''].map((c, i) => h('th', { key: i, style: i >= 3 && i <= 5 ? right : null }, c)))),
+      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Counts as'].concat(mode === 'week' ? ['Fair value'] : [], ['Status', '']).map((c, i) => h('th', { key: i, style: i >= 3 && i <= (mode === 'week' ? 6 : 5) ? right : null }, c)))),
       h('tbody', null, list.map((b) => h('tr', { key: b.id },
         h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
         h('td.muted.tnum', null, b.placed || ''),
@@ -753,10 +915,11 @@ function BetsTab({ data, update }) {
         h('td.tnum', { style: right }, cash(b.stake)),
         h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
         h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : usd(wOf(b)), mode === 'week' ? h('div.hint', null, Math.round(100 * betProb(b, W)) + '% to hit') : null),
+        mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
         h('td', null, h('select', { value: b.status, onChange: (e) => setStatus(b.id, e.target.value) }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s))), stOf(b) !== b.status ? h('div.hint', null, 'Auto: ' + stOf(b) + ' from the final score') : null),
         h('td', { style: { whiteSpace: 'nowrap' } }, h('button.btn.sm', { onClick: () => editBet(b) }, 'Edit'), ' ', h('button.btn.sm.danger', { onClick: () => del(b.id), title: 'Delete bet' }, '\u00d7')))))))));
   return h('div.stack', null,
-    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(open.reduce((s, b) => s + (Number(b.toPay) || 0), 0)), 'Paid if everything hits'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
+    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(week.reduce((s2, b) => s2 + (betFair(b, data) || 0), 0)), 'This week\u2019s bets are worth now'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(open.reduce((s, b) => s + (Number(b.toPay) || 0), 0)), 'Paid if everything hits'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
     table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'),
     h('div.panel', null, h('h3', null, form.id ? 'Edit bet' : 'Add a bet'),
       h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 12 } },
@@ -870,7 +1033,68 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
       h('textarea', { rows: 6, style: { width: '100%', fontFamily: 'ui-monospace,Consolas,monospace', fontSize: 12 }, value: io, onChange: (e) => setIo(e.target.value), placeholder: 'Paste exported JSON here, then choose Import JSON.' })));
 }
 
+// ---------- pick advisor ----------
+function pickEquity(g, data, which, pAway) {
+  const sim = poolSim(data, which), players = sim.players, me = sim.me;
+  if (me < 0) return { ea: 0, eb: 0 };
+  const R = pickRates(data, which);
+  const hw = g.lv && g.lv.mkt && g.lv.mkt.homeWP != null ? g.lv.mkt.homeWP : g.homeWP != null && g.homeWP !== '' ? Number(g.homeWP) : 0.5;
+  const opps = [];
+  players.forEach((p, j) => { if (j !== me) opps.push(j); });
+  const pa = opps.map((j) => (which === 'spread' ? 0.5 : hw < 0.5 ? R[players[j]].fav : 1 - R[players[j]].fav));
+  let ea = 0, eb = 0;
+  for (let mask = 0; mask < 1 << opps.length; mask++) {
+    let pr = 1;
+    const bA = players.map(() => 0), bB = players.map(() => 0);
+    opps.forEach((j, k) => { if ((mask >> k) & 1) { pr *= pa[k]; bA[j] = 1; } else { pr *= 1 - pa[k]; bB[j] = 1; } });
+    if (pr < 1e-6) continue;
+    const aA = bA.slice(), bM = bB.slice(); aA[me] = 1; bM[me] = 1;
+    ea += pr * (pAway * sim.equity(aA) + (1 - pAway) * sim.equity(bB));
+    eb += pr * (pAway * sim.equity(bA) + (1 - pAway) * sim.equity(bM));
+  }
+  return { ea, eb };
+}
+function adviseGame(g, data, which) {
+  const isSpread = which === 'spread', mk = (g.lv && g.lv.mkt) || {};
+  let pAway, market;
+  if (isSpread) {
+    if (!hasLine(g)) return null;
+    const Lh = Number(g.line), Mh = mk.homeLine != null ? mk.homeLine : null;
+    pAway = Mh == null ? 0.5 : normCdf((-Lh + Mh) / 13.5);
+    market = Mh == null ? 'No market line yet' : lineText(Object.assign({}, g, { line: Mh }));
+  } else {
+    const hw = mk.homeWP != null ? mk.homeWP : g.homeWP != null && g.homeWP !== '' ? Number(g.homeWP) : 0.5;
+    pAway = 1 - hw;
+    market = (hw >= 0.5 ? g.home + ' ' + Math.round(100 * hw) : g.away + ' ' + Math.round(100 * (1 - hw))) + '%';
+  }
+  const eq = pickEquity(g, data, which, pAway);
+  const best = eq.ea >= eq.eb ? g.away : g.home;
+  const mine = (((isSpread ? data.spreadPicks : data.pickemPicks) || {})[data.me[which]] || {})[g.id] || '';
+  return { g, best, pBest: best === g.away ? pAway : 1 - pAway, edge: Math.abs(eq.ea - eq.eb), mine, market };
+}
+function AdvisorTab({ data }) {
+  const up = data.games.filter((g) => g.status === 'upcoming');
+  const sections = useMemo(() => ['spread', 'pickem'].map((w) => ({ w, items: data.games.filter((g) => g.status === 'upcoming').map((g) => adviseGame(g, data, w)).filter(Boolean).sort((x, y) => y.edge - x.edge) })), [data]);
+  return h('div.stack', null,
+    h('p.legend', { style: { marginTop: 0 } }, 'Before picks lock: which side of each game gives you the better shot at winning each pool, from the current standings, the latest odds from ESPN, and each opponent\u2019s pick habits. Edge is how much your expected winnings rise from taking that side instead of the other.'),
+    !up.length ? h('div.panel.empty-state', null, 'Every game this week has kicked off.') : null,
+    sections.map(({ w, items }) => (!items.length ? null : h('div.panel', { key: w },
+      h('h3', null, data.leagues[w].name),
+      h('div.hint', { style: { margin: '4px 0 10px' } }, w === 'spread' ? 'Spread picks are coin flips unless the market line has moved off the pool\u2019s line.' : 'Straight-up picks follow the moneyline; opponents are assumed to take favorites at their measured rate.'),
+      h('div.scroll', null, h('table', null,
+        h('thead', null, h('tr', null, ['Game', w === 'spread' ? 'Pool line' : 'Kickoff', w === 'spread' ? 'Market now' : 'Favorite', 'Better pick', 'Edge', 'Your pick'].map((c, i) => h('th', { key: i, style: i === 4 ? { textAlign: 'right' } : null }, c)))),
+        h('tbody', null, items.map((x) => { const g = x.g, toss = x.edge < 0.5, k = parseKick(g.kick); return h('tr', { key: g.id },
+          h('td', { style: { whiteSpace: 'nowrap' } }, h('span.row', { style: { gap: 6 } }, h(Logo, { t: g.away, size: 18 }), g.away + ' at ' + g.home, h(Logo, { t: g.home, size: 18 }))),
+          h('td.muted', null, w === 'spread' ? lineText(g) : [k.day ? DAYNAME[k.day].slice(0, 3) : '', k.time].filter(Boolean).join(' ')),
+          h('td.muted', null, x.market),
+          h('td', null, toss ? h('span.muted', null, 'Toss-up') : h('span.row', { style: { gap: 6 } }, h(Logo, { t: x.best, size: 18 }), h('b', null, x.best), h('span.muted', null, Math.round(100 * x.pBest) + '%'))),
+          h('td.tnum', { style: { textAlign: 'right' } }, toss ? h('span.muted', null, '\u2014') : h('span.edgeamt', null, '+' + cash(x.edge))),
+          h('td', null, !x.mine ? h('span.muted', null, 'No pick yet') : toss || x.mine === x.best ? h('span', null, x.mine, ' ', h('span.ok', null, '\u2713')) : h('span.flag', null, x.mine + ', consider ' + x.best)));
+        }))))))));
+}
+
 // ---------- app ----------
+const BOX_CACHE = {};
 const readLocal = () => { try { const v = localStorage.getItem(KEY); return v ? migrate(JSON.parse(v)) : null; } catch (e) { return null; } };
 const fetchPublished = async () => { try { const r = await fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' }); return r.ok ? migrate(await r.json()) : null; } catch (e) { return null; } };
 function App() {
@@ -902,6 +1126,9 @@ function App() {
   const [live, setLive] = useState({});
   const [liveAt, setLiveAt] = useState(null);
   const [liveErr, setLiveErr] = useState(false);
+  const [boxes, setBoxes] = useState({});
+  const dataRef = useRef(data);
+  dataRef.current = data;
   useEffect(() => {
     if (!loaded || !data.games.length) return undefined;
     let alive = true, timer = null;
@@ -909,16 +1136,23 @@ function App() {
       const res = await fetchLive(data.season, data.week);
       if (!alive) return;
       if (res) { setLive(res); setLiveAt(new Date()); setLiveErr(false); } else setLiveErr(true);
+      if (res) {
+        const need = {};
+        (dataRef.current.bets || []).forEach((b) => { if (b.status !== 'open') return; (b.legs || []).forEach((l) => { const r = res[l.game]; if (l.kind === 'game' && l.type === 'prop' && r && r.status !== 'upcoming' && r.eventId && propSpec(l)) need[l.game] = r; }); });
+        const got = {};
+        await Promise.all(Object.keys(need).map(async (gid) => { if (need[gid].status === 'final' && BOX_CACHE[gid]) { got[gid] = BOX_CACHE[gid]; return; } const bx = await fetchBox(need[gid].eventId); if (bx) { got[gid] = bx; if (need[gid].status === 'final') BOX_CACHE[gid] = bx; } }));
+        if (alive && Object.keys(got).length) setBoxes((prev) => Object.assign({}, prev, got));
+      }
       const anyLive = !!res && Object.keys(res).some((k) => res[k].status === 'live');
       timer = setTimeout(tick, anyLive ? 60000 : 180000);
     };
     tick();
     return () => { alive = false; clearTimeout(timer); };
   }, [loaded, data.season, data.week, data.games.length]);
-  const view = useMemo(() => withLive(data, live), [data, live]);
+  const view = useMemo(() => withLive(data, live, boxes), [data, live, boxes]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
-  const tabs = [['root', 'Rooting guide'], ['bets', 'Bets'], ['pools', 'Pools'], ['setup', 'Setup']];
+  const tabs = [['root', 'Rooting guide'], ['bets', 'Bets'], ['pools', 'Pools'], ['advisor', 'Pick advisor'], ['setup', 'Setup']];
   return h('div.wrap', null,
     h('header.top', null,
       h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + data.week + ', ' + data.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc', null, liveErr ? 'Live scores unavailable' : 'Live scores as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
@@ -927,6 +1161,7 @@ function App() {
       : tab === 'root' ? h(RootingTab, { data: view, analyses, update })
       : tab === 'bets' ? h(BetsTab, { data: view, update })
       : tab === 'pools' ? h(PoolsTab, { data: view, update })
+      : tab === 'advisor' ? h(AdvisorTab, { data: view })
       : h(SetupTab, { data, update, replaceData, onDiscard: loadPublished }));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
