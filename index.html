@@ -60,6 +60,11 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font
 .prog .pg{color:var(--text)}
 .flag{color:var(--flag);font-weight:600}
 .edgeamt{font:700 17px/1 "Barlow Condensed",sans-serif}
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .short{display:none}
+.pick{display:inline-flex;align-items:center;justify-content:center}
+span.pick{cursor:default}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
 .team{display:inline-flex;align-items:center;gap:7px}
@@ -110,7 +115,9 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font
 .book.FD{background:#132A4A;color:#9CCBFF}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
 .panel h3{font-size:23px;line-height:1.1}
-.stack{display:grid;gap:14px}
+.stack{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.stack>*,.panel{min-width:0}
+.scroll{max-width:100%}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .between{justify-content:space-between}
 table{border-collapse:collapse;width:100%}
@@ -139,7 +146,7 @@ input[type=checkbox]{accent-color:var(--flag);width:15px;height:15px}
 .you{color:var(--flag);font-size:12px;font-weight:600;margin-left:6px}
 .ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}.dim{color:var(--dim)}
 .empty-state{padding:28px;text-align:center;color:var(--muted)}
-@media (max-width:560px){.wrap{padding:16px 12px 48px}.grid{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.r{grid-template-columns:62px minmax(0,1fr) auto minmax(14px,auto);gap:8px}.lb-row{grid-template-columns:minmax(0,1fr) auto}.lb-row .st{grid-column:1/-1}.matchup{font-size:21px;gap:8px}.pts{font-size:23px}.stake .amt{font-size:23px}.brand h1{font-size:30px}.strip .cell{flex-basis:45%}}
+@media (max-width:560px){.wrap{padding:16px 12px 48px}.grid{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.r{grid-template-columns:62px minmax(0,1fr) auto minmax(14px,auto);gap:8px}.lb-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}.lb-row .mt{white-space:normal;flex-wrap:wrap;row-gap:3px}.lb-row .clk{flex-basis:100%;margin-left:0}.matchup{font-size:21px;gap:8px}.pts{font-size:23px}.stake .amt{font-size:23px}.brand h1{font-size:28px}.brand{gap:2px 10px}.top{margin-bottom:12px}.strip .cell{flex-basis:45%;padding:8px 10px}.strip .v{font-size:21px}.tabs .full{display:none}.tabs .short{display:inline}.tabs button{padding:10px 9px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
@@ -167,7 +174,6 @@ const MINUS = '\u2212', ARROW = ' \u2192 ';
 const cash = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '$' + (Number.isInteger(v) ? v : v.toFixed(2)); };
 const usd = (n) => '$' + Math.round(Number(n) || 0);
 const uc = (s) => (s == null ? '' : String(s)).trim().toUpperCase();
-const round1 = (x) => Math.round(x * 10) / 10;
 const fmtLine = (n) => (n == null || isNaN(n) ? '' : n > 0 ? '+' + n : n < 0 ? MINUS + Math.abs(n) : 'PK');
 const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const american = (b) => { const st = Number(b.stake) || 0, pay = Number(b.toPay) || 0; if (!st || !pay) return ''; const dec = b.bonus ? 1 + pay / st : pay / st; if (dec <= 1) return ''; return dec >= 2 ? '+' + Math.round((dec - 1) * 100) : MINUS + Math.round(100 / (dec - 1)); };
@@ -219,9 +225,12 @@ async function fetchLive(season, week) {
     return out;
   } catch (e) { return null; }
 }
-const withLive = (data, live, boxes) => {
-  if (!Object.keys(live || {}).length && !Object.keys(boxes || {}).length) return data;
-  return Object.assign({}, data, { boxes: boxes || {}, games: data.games.map((g) => { const r = (live || {})[g.id]; if (!r) return g; const x = Object.assign({}, g, { lv: r }); if (r.status !== 'upcoming') Object.assign(x, { status: r.status, clock: r.clock, awayScore: r.awayScore, homeScore: r.homeScore }); return x; }) });
+const withLive = (data, live, boxes, espn) => {
+  if (!Object.keys(live || {}).length && !Object.keys(boxes || {}).length && !espn) return data;
+  const games = data.games.map((g) => { const r = (live || {})[g.id]; let x = g; if (r) { x = Object.assign({}, g, { lv: r }); if (r.status !== 'upcoming') Object.assign(x, { status: r.status, clock: r.clock, awayScore: r.awayScore, homeScore: r.homeScore }); } if (espn && x.status !== 'upcoming') x = Object.assign({}, x, { pickemShown: true }); return x; });
+  let pickemPicks = data.pickemPicks;
+  if (espn) { pickemPicks = Object.assign({}, data.pickemPicks); Object.keys(espn).forEach((n) => { pickemPicks[n] = Object.assign({}, pickemPicks[n] || {}, espn[n]); }); }
+  return Object.assign({}, data, { boxes: boxes || {}, games, pickemPicks });
 };
 
 // ---------- auto-settling game-line bets ----------
@@ -296,6 +305,31 @@ function parseBox(j) {
 }
 async function fetchBox(eventId) {
   try { const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + eventId, { cache: 'no-store' }); return r.ok ? parseBox(await r.json()) : null; } catch (e) { return null; }
+}
+async function fetchEspnPicks(L) {
+  const base = 'https://gambit-api.fantasy.espn.com/apis/v1/challenges/' + (L.espnChallenge || 'nfl-pickem-2026');
+  try {
+    const c = await (await fetch(base)).json();
+    const fix = (t) => { const a = uc(t); return ESPN_ABBR[a] || a; };
+    const props = {};
+    (c.propositions || []).forEach((p) => {
+      const m = String(p.name || '').match(/^\s*([A-Za-z]{2,3})\s*@\s*([A-Za-z]{2,3})\s*$/);
+      if (!m) return;
+      const oc = {};
+      (p.possibleOutcomes || []).forEach((o) => { oc[o.id] = fix(o.abbrev || ''); });
+      props[p.id] = { gid: fix(m[1]) + '@' + fix(m[2]), oc };
+    });
+    const gr = await (await fetch(base + '/groups/' + L.espnGroup)).json();
+    const out = {};
+    for (const en of gr.entries || []) {
+      let e = en;
+      if (!e.picks) { try { e = await (await fetch(base + '/entries/' + en.id)).json(); } catch (x) { continue; } }
+      const name = en.name || e.name;
+      if (!name) continue;
+      (e.picks || []).forEach((pk) => { const pr = props[pk.propositionId], o = pk.outcomesPicked && pk.outcomesPicked[0], t = pr && o ? pr.oc[o.outcomeId] : ''; if (t) (out[name] = out[name] || {})[pr.gid] = t; });
+    }
+    return out;
+  } catch (e) { return null; }
 }
 const findPlayer = (box, name) => { const t = nameTokens(name); return t.length ? box.find((p) => t.every((x) => p.tokens.indexOf(x) >= 0)) || null : null; };
 function propState(l, g, box) {
@@ -473,7 +507,7 @@ function outcomeRuns(g, ints) {
 }
 
 // ---------- data + scoring ----------
-const DEFAULT_WEIGHTS = { poolShare: 0.5, betMethod: 'ev', hold: 0.045, parlayHold: 0.2, futureShare: 0.2, fan: 10, survivor: 25 };
+const DEFAULT_WEIGHTS = { betMethod: 'ev', hold: 0.045, parlayHold: 0.2, futureShare: 0.2, fan: 10, survivor: 25 };
 const EMPTY = { version: 2, updatedAt: '', season: 2026, week: 1, me: { spread: '', pickem: '' }, fanTeam: '', survivor: '', weights: DEFAULT_WEIGHTS,
   leagues: { spread: { name: 'Spread pool', site: '', buyIn: 100, players: [], standings: [] }, pickem: { name: "Pick'em", site: '', buyIn: 100, players: [], standings: [] } },
   games: [], spreadPicks: {}, pickemPicks: {}, bets: [] };
@@ -523,13 +557,14 @@ const SIMS = 5000;
 const simCache = new Map();
 const rng = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 // ---------- pool history: current wins and how often opponents agree ----------
+const shownFor = (g, which) => !!(g.picksShown || (which === 'pickem' && g.pickemShown));
 function currentWins(data, which) {
   const L = data.leagues[which] || {}, ppw = Number(L.ptsPerWin) || 1, isSpread = which === 'spread';
   const picks = (isSpread ? data.spreadPicks : data.pickemPicks) || {};
   const out = {};
   (L.players || []).forEach((p) => { const s = (L.standings || []).find((x) => x.name === p); out[p] = s ? Math.round(Number(s.pts) / ppw) : 0; });
   data.games.forEach((g) => {
-    if (g.status !== 'final' || !g.picksShown || !hasScore(g)) return;
+    if (g.status !== 'final' || !shownFor(g, which) || !hasScore(g)) return;
     const m = marginOf(g);
     (L.players || []).forEach((p) => { const x = (picks[p] || {})[g.id]; if (!x) return; const t = isSpread ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g); if (t && t(m) === true) out[p] += 1; });
   });
@@ -541,7 +576,7 @@ function pickRates(data, which) {
   const src = (which === 'spread' ? data.spreadPicks : data.pickemPicks) || {};
   const recs = (data.history || []).filter((x) => x.league === which);
   data.games.forEach((g) => {
-    if (!g.picksShown) return;
+    if (!shownFor(g, which)) return;
     const picks = {};
     players.forEach((p) => { const x = (src[p] || {})[g.id]; if (x) picks[p] = x; });
     recs.push({ fav: g.homeWP == null || g.homeWP === '' ? null : Number(g.homeWP) >= 0.5 ? g.home : g.away, picks });
@@ -559,9 +594,10 @@ function pickRates(data, which) {
 function archivePicks(d) {
   d.history = d.history || [];
   d.games.forEach((g) => {
-    if (!g.picksShown) return;
+    if (!g.picksShown && !g.pickemShown) return;
     const fav = g.homeWP == null || g.homeWP === '' ? null : Number(g.homeWP) >= 0.5 ? g.home : g.away;
     ['spread', 'pickem'].forEach((w) => {
+      if (!shownFor(g, w)) return;
       const src = (w === 'spread' ? d.spreadPicks : d.pickemPicks) || {};
       const picks = {};
       Object.keys(src).forEach((p) => { if (src[p] && src[p][g.id]) picks[p] = src[p][g.id]; });
@@ -622,7 +658,7 @@ function poolInfo(g, data, which) {
       n++;
       const x = (picks[p] || {})[g.id];
       if (x && x !== mine) { vs.push(p.split(' ')[0]); h1 = h2 = 0; m1 = m2 = 1; }
-      else if (!x && g.picksShown) { noPick++; h1 = h2 = 0; }
+      else if (!x && shownFor(g, which)) { noPick++; h1 = h2 = 0; }
       else if (!x) { hidden++; h2 = 0; m2 = 1; }
     }
     hit[j] = h1; miss[j] = m1; hitMax[j] = h2; missMax[j] = m2;
@@ -637,7 +673,7 @@ function poolInfo(g, data, which) {
     label: isSpread ? mine + ' ' + fmtLine(line) : mine + ' to win',
     test: isSpread ? coverTest(mine, g, line) : mlTest(mine, g), cush: isSpread ? coverCush(mine, g, line) : mlCush(mine, g), ctype: isSpread ? 'ats' : 'su', started: g.status !== 'upcoming' });
 }
-const poolSub = (p) => { if (p.state === 'noedge') return 'Everyone has it too'; const who = p.vs.concat(p.noPick ? [p.noPick + ' with no pick'] : []).join(', '); if (p.state === 'pending') return p.hidden >= p.n ? (p.started ? 'Opponents\u2019 picks not pulled yet, worth up to ' : 'Picks show at kickoff, worth up to ') + usd(p.max) : (who ? 'Against ' + who + ' so far' : 'Nobody against you yet') + ', ' + p.hidden + ' still hidden'; return 'Against ' + who; };
+const poolSub = (p) => { if (p.state === 'noedge') return 'Everyone has it too'; const who = p.vs.concat(p.noPick ? [p.noPick + ' with no pick'] : []).join(', '); if (p.state === 'pending') return p.hidden >= p.n ? 'Up to ' + usd(p.max) + (p.started ? ', picks not pulled yet' : ' once picks show') : (who ? 'Against ' + who + ' so far' : 'Nobody against you yet') + ', ' + p.hidden + ' still hidden'; return 'Against ' + who; };
 
 function analyze(g, data) {
   const W = data.weights;
@@ -656,10 +692,11 @@ function analyze(g, data) {
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
   const boxes = data.boxes || {};
   (data.bets || []).forEach((b) => {
-    if (b.status !== 'open') return;
+    const settled = b.status !== 'open';
+    if (settled && g.status !== 'final') return;
     const all = b.legs || [];
-    const here = all.filter((l) => l.kind === 'game' && l.game === g.id && (!l.status || l.status === 'open'));
-    const bs = betStatus(b, byId, boxes);
+    const here = all.filter((l) => l.kind === 'game' && l.game === g.id && (settled || !l.status || l.status === 'open'));
+    const bs = settled ? b.status : betStatus(b, byId, boxes);
     if (here.length) {
       const openElsewhere = new Set(all.filter((l) => l.kind === 'game' && l.game !== g.id && legResult(l, byId[l.game], boxes) === 'open').map((l) => l.game)).size;
       const type = all.length > 1 ? (new Set(all.filter((l) => l.kind === 'game').map((l) => l.game)).size > 1 ? 'parlay' : 'SGP') : '';
@@ -669,11 +706,12 @@ function analyze(g, data) {
       const side = here.find((l) => l.type === 'ml' || l.type === 'spread');
       const label = here.map(legText).join(', ');
       const prog = g.status === 'upcoming' ? [] : here.filter((l) => l.type === 'prop').map((l) => propLine(l, g, boxes[g.id])).filter(Boolean);
-      const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, prog, done: bs, weight: w, betId: b.id };
+      const pnl = bs === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : bs === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : bs === 'void' ? 0 : null;
+      const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, prog, done: bs, pnl, weight: w, betId: b.id };
       if (side) ints.push(Object.assign(rec, { side: side.side, test: side.type === 'ml' ? mlTest(side.side, g) : coverTest(side.side, g, Number(side.line)), cush: side.type === 'ml' ? mlCush(side.side, g) : coverCush(side.side, g, Number(side.line)), ctype: side.type === 'ml' ? 'su' : 'ats' }));
       else wants.push(rec);
     }
-    all.forEach((l) => { if (l.kind === 'future' && (!l.status || l.status === 'open') && inGame(uc(l.team))) ints.push({ key: 'fut:' + b.id + ':' + l.team, src: 'Future', kind: 'future', side: uc(l.team), label: l.desc || 'future', weight: futureWeight(b, W), test: mlTest(uc(l.team), g), cush: mlCush(uc(l.team), g), ctype: 'su', minor: true }); });
+    all.forEach((l) => { if (!settled && l.kind === 'future' && (!l.status || l.status === 'open') && inGame(uc(l.team))) ints.push({ key: 'fut:' + b.id + ':' + l.team, src: 'Future', kind: 'future', side: uc(l.team), label: l.desc || 'future', weight: futureWeight(b, W), test: mlTest(uc(l.team), g), cush: mlCush(uc(l.team), g), ctype: 'su', minor: true }); });
   });
   const runs = outcomeRuns(g, ints);
   const core = ints.filter((i) => !i.minor);
@@ -710,31 +748,25 @@ function legend(data) {
 }
 
 // ---------- game card ----------
-function Row({ src, team, label, sub, prog, w, mk, cush, off }) {
+function Row({ src, team, label, sub, prog, w, money, mk, cush, off }) {
   return h('div.r' + (off ? '.off' : ''), null,
     h('div.src', null, src),
     h('div.what', null, h(Logo, { t: team, size: 20 }), h('div.txt', null, h('b', null, label), sub ? h('span.d', null, sub) : null,
       prog && prog.length ? h('span.prog', null, prog.map((p, i) => h('span.' + (p.res === 'won' ? 'ok' : p.res === 'lost' ? 'bad' : 'pg'), { key: i }, p.text))) : null)),
-    h('div.w.tnum', null, w != null && w >= 0.5 ? usd(w) : ''),
+    h('div.w.tnum', null, money ? h('span.' + money.cls, null, money.text) : w != null && w >= 0.5 ? usd(w) : ''),
     h('div.mk.tnum', null, cush != null ? h('span.' + (cush > 0 ? 'ok' : cush < 0 ? 'bad' : 'dim'), { title: cush > 0 ? 'Ahead by this much right now' : cush < 0 ? 'Behind by this much right now' : 'Even right now' }, (cush > 0 ? '+' : cush < 0 ? MINUS : '') + Math.abs(cush)) : h(Mark, { v: mk })));
-}
-function ScoreEditor({ g, update }) {
-  const set = (k, v) => update((d) => { const x = d.games.find((q) => q.id === g.id); if (x) x[k] = v; });
-  const num = (v) => (v === '' ? null : Number(v));
-  return h('div.row', { style: { alignItems: 'flex-end', gap: 10 } },
-    h('label.field', null, g.away, h('input', { type: 'number', value: g.awayScore == null ? '' : g.awayScore, onChange: (e) => set('awayScore', num(e.target.value)) })),
-    h('label.field', null, g.home, h('input', { type: 'number', value: g.homeScore == null ? '' : g.homeScore, onChange: (e) => set('homeScore', num(e.target.value)) })),
-    h('label.field', null, 'Status', h('select', { value: g.status, onChange: (e) => set('status', e.target.value) }, ['upcoming', 'live', 'final'].map((s) => h('option', { key: s, value: s }, s)))),
-    h('label.field', null, 'Clock', h('input', { value: g.clock || '', placeholder: '2nd 6:26', style: { width: 100 }, onChange: (e) => set('clock', e.target.value) })));
 }
 function verdictOf(a) {
   const g = a.g;
   let pcls = 'plate.dead', pstyle = null, title = 'No stake', target = '';
   const notes = [];
   if (g.status === 'final') {
-    const outs = a.ints.filter((i) => i.test && i.weight > 0 && !i.minor).map((i) => (i.done && i.done !== 'open' ? i.done === 'won' : a.cur(i) === true)).concat(a.wants.filter((x) => x.done === 'won' || x.done === 'lost').map((x) => x.done === 'won'));
-    const hit = outs.filter(Boolean).length;
-    pcls = 'plate.final'; title = 'Final'; target = outs.length ? hit + ' of ' + outs.length + ' hit' : 'Nothing was riding on it';
+    const pools = a.ints.filter((i) => (i.kind === 'pool' || i.kind === 'survivor') && i.weight > 0.02).map((i) => a.cur(i) === true);
+    const bets = a.ints.filter((i) => i.kind === 'bet').concat(a.wants).filter((x) => x.done === 'won' || x.done === 'lost' || (x.done === 'open' && x.test)).map((x) => (x.done === 'won' ? true : x.done === 'lost' ? false : a.cur(x) === true));
+    const outs = pools.concat(bets), hit = outs.filter(Boolean).length;
+    const pnl = a.ints.concat(a.wants).reduce((t, x) => t + (x.pnl || 0), 0);
+    pcls = 'plate.final'; title = 'Final';
+    target = outs.length ? hit + ' of ' + outs.length + ' hit' + (pnl ? ', ' + (pnl > 0 ? '+' : MINUS) + cash(Math.abs(pnl)) + ' on bets' : '') : 'Nothing was riding on it';
   } else if (a.kind === 'wants') {
     pcls = 'plate.wants'; title = 'No side'; target = 'Props only: just need them to hit';
   } else if (a.kind === 'aligned' || a.kind === 'split') {
@@ -750,9 +782,8 @@ function verdictOf(a) {
   }
   return { pcls, pstyle, title, target, notes };
 }
-function GameCard({ a, rank, update }) {
+function GameCard({ a, rank }) {
   const g = a.g;
-  const [edit, setEdit] = useState(false);
   const final = g.status === 'final', live = g.status === 'live', scored = hasScore(g);
   const k = parseKick(g.kick);
   const when = final ? 'Final' : live ? 'Live' + (g.clock ? ', ' + g.clock : '') : [k.day ? DAYNAME[k.day].slice(0, 3) : '', k.time].filter(Boolean).join(' ') || g.kick || '';
@@ -760,21 +791,23 @@ function GameCard({ a, rank, update }) {
   const cushOf = (i) => (inPlay && i && i.cush ? i.cush(a.margin) : undefined);
   const res = (i) => (final && i ? a.cur(i) : undefined);
   const v = verdictOf(a);
+  const pnlMoney = (x) => (x.pnl == null ? { text: '?', cls: 'dim' } : { text: (x.pnl > 0 ? '+' : x.pnl < 0 ? MINUS : '') + cash(Math.abs(x.pnl)), cls: x.pnl > 0 ? 'ok' : x.pnl < 0 ? 'bad' : 'dim' });
   const poolRow = (p) => {
     if (p.state === 'none') return h(Row, { key: p.which, src: p.src, off: true, label: 'No pick yet' });
     if (p.state === 'noline') return h(Row, { key: p.which, src: p.src, off: true, team: p.side, label: p.side, sub: 'Needs a line to score' });
-    return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p), w: p.weight, mk: final && a.margin != null && p.test ? p.test(a.margin) : undefined, cush: cushOf(p) });
+    return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p), w: final ? null : p.weight, mk: final && a.margin != null && p.test ? p.test(a.margin) : undefined, cush: cushOf(p) });
   };
   const rows = [poolRow(a.spread), poolRow(a.pickem)];
   const surv = a.ints.find((i) => i.kind === 'survivor');
-  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: surv.weight, mk: res(surv), cush: cushOf(surv) }));
+  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: final ? null : surv.weight, mk: res(surv), cush: cushOf(surv) }));
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
-    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, prog: b.prog, w: b.weight, mk: b.done === 'won' ? true : b.done === 'lost' ? false : b.test ? res(b) : undefined, cush: b.done && b.done !== 'open' ? undefined : cushOf(b) })));
+    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, prog: b.prog, w: final ? null : b.weight, money: final ? pnlMoney(b) : undefined,
+    mk: b.done === 'won' ? true : b.done === 'lost' ? false : b.test ? res(b) : undefined, cush: b.done && b.done !== 'open' ? undefined : cushOf(b) })));
   if (a.minors.length) rows.push(h('div.r', { key: 'minor' }, h('div.src', null, 'Futures & fan'),
     h('div.chips', null, groupMinor(a.minors).map((x) => h('span.chip' + (a.root && x.side !== a.root ? '.against' : ''), { key: x.side + x.label, title: x.side + ' ' + x.label }, h(Logo, { t: x.side, size: 16 }), (x.label === 'fan' ? 'Your team' : x.label) + (x.n > 1 ? ' \u00d7' + x.n : ''), final ? h(Mark, { v: a.cur(x.first) }) : null))),
-    h('div.w.tnum', null, usd(a.minors.reduce((s2, i) => s2 + i.weight, 0))), h('div.mk')));
+    h('div.w.tnum', null, final ? '' : usd(a.minors.reduce((t, i) => t + i.weight, 0))), h('div.mk')));
   const stakeBox = final ? null : a.pending
-    ? h('div.stake', null, h('div.amt.tnum.dim', null, a.score >= 0.5 ? usd(a.score) : '\u2014'), h('div.cap', null, g.status === 'upcoming' ? 'pools count at kickoff' : 'pools pending refresh'))
+    ? (a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum.dim', null, usd(a.score)), h('div.cap', null, 'so far')) : null)
     : a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum', null, rank ? h('span.rank', null, '#' + rank) : null, usd(a.score)), h('div.cap', null, 'at stake')) : null;
   return h('div.card' + (live ? '.live' : '') + (final ? '.done' : ''), { id: 'g-' + g.id.replace('@', '-') },
     h('div.card-top', null,
@@ -787,9 +820,7 @@ function GameCard({ a, rank, update }) {
       stakeBox),
     h('div.verdict', null, h('span.' + v.pcls, { style: v.pstyle }, v.title), v.target ? h('span.target', null, v.target) : null, v.notes.length ? h('span.note', null, v.notes.join(' ')) : null),
     h('div.rows', null, rows),
-    a.notes.length ? h('div.warnline', null, a.notes.join(' ')) : null,
-    h('div.foot', null, h('button.linkbtn', { onClick: () => setEdit(!edit) }, edit ? 'Done' : 'Edit score')),
-    edit ? h(ScoreEditor, { g, update }) : null);
+    a.notes.length ? h('div.warnline', null, a.notes.join(' ')) : null);
 }
 function LiveBar({ analyses }) {
   const rows = analyses.filter((a) => a.g.status === 'live' && !a.quiet).sort((x, y) => y.score - x.score);
@@ -803,15 +834,14 @@ function LiveBar({ analyses }) {
         h('span.mt', null, h(Logo, { t: g.away, size: 20 }), g.away + ' ' + (g.awayScore == null ? '' : g.awayScore), h('span.dim', null, '\u2013'), (g.homeScore == null ? '' : g.homeScore) + ' ' + g.home, h(Logo, { t: g.home, size: 20 }), h('span.clk', null, g.clock || 'Live')),
         h('span.' + v.pcls + '.sm', { style: v.pstyle }, v.title),
         h('span.st', null, main ? h('span', null, h('b', null, main.src + (main.type ? ' ' + main.type : '') + ' ' + (main.label || main.side)), ': ' + cushText(main, c)) : 'Waiting on the score'),
-        h('span.amt.tnum', null, usd(a.score)));
+        a.pending ? h('span.amt.tnum.dim', null, a.score >= 0.5 ? usd(a.score) + '+' : 'pending') : h('span.amt.tnum', null, usd(a.score)));
     }));
 }
 
 // ---------- tabs ----------
 const Stat = (v, l) => h('div.cell', { key: l }, h('div.v.tnum', null, v), h('div.l', null, l));
-function RootingTab({ data, analyses, update }) {
+function RootingTab({ data, analyses, update, onHow }) {
   const [hideDone, setHideDone] = useState(false);
-  const [hideQuiet, setHideQuiet] = useState(false);
   const open = analyses.filter((a) => a.g.status !== 'final');
   const scores = open.filter((a) => !a.quiet && !a.pending && a.score >= 0.5).map((a) => a.score);
   const rankOf = (a) => (a.quiet || a.pending || a.g.status === 'final' || a.score < 0.5 ? null : 1 + scores.filter((s) => s > a.score + 1e-9).length);
@@ -844,8 +874,7 @@ function RootingTab({ data, analyses, update }) {
     h(LiveBar, { analyses }),
     h('div.toolbar', null,
       h('label', null, h('input', { type: 'checkbox', checked: hideDone, onChange: (e) => setHideDone(e.target.checked) }), 'Hide completed games'),
-      h('label', null, h('input', { type: 'checkbox', checked: hideQuiet, onChange: (e) => setHideQuiet(e.target.checked) }), 'Hide games with nothing riding')),
-    h('p.legend', null, legend(data)),
+      h('span.legend', { style: { margin: 0 } }, 'At stake is the expected dollar swing from each game\u2019s result. ', h('button.linkbtn', { onClick: onHow }, 'How it\u2019s calculated'))),
     !data.games.length ? h('div.panel.empty-state', null, 'No games loaded. Add this week\u2019s games in Setup.') : null,
     slots.map((s) => {
       const cards = s.items.filter((a) => !a.quiet).sort((x, y) => order(x) - order(y) || y.score - x.score);
@@ -857,7 +886,7 @@ function RootingTab({ data, analyses, update }) {
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone ? h('span.rz', null, 'RedZone') : null),
           h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (stake >= 0.5 ? ', ' + usd(stake) + ' at stake' + (s.items.some((a) => a.pending) ? ' so far' : '') : ''))),
         cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update }))) : null,
-        quiet.length && !hideQuiet ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
+        quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
     }));
 }
 
@@ -919,7 +948,7 @@ function BetsTab({ data, update }) {
         h('td', null, h('select', { value: b.status, onChange: (e) => setStatus(b.id, e.target.value) }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s))), stOf(b) !== b.status ? h('div.hint', null, 'Auto: ' + stOf(b) + ' from the final score') : null),
         h('td', { style: { whiteSpace: 'nowrap' } }, h('button.btn.sm', { onClick: () => editBet(b) }, 'Edit'), ' ', h('button.btn.sm.danger', { onClick: () => del(b.id), title: 'Delete bet' }, '\u00d7')))))))));
   return h('div.stack', null,
-    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(week.reduce((s2, b) => s2 + (betFair(b, data) || 0), 0)), 'This week\u2019s bets are worth now'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(open.reduce((s, b) => s + (Number(b.toPay) || 0), 0)), 'Paid if everything hits'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
+    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(week.reduce((s2, b) => s2 + (betFair(b, data) || 0), 0)), 'This week\u2019s bets are worth now'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(week.reduce((s2, b) => s2 + (Number(b.toPay) || 0), 0)), 'Pays if this week\u2019s bets all hit'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
     table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'),
     h('div.panel', null, h('h3', null, form.id ? 'Edit bet' : 'Add a bet'),
       h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 12 } },
@@ -938,6 +967,7 @@ function BetsTab({ data, update }) {
 }
 
 function PoolPanel({ data, which, update }) {
+  const [editing, setEditing] = useState(false);
   const L = data.leagues[which], isSpread = which === 'spread';
   const key = isSpread ? 'spreadPicks' : 'pickemPicks';
   const picks = data[key] || {};
@@ -948,7 +978,7 @@ function PoolPanel({ data, which, update }) {
   const R = pickRates(data, which);
   const short = (p) => p.split(' ')[0];
   const basis = (L.players || []).reduce((mx, p) => Math.max(mx, R[p] ? (isSpread ? R[p].shared : R[p].nf) : 0), 0);
-  const rateLine = (isSpread ? 'Takes your side: ' + (L.players || []).filter((p) => p !== me).map((p) => short(p) + ' ' + Math.round(100 * R[p].agree) + '%').join(', ') : 'Picks favorites: ' + (L.players || []).map((p) => short(p) + ' ' + Math.round(100 * R[p].fav) + '%').join(', ')) + (basis ? ' (from ' + basis + ' games so far, blended with the ' + (isSpread ? '55' : '80') + '% default until there\u2019s more history)' : ' (default until picks start coming in)');
+  const rateLine = (isSpread ? 'Takes your side: ' + (L.players || []).filter((p) => p !== me).map((p) => short(p) + ' ' + Math.round(100 * R[p].agree) + '%').join(', ') : 'Picks favorites: ' + (L.players || []).map((p) => (p === me ? 'You' : short(p)) + ' ' + Math.round(100 * R[p].fav) + '%').join(', ')) + (basis ? ' (from ' + basis + ' game' + (basis === 1 ? '' : 's') + ' so far, blended with the ' + (isSpread ? '55' : '80') + '% default until there\u2019s more history)' : ' (default until picks start coming in)');
   const setPick = (p, gid, v) => update((d) => { d[key][p] = d[key][p] || {}; if (v) d[key][p][gid] = v; else delete d[key][p][gid]; });
   const cycle = (v, g) => (v === '' ? g.away : v === g.away ? g.home : '');
   const result = (x, g) => { if (!x || !hasScore(g)) return null; const t = isSpread ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g); return t ? t(marginOf(g)) : null; };
@@ -963,12 +993,12 @@ function PoolPanel({ data, which, update }) {
       h('tbody', null, (L.players || []).map((p) => h('tr', { key: p },
         h('td', { style: { fontWeight: p === me ? 700 : 500, whiteSpace: 'nowrap' } }, p, p === me ? h('span.you', null, 'you') : null),
         h('td.tnum.muted', null, wl(p)),
-        games.map((g) => { const v = (picks[p] || {})[g.id] || ''; const r = result(v, g); return h('td', { key: g.id, style: { textAlign: 'center' } }, h('button', { className: 'pick' + (p === me ? ' me' : '') + (!v ? ' empty' : r === true ? ' hit' : r === false ? ' miss' : ''), onClick: () => setPick(p, g.id, cycle(v, g)), title: 'Click to cycle away, home, blank' }, v || '\u00b7')); })))))),
-    h('p.hint', null, 'Opponents\u2019 picks stay hidden until each game kicks off. They\u2019re pulled in at kickoff and don\u2019t count until then. Click a cell to change a pick.'));
+        games.map((g) => { const v = (picks[p] || {})[g.id] || ''; const r = result(v, g); return h('td', { key: g.id, style: { textAlign: 'center' } }, h(editing ? 'button' : 'span', { className: 'pick' + (p === me ? ' me' : '') + (!v ? ' empty' : r === true ? ' hit' : r === false ? ' miss' : ''), onClick: editing ? () => setPick(p, g.id, cycle(v, g)) : undefined, title: editing ? 'Click to cycle away, home, blank' : undefined }, v || '\u00b7')); })))))),
+    h('div.row.between', { style: { marginTop: 10 } }, h('span.hint', null, isSpread ? 'Opponents\u2019 picks stay hidden until each game kicks off and come in when I refresh.' : 'Opponents\u2019 picks stay hidden until each game kicks off, then fill in automatically from ESPN.'), h('button.btn.sm', { onClick: () => setEditing(!editing) }, editing ? 'Done editing' : 'Edit picks')));
 }
 const PoolsTab = ({ data, update }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', update }), h(PoolPanel, { data, which: 'pickem', update }));
 
-function SetupTab({ data, update, replaceData, onDiscard }) {
+function SetupTab({ data, viewData, update, replaceData, onDiscard }) {
   const [io, setIo] = useState('');
   const [msg, setMsg] = useState('');
   const W = data.weights;
@@ -979,7 +1009,7 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
   const field = (label, el) => h('label.field', null, label, el);
   const mIn = (k, label, step) => h('label.field', { key: k }, label, h('input', { type: 'number', step, value: (data.model || {})[k], onChange: (e) => update((d) => { d.model = Object.assign({}, d.model, { [k]: parseFloat(e.target.value) || 0 }); }) }));
   const addGame = () => update((d) => { d.games.push({ id: 'AWY@HOM', away: 'AWY', home: 'HOM', kick: 'Sun 1:00p', line: null, homeWP: null, status: 'upcoming', awayScore: null, homeScore: null, clock: '' }); });
-  const newWeek = () => { if (window.confirm('Start a new week? Standings roll forward, revealed picks are saved for the agreement rates, and games and picks clear. Bets stay.')) update((d) => { ['spread', 'pickem'].forEach((w) => { const L = d.leagues[w], cw = currentWins(d, w), ppw = Number(L.ptsPerWin) || 1; L.standings = (L.players || []).map((p) => ({ name: p, pts: (cw[p] || 0) * ppw })); }); archivePicks(d); d.gamesLeft = Math.max(0, (Number(d.gamesLeft) || 0) - d.games.length); d.week = (Number(d.week) || 0) + 1; d.games = []; d.spreadPicks = {}; d.pickemPicks = {}; d.survivor = ''; }); };
+  const newWeek = () => { if (window.confirm('Start a new week? Standings roll forward, revealed picks are saved for the agreement rates, and games and picks clear. Bets stay.')) update((d) => { const vd = JSON.parse(JSON.stringify(viewData || d)); ['spread', 'pickem'].forEach((w) => { const L = d.leagues[w], cw = currentWins(vd, w), ppw = Number(L.ptsPerWin) || 1; L.standings = (L.players || []).map((p) => ({ name: p, pts: (cw[p] || 0) * ppw })); }); archivePicks(vd); d.history = vd.history; d.gamesLeft = Math.max(0, (Number(d.gamesLeft) || 0) - d.games.length); d.week = (Number(d.week) || 0) + 1; d.games = []; d.spreadPicks = {}; d.pickemPicks = {}; d.survivor = ''; }); };
   return h('div.stack', null,
     h('div.panel', null, h('h3', null, 'This week'),
       h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 14 } },
@@ -991,9 +1021,9 @@ function SetupTab({ data, update, replaceData, onDiscard }) {
     h('div.panel', null, h('h3', null, 'Scoring'), h('p.hint', { style: { maxWidth: '78ch' } }, legend(data)),
       h('div.row', { style: { alignItems: 'flex-start', gap: 16, marginTop: 8 } },
         field('Games left at start of week', h('input', { type: 'number', value: data.gamesLeft, onChange: (e) => update((d) => { d.gamesLeft = parseInt(e.target.value, 10) || 0; }) })),
-        mIn('spreadAgree', 'Spread: opponents share your side', 0.05),
+        mIn('spreadAgree', 'Spread: share your side (default)', 0.05),
         mIn('favWin', 'Pick\u2019em: favorites win', 0.01),
-        mIn('favPick', 'Pick\u2019em: picks on favorites', 0.05),
+        mIn('favPick', 'Pick\u2019em: take favorites (default)', 0.05),
         field('Bets count as', h('select', { value: W.betMethod, onChange: (e) => setW('betMethod', e.target.value) }, h('option', { value: 'ev' }, 'Expected swing'), h('option', { value: 'stake' }, 'Stake'), h('option', { value: 'payout' }, 'Payout'))),
         wIn('hold', 'Book margin, single bets', 0.005),
         wIn('parlayHold', 'Book margin, parlays', 0.01),
@@ -1127,6 +1157,7 @@ function App() {
   const [liveAt, setLiveAt] = useState(null);
   const [liveErr, setLiveErr] = useState(false);
   const [boxes, setBoxes] = useState({});
+  const [espn, setEspn] = useState(null);
   const dataRef = useRef(data);
   dataRef.current = data;
   useEffect(() => {
@@ -1143,26 +1174,30 @@ function App() {
         await Promise.all(Object.keys(need).map(async (gid) => { if (need[gid].status === 'final' && BOX_CACHE[gid]) { got[gid] = BOX_CACHE[gid]; return; } const bx = await fetchBox(need[gid].eventId); if (bx) { got[gid] = bx; if (need[gid].status === 'final') BOX_CACHE[gid] = bx; } }));
         if (alive && Object.keys(got).length) setBoxes((prev) => Object.assign({}, prev, got));
       }
+      if (res && Object.keys(res).some((k) => res[k].status !== 'upcoming')) {
+        const Lp = (dataRef.current.leagues || {}).pickem;
+        if (Lp && Lp.espnGroup) { const ep = await fetchEspnPicks(Lp); if (alive && ep) setEspn(ep); }
+      }
       const anyLive = !!res && Object.keys(res).some((k) => res[k].status === 'live');
       timer = setTimeout(tick, anyLive ? 60000 : 180000);
     };
     tick();
     return () => { alive = false; clearTimeout(timer); };
   }, [loaded, data.season, data.week, data.games.length]);
-  const view = useMemo(() => withLive(data, live, boxes), [data, live, boxes]);
+  const view = useMemo(() => withLive(data, live, boxes, espn), [data, live, boxes, espn]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
-  const tabs = [['root', 'Rooting guide'], ['bets', 'Bets'], ['pools', 'Pools'], ['advisor', 'Pick advisor'], ['setup', 'Setup']];
+  const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['setup', 'Setup', 'Setup']];
   return h('div.wrap', null,
     h('header.top', null,
-      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + data.week + ', ' + data.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc', null, liveErr ? 'Live scores unavailable' : 'Live scores as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
-      h('nav.tabs', null, tabs.map(([k, l]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, l)))),
+      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + data.week + ', ' + data.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc', null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
+      h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, h('span.full', null, l), h('span.short', null, sl))))),
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
-      : tab === 'root' ? h(RootingTab, { data: view, analyses, update })
+      : tab === 'root' ? h(RootingTab, { data: view, analyses, update, onHow: () => setTab('setup') })
       : tab === 'bets' ? h(BetsTab, { data: view, update })
       : tab === 'pools' ? h(PoolsTab, { data: view, update })
       : tab === 'advisor' ? h(AdvisorTab, { data: view })
-      : h(SetupTab, { data, update, replaceData, onDiscard: loadPublished }));
+      : h(SetupTab, { data, viewData: view, update, replaceData, onDiscard: loadPublished }));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 })();
