@@ -70,6 +70,18 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font
 span.pick{cursor:default}
 .autobar{padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
 .autobar .linkbtn{color:var(--flag);font-size:13px;font-weight:600}
+.sitbox{margin-top:7px}
+.sit{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.rzpill{display:inline-block;background:var(--red);color:#fff;font:700 11px/1.5 Barlow,sans-serif;padding:0 7px;border-radius:4px;letter-spacing:.3px;white-space:nowrap}
+.lastplay{color:var(--muted);font-size:12px;margin-top:3px}
+.refresh{background:none;border:1px solid var(--line2);border-radius:5px;color:var(--muted);cursor:pointer;margin-left:8px;padding:0 6px;font-size:13px;line-height:18px;vertical-align:1px}
+.refresh:hover{color:var(--text)}
+.refresh.spin{animation:rbspin 1s linear infinite}
+@keyframes rbspin{to{transform:rotate(360deg)}}
+.livesrc.stale{color:var(--flag)}
+.recap{padding:10px 14px;margin-bottom:12px;font-size:13px;border-color:var(--flag)}
+.recap b{color:var(--flag)}
+.recap .linkbtn{margin-left:8px}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
 .team{display:inline-flex;align-items:center;gap:7px}
@@ -152,7 +164,7 @@ input[type=checkbox]{accent-color:var(--flag);width:15px;height:15px}
 .ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}.dim{color:var(--dim)}
 .empty-state{padding:28px;text-align:center;color:var(--muted)}
 @media (max-width:560px){.wrap{padding:16px 12px 48px}.grid{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.r{grid-template-columns:62px minmax(0,1fr) auto minmax(14px,auto);gap:8px}.lb-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}.lb-row .mt{white-space:normal;flex-wrap:wrap;row-gap:3px}.lb-row .clk{flex-basis:100%;margin-left:0}.matchup{font-size:21px;gap:8px}.pts{font-size:23px}.stake .amt{font-size:23px}.brand h1{font-size:28px}.brand{gap:2px 10px}.top{margin-bottom:12px}.strip .cell{flex-basis:45%;padding:8px 10px}.strip .v{font-size:21px}.tabs .full{display:none}.tabs .short{display:inline}.tabs button{padding:10px 9px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
@@ -225,6 +237,11 @@ async function fetchLive(season, week) {
       const hml = Number(od.homeTeamOdds && od.homeTeamOdds.moneyLine), aml = Number(od.awayTeamOdds && od.awayTeamOdds.moneyLine);
       if (hml && aml) { const ih = 1 / decOdds(hml), ia = 1 / decOdds(aml); mkt.homeWP = ih / (ih + ia); }
       rec.mkt = mkt;
+      const sit = c.situation;
+      if (status === 'live' && sit) {
+        const pt = (c.competitors || []).find((x) => sit.possession != null && (String(x.id) === String(sit.possession) || String(x.team && x.team.id) === String(sit.possession)));
+        rec.sit = { pos: pt ? ab(pt) : '', dd: String(sit.downDistanceText || sit.shortDownDistanceText || ''), rz: !!sit.isRedZone, last: String((sit.lastPlay && sit.lastPlay.text) || '') };
+      }
       out[ab(away) + '@' + ab(home)] = rec;
     });
     return out;
@@ -847,6 +864,32 @@ function verdictOf(a) {
   }
   return { pcls, pstyle, title, target, notes };
 }
+function stateOf(a, i) {
+  if (i.done && i.done !== 'open') return i.done;
+  if (a.g.status === 'final') { const r = a.cur(i); return r === true ? 'won' : r === false ? 'lost' : 'push'; }
+  if (a.g.status === 'live' && a.margin != null && i.cush) { const c = i.cush(a.margin); return c > 0 ? 'up' : c < 0 ? 'down' : 'even'; }
+  return 'pre';
+}
+const snapOf = (week, analyses) => ({ t: Date.now(), week, g: Object.fromEntries(analyses.map((a) => [a.g.id, { s: a.g.status, i: Object.fromEntries(a.ints.concat(a.wants).filter((i) => !i.minor).map((i) => [i.key, stateOf(a, i)])) }])) });
+function recapLines(prev, analyses) {
+  const out = [];
+  const short = (t) => (String(t).length > 28 ? String(t).slice(0, 26) + '\u2026' : String(t));
+  analyses.forEach((a) => {
+    const p = prev.g && prev.g[a.g.id], g = a.g;
+    if (!p) return;
+    if (g.status === 'final' && p.s !== 'final') { const v = verdictOf(a); out.push(g.away + ' ' + g.awayScore + '\u2013' + g.homeScore + ' ' + g.home + ' final' + (v.target && v.target !== 'Nothing was riding on it' ? ' (' + v.target + ')' : '')); return; }
+    a.ints.concat(a.wants).forEach((i) => {
+      if (i.minor) return;
+      const was = p.i && p.i[i.key], now = stateOf(a, i);
+      if (!was || now === was) return;
+      const name = i.kind === 'pool' ? 'your ' + (i.key === 'spread' ? 'spread' : 'pick\u2019em') + ' pick ' + i.label : i.kind === 'survivor' ? 'your survivor pick ' + i.side : i.src + (i.type ? ' ' + i.type : '') + ' ' + short(i.label);
+      if (i.kind === 'bet' && (now === 'won' || now === 'lost' || now === 'void')) out.push(name + (now === 'won' ? ' won' : now === 'lost' ? ' lost' : ' pushed') + (i.pnl ? ' (' + (i.pnl > 0 ? '+' : MINUS) + cash(Math.abs(i.pnl)) + ')' : ''));
+      else if (now === 'down' && (was === 'up' || was === 'even')) out.push(name + ' fell behind');
+      else if (now === 'up' && (was === 'down' || was === 'even')) out.push(name + ' moved ahead');
+    });
+  });
+  return out;
+}
 function GameCard({ a, rank }) {
   const g = a.g;
   const final = g.status === 'final', live = g.status === 'live', scored = hasScore(g);
@@ -856,6 +899,10 @@ function GameCard({ a, rank }) {
   const cushOf = (i) => (inPlay && i && i.cush ? i.cush(a.margin) : undefined);
   const res = (i) => (final && i ? a.cur(i) : undefined);
   const v = verdictOf(a);
+  const sit = live && g.lv && g.lv.sit;
+  const sitBox = sit && (sit.dd || sit.last) ? h('div.sitbox', null,
+    sit.dd ? h('div.sit', null, sit.pos ? h(Logo, { t: sit.pos, size: 16 }) : null, h('span', null, (sit.pos ? sit.pos + ' ball, ' : '') + sit.dd), sit.rz ? h('span.rzpill', null, 'Red zone') : null) : null,
+    sit.last ? h('div.lastplay', null, 'Last play: ' + (sit.last.length > 120 ? sit.last.slice(0, 117) + '\u2026' : sit.last)) : null) : null;
   const pnlMoney = (x) => (x.pnl == null ? { text: '?', cls: 'dim' } : { text: (x.pnl > 0 ? '+' : x.pnl < 0 ? MINUS : '') + cash(Math.abs(x.pnl)), cls: x.pnl > 0 ? 'ok' : x.pnl < 0 ? 'bad' : 'dim' });
   const poolRow = (p) => {
     if (p.state === 'none') return h(Row, { key: p.which, src: p.src, off: true, label: 'No pick yet' });
@@ -881,7 +928,7 @@ function GameCard({ a, rank }) {
           h('span.team', null, h(Logo, { t: g.away, size: 30 }), g.away, scored ? h('span.pts.tnum', null, g.awayScore) : null),
           h('span.at', null, 'at'),
           h('span.team', null, h(Logo, { t: g.home, size: 30 }), g.home, scored ? h('span.pts.tnum', null, g.homeScore) : null)),
-        h('div.sub', null, h('span' + (live ? '.livepill' : ''), null, when), h('span', null, lineText(g)))),
+        h('div.sub', null, h('span' + (live ? '.livepill' : ''), null, when), h('span', null, lineText(g))), sitBox),
       stakeBox),
     h('div.verdict', null, h('span.' + v.pcls, { style: v.pstyle }, v.title), v.target ? h('span.target', null, v.target) : null, v.notes.length ? h('span.note', null, v.notes.join(' ')) : null),
     h('div.rows', null, rows),
@@ -896,7 +943,7 @@ function LiveBar({ analyses }) {
       const main = a.margin == null ? null : a.ints.filter((i) => !i.minor && i.cush && i.weight > 0).sort((x, y) => y.weight - x.weight)[0];
       const c = main ? main.cush(a.margin) : null;
       return h('a.lb-row', { key: g.id, href: '#g-' + g.id.replace('@', '-') },
-        h('span.mt', null, h(Logo, { t: g.away, size: 20 }), g.away + ' ' + (g.awayScore == null ? '' : g.awayScore), h('span.dim', null, '\u2013'), (g.homeScore == null ? '' : g.homeScore) + ' ' + g.home, h(Logo, { t: g.home, size: 20 }), h('span.clk', null, g.clock || 'Live')),
+        h('span.mt', null, h(Logo, { t: g.away, size: 20 }), g.away + ' ' + (g.awayScore == null ? '' : g.awayScore), h('span.dim', null, '\u2013'), (g.homeScore == null ? '' : g.homeScore) + ' ' + g.home, h(Logo, { t: g.home, size: 20 }), h('span.clk', null, g.clock || 'Live'), g.lv && g.lv.sit && g.lv.sit.rz ? h('span.rzpill', null, 'Red zone' + (g.lv.sit.pos ? ': ' + g.lv.sit.pos : '')) : null),
         h('span.' + v.pcls + '.sm', { style: v.pstyle }, v.title),
         h('span.st', null, main ? h('span', null, h('b', null, main.src + (main.type ? ' ' + main.type : '') + ' ' + (main.label || main.side)), ': ' + cushText(main, c)) : 'Waiting on the score'),
         h('span.amt.tnum' + (a.lev != null && a.lev < 0.15 * a.score ? '.dim' : ''), { title: 'Still in play: the expected swing from here' }, a.lev != null ? usd(a.lev) + (a.pending ? '+' : '') : a.pending ? 'pending' : usd(a.score)));
@@ -905,7 +952,7 @@ function LiveBar({ analyses }) {
 
 // ---------- tabs ----------
 const Stat = (v, l) => h('div.cell', { key: l }, h('div.v.tnum', null, v), h('div.l', null, l));
-function RootingTab({ data, analyses, update, onHow, auto }) {
+function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   const [hideDone, setHideDone] = useState(false);
   const open = analyses.filter((a) => a.g.status !== 'final');
   const scores = open.filter((a) => !a.quiet && !a.pending && a.score >= 0.5).map((a) => a.score);
@@ -935,6 +982,7 @@ function RootingTab({ data, analyses, update, onHow, auto }) {
   ];
   ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(data, w); if (s) { const sim = poolSim(data, w); const pct = sim.pot ? Math.round(100 * sim.equity(null) / sim.pot) : 0; stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts, ' + pct + '% to win')); } });
   return h('div', null,
+    recap && recap.length ? h('div.panel.recap', null, h('b', null, 'Since you last looked: '), recap.slice(0, 6).join('; ') + (recap.length > 6 ? '; and ' + (recap.length - 6) + ' more' : '') + '.', h('button.linkbtn', { onClick: onDismiss }, 'Dismiss')) : null,
     auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and lines loaded from ESPN. Your pool picks, the CBS lines and your survivor pick come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results')) : null,
     h('div.strip', null, stats),
     h(LiveBar, { analyses }),
@@ -1203,6 +1251,13 @@ function App() {
   const [rolled, setRolled] = useState(null);
   const [prevView, setPrevView] = useState(null);
   const [showPrev, setShowPrev] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const [recap, setRecap] = useState(null);
+  const [tickN, setTickN] = useState(0);
+  const recapPending = useRef(true);
+  const refreshRef = useRef(null);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -1273,9 +1328,11 @@ function App() {
         }
       }
       const anyLive = !!res && Object.keys(res).some((k) => res[k].status === 'live');
+      if (alive) setTickN((n) => n + 1);
       timer = setTimeout(tick, anyLive ? 60000 : 180000);
     };
-    const tick = async () => { if (running) return; running = true; try { await tickBody(); } finally { running = false; } };
+    const tick = async () => { if (running) return; running = true; try { await tickBody(); } finally { running = false; setBusy(false); setNow(Date.now()); } };
+    refreshRef.current = () => { clearTimeout(timer); pubCheckRef.current = 0; tick(); };
     const onVis = () => { if (document.visibilityState === 'visible') { clearTimeout(timer); pubCheckRef.current = 0; tick(); } };
     document.addEventListener('visibilitychange', onVis);
     tick();
@@ -1283,14 +1340,33 @@ function App() {
   }, [loaded, data.season, data.week, data.games.length]);
   const view = useMemo(() => (rolled && showPrev && prevView ? prevView : withLive(rolled || data, live, boxes, espn)), [data, rolled, showPrev, prevView, live, boxes, espn]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const analysesRef = useRef(analyses);
+  analysesRef.current = analyses;
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'hidden') { try { localStorage.setItem('rb-snap', JSON.stringify(snapOf(viewRef.current.week, analysesRef.current))); } catch (e) { /* storage unavailable */ } } else recapPending.current = true; };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+  useEffect(() => {
+    if (!tickN || !recapPending.current) return;
+    recapPending.current = false;
+    let prev = null;
+    try { prev = JSON.parse(localStorage.getItem('rb-snap') || 'null'); } catch (e) { prev = null; }
+    if (prev && prev.week === view.week && Date.now() - prev.t > 60000) { const lines = recapLines(prev, analyses); setRecap(lines.length ? lines : null); }
+    try { localStorage.setItem('rb-snap', JSON.stringify(snapOf(view.week, analyses))); } catch (e) { /* storage unavailable */ }
+  }, [tickN]);
+  const stale = !!liveAt && now - liveAt.getTime() > (view.games.some((g) => g.status === 'live') ? 180000 : 600000);
+  const doRefresh = () => { setBusy(true); if (refreshRef.current) refreshRef.current(); };
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
   const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['setup', 'Setup', 'Setup']];
   return h('div.wrap', null,
     h('header.top', null,
-      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc', null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
+      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
       h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, h('span.full', null, l), h('span.short', null, sl))))),
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
-      : tab === 'root' ? h(RootingTab, { data: view, analyses, update, onHow: () => setTab('setup'), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
+      : tab === 'root' ? h(RootingTab, { data: view, analyses, update, onHow: () => setTab('setup'), recap, onDismiss: () => setRecap(null), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
       : tab === 'bets' ? h(BetsTab, { data: view, update })
       : tab === 'pools' ? h(PoolsTab, { data: view, update })
       : tab === 'advisor' ? h(AdvisorTab, { data: view })
