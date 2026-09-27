@@ -82,6 +82,10 @@ span.pick{cursor:default}
 .recap{padding:10px 14px;margin-bottom:12px;font-size:13px;border-color:var(--flag)}
 .recap b{color:var(--flag)}
 .recap .linkbtn{margin-left:8px}
+.pctl{color:var(--flag);font-weight:600}
+.howwent{padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.howwent b{color:var(--text)}
+.howwent .pctl{white-space:nowrap}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
 .team{display:inline-flex;align-items:center;gap:7px}
@@ -752,7 +756,7 @@ function poolInfo(g, data, which) {
   const weight = Math.max(0, (eh - em) * unc);
   const max = hidden ? Math.max(0, (sim.equity(hitMax) - sim.equity(missMax)) * unc) : weight;
   const line = isSpread ? (mine === g.home ? Number(g.line) : -Number(g.line)) : null;
-  return Object.assign(out, { state: hidden ? 'pending' : vs.length || noPick ? 'edge' : 'noedge', side: mine, weight, max, oddsHit: sim.pot ? eh / sim.pot : null, oddsMiss: sim.pot ? em / sim.pot : null, n: Math.max(1, n), against: vs.length, hidden, noPick, vs,
+  return Object.assign(out, { state: hidden ? 'pending' : vs.length || noPick ? 'edge' : 'noedge', side: mine, weight, max, gap: eh - em, oddsHit: sim.pot ? eh / sim.pot : null, oddsMiss: sim.pot ? em / sim.pot : null, n: Math.max(1, n), against: vs.length, hidden, noPick, vs,
     label: isSpread ? mine + ' ' + fmtLine(line) : mine + ' to win',
     test: isSpread ? coverTest(mine, g, line) : mlTest(mine, g), cush: isSpread ? coverCush(mine, g, line) : mlCush(mine, g), ctype: isSpread ? 'ats' : 'su', started: g.status !== 'upcoming' });
 }
@@ -972,6 +976,67 @@ function LiveBar({ analyses }) {
 
 // ---------- tabs ----------
 const Stat = (v, l) => h('div.cell', { key: l }, h('div.v.tnum', null, v), h('div.l', null, l));
+// ---------- how a slate went: where the actual result ranks among simulated outcomes ----------
+const rng32 = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+function slateOutcome(items, data, firstKey) {
+  const W = data.weights, SIMS = 4000, SD = 13.5, boxes = data.boxes || {};
+  const byId = {}; data.games.forEach((g) => { byId[g.id] = g; });
+  const idx = {}; items.forEach((a, i) => { idx[a.g.id] = i; });
+  const mu = items.map((a) => { const g = a.g, mk = g.lv && g.lv.mkt; const L = mk && mk.homeLine != null ? Number(mk.homeLine) : Number(g.line); return isFinite(L) ? -L : 0; });
+  const act = items.map((a) => marginOf(a.g));
+  const comps = [];
+  items.forEach((a, gi) => {
+    [a.spread, a.pickem].forEach((p) => { if (p && p.state === 'edge' && p.test && p.gap > 0) comps.push({ gi, gap: p.gap, test: p.test }); });
+    const sv = a.ints.find((i) => i.kind === 'survivor');
+    if (sv && sv.test) comps.push({ gi, gap: Number(W.survivor) || 0, test: sv.test });
+  });
+  let unknown = 0;
+  const bets = [];
+  (data.bets || []).forEach((b) => {
+    const legs = b.legs || [];
+    const here = legs.filter((l) => l.kind === 'game' && idx[l.game] != null);
+    if (!here.length || b.status === 'void') return;
+    const pAll = betProb(b, W);
+    if (!(pAll > 0)) return;
+    const pl = Math.pow(pAll, 1 / legs.length);
+    let fv0 = (Number(b.toPay) || 0) * pAll, dead = false;
+    legs.forEach((l) => {
+      if (l.kind !== 'game' || idx[l.game] != null) return;
+      const g = byId[l.game];
+      if (!g || g.status !== 'final' || slotOf(g.kick).key >= firstKey) return;
+      const r = legResult(l, g, boxes);
+      if (r === 'lost') dead = true; else if (r === 'won' || r === 'void') fv0 /= pl;
+    });
+    if (dead) return;
+    const res = here.map((l) => legResult(l, byId[l.game], boxes));
+    if (res.some((r) => r === 'open')) { unknown++; return; }
+    bets.push({ fv0, pl, legs: here.map((l, k) => ({ gi: idx[l.game], res: res[k], t: l.type === 'ml' ? mlTest(l.side, byId[l.game]) : l.type === 'spread' ? coverTest(l.side, byId[l.game], Number(l.line)) : null })) });
+  });
+  if (!comps.length && !bets.length) return null;
+  let seed = 7;
+  items.forEach((a) => { for (let i = 0; i < a.g.id.length; i++) seed = Math.imul(seed ^ a.g.id.charCodeAt(i), 16777619); });
+  const rnd = rng32(seed);
+  const gauss = () => { let u = 0; while (!u) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
+  const hitsMean = comps.map(() => 0), compHits = comps.map(() => new Uint8Array(SIMS)), betVal = new Float64Array(SIMS);
+  for (let s = 0; s < SIMS; s++) {
+    const m = mu.map((x) => x + SD * gauss());
+    comps.forEach((c, j) => { const v = c.test(m[c.gi]) === true ? 1 : 0; compHits[j][s] = v; hitsMean[j] += v; });
+    let bv = 0;
+    bets.forEach((b) => { let f = 1; for (const L of b.legs) { const r = L.t ? L.t(m[L.gi]) : rnd() < b.pl; if (r === true) f /= b.pl; else if (r === false) { f = 0; break; } } bv += b.fv0 * (f - 1); });
+    betVal[s] = bv;
+  }
+  hitsMean.forEach((x, j) => { hitsMean[j] = x / SIMS; });
+  let actual = 0, mean = 0, below = 0, ties = 0;
+  comps.forEach((c, j) => { const r = c.test(act[c.gi]); actual += ((r === true ? 1 : r === false ? 0 : hitsMean[j]) - hitsMean[j]) * c.gap; });
+  bets.forEach((b) => { let f = 1; for (const L of b.legs) { if (L.res === 'won') f /= b.pl; else if (L.res === 'lost') { f = 0; break; } } actual += b.fv0 * (f - 1); });
+  const totals = new Float64Array(SIMS);
+  for (let s = 0; s < SIMS; s++) { let t = betVal[s]; comps.forEach((c, j) => { t += (compHits[j][s] - hitsMean[j]) * c.gap; }); totals[s] = t; mean += t; }
+  mean /= SIMS;
+  for (let s = 0; s < SIMS; s++) { if (totals[s] < actual - 1e-6) below++; else if (Math.abs(totals[s] - actual) <= 1e-6) ties++; }
+  return { pct: Math.max(1, Math.min(99, Math.round(100 * (below + ties / 2) / SIMS))), vs: actual, unknown };
+}
+const outcomeText = (o) => ordinal(o.pct) + ' percentile, ' + (o.vs >= 0 ? '+' : MINUS) + usd(Math.abs(o.vs)) + ' vs expected' + (o.unknown ? ' (' + o.unknown + ' bet' + (o.unknown === 1 ? '' : 's') + ' still to settle)' : '');
+const PCTL_TIP = 'Where the actual results rank among 4,000 simulated outcomes of the same games from pre-game odds, counting pool equity, bets and survivor. 50th is a typical result; higher is better.';
 function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   const [hideDone, setHideDone] = useState(false);
   const open = analyses.filter((a) => a.g.status !== 'final');
@@ -986,6 +1051,22 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
     groups.get(k).items.push(a);
   });
   const slots = [...groups.values()].sort((x, y) => x.key - y.key);
+  const outcomes = useMemo(() => {
+    const res = {}, bySlot = new Map(), days = new Map();
+    analyses.forEach((a) => { const s = slotOf(a.g.kick); if (!bySlot.has(s.key)) bySlot.set(s.key, { s, items: [] }); bySlot.get(s.key).items.push(a); });
+    const all = [];
+    let first = null;
+    [...bySlot.values()].sort((x, y) => x.s.key - y.s.key).forEach(({ s, items }) => {
+      const dk = Math.floor(s.key / 10);
+      if (!days.has(dk)) days.set(dk, { title: s.title.split(' ')[0], slots: 0, done: 0, items: [], first: s.key });
+      const D = days.get(dk);
+      D.slots++;
+      if (items.every((a) => a.g.status === 'final')) { const o = slateOutcome(items, data, s.key); if (o) res[s.key] = o; D.done++; D.items = D.items.concat(items); all.push(...items); if (first == null) first = s.key; }
+    });
+    res.days = [...days.values()].filter((D) => D.done > 0).map((D) => { const o = slateOutcome(D.items, data, D.first); return o ? Object.assign({ title: D.title, soFar: D.done < D.slots }, o) : null; }).filter(Boolean);
+    res.week = res.days.length > 1 ? slateOutcome(all, data, first) : null;
+    return res;
+  }, [analyses, data]);
   const order = (a) => (a.g.status === 'live' ? 0 : a.g.status === 'final' ? 2 : 1);
   const edge = (p) => p && (p.state === 'edge' || p.state === 'pending');
   const both = open.filter((a) => edge(a.spread) && edge(a.pickem)).length;
@@ -1016,6 +1097,7 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   return h('div', null,
     recap && recap.length ? h('div.panel.recap', null, h('b', null, 'Since you last looked: '), recap.slice(0, 6).join('; ') + (recap.length > 6 ? '; and ' + (recap.length - 6) + ' more' : '') + '.', h('button.linkbtn', { onClick: onDismiss }, 'Dismiss')) : null,
     auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and lines loaded from ESPN. Your pool picks, the CBS lines and your survivor pick come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results')) : null,
+    outcomes.days.length ? h('div.panel.howwent', { title: PCTL_TIP }, h('b', null, 'How it went: '), outcomes.days.map((D, i) => h('span', { key: D.title }, i ? '; ' : '', D.title + (D.soFar ? ' so far' : '') + ' ', h('span.pctl', null, outcomeText(D)))), outcomes.week ? h('span', null, '; week so far ', h('span.pctl', null, outcomeText(outcomes.week))) : null) : null,
     h('div.strip', null, stats),
     h(LiveBar, { analyses }),
     h('div.toolbar', null,
@@ -1030,7 +1112,7 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
       return h('section', { key: s.key + s.title },
         h('div.slot', null,
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone ? h('span.rz', null, 'RedZone') : null),
-          h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (stake >= 0.5 ? ', ' + usd(stake) + ' at stake' + (s.items.some((a) => a.pending) ? ' so far' : '') : ''))),
+          outcomes[s.key] && s.items.every((a) => a.g.status === 'final') ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (stake >= 0.5 ? ', ' + usd(stake) + ' at stake' + (s.items.some((a) => a.pending) ? ' so far' : '') : ''))),
         cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update }))) : null,
         quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
     }));
