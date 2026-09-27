@@ -194,6 +194,7 @@ const uc = (s) => (s == null ? '' : String(s)).trim().toUpperCase();
 const fmtLine = (n) => (n == null || isNaN(n) ? '' : n > 0 ? '+' + n : n < 0 ? MINUS + Math.abs(n) : 'PK');
 const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const american = (b) => { const st = Number(b.stake) || 0, pay = Number(b.toPay) || 0; if (!st || !pay) return ''; const dec = b.bonus ? 1 + pay / st : pay / st; if (dec <= 1) return ''; return dec >= 2 ? '+' + Math.round((dec - 1) * 100) : MINUS + Math.round(100 / (dec - 1)); };
+const hitText = (p) => (p >= 0.995 ? 'all but certain' : p >= 0.01 ? Math.round(100 * p) + '% to hit' : p >= 0.00001 ? '1 in ' + Math.round(1 / p).toLocaleString() + ' to hit' : p > 0 ? 'all but dead' : 'dead');
 const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
 
 // ---------- games ----------
@@ -593,24 +594,43 @@ function migrate(d) {
 const override = (b) => { const o = b.weight != null && b.weight !== '' ? b.weight : b.scoreWeight; return o != null && o !== '' ? Number(o) || 0 : null; };
 const decOdds = (a) => (a > 0 ? 1 + a / 100 : 1 + 100 / -a);
 function betProb(b, W) {
-  const hold = Number((b.legs || []).length > 1 ? W.parlayHold : W.hold) || 0;
+  const nl = (b.legs || []).length, h1 = Number(W.hold) || 0;
+  const hold = nl > 1 ? Math.max(Number(W.parlayHold) || 0, Math.pow(1 + h1, nl) - 1) : h1;
   const st = Number(b.stake) || 0, pay = Number(b.toPay) || 0;
   const implied = b.odds != null && b.odds !== '' && Number(b.odds) ? 1 / decOdds(Number(b.odds)) : pay > 0 ? (b.bonus ? st / (st + pay) : st / pay) : 0;
   return Math.min(0.999, Math.max(0, implied / (1 + hold)));
 }
-function betWeight(b, W, gid) {
+function betWeight(b, W, gid, byId, boxes) {
   const o = override(b);
   if (o != null) return o;
   const stake = Number(b.stake) || 0, pay = Number(b.toPay) || 0;
   if (W.betMethod === 'stake') return stake;
   if (W.betMethod === 'payout') return pay;
   const all = (b.legs || []).length || 1;
-  const open = (b.legs || []).filter((l) => !l.status || l.status === 'open');
+  const rs = (b.legs || []).map((l) => (byId ? legResult(l, byId[l.game], boxes || {}) : !l.status || l.status === 'open' ? 'open' : l.status));
+  if (rs.indexOf('lost') >= 0) return 0;
+  const open = (b.legs || []).filter((l, i) => rs[i] === 'open');
   const K = open.length || 1;
   const k = gid ? open.filter((l) => l.kind === 'game' && l.game === gid).length || K : K;
   const pOpen = Math.pow(betProb(b, W), K / all);
   const pG = Math.pow(pOpen, k / K), pRest = pG > 0 ? pOpen / pG : 0;
   return 2 * pG * (1 - pG) * pay * pRest;
+}
+function restRatio(b, gid, byId, boxes, W) {
+  const legs = b.legs || [];
+  if (legs.length < 2 || !byId) return 1;
+  const p0 = Math.pow(betProb(b, W), 1 / legs.length);
+  let r = 1;
+  legs.forEach((l) => {
+    if (l.kind !== 'game' || l.game === gid) return;
+    const g = byId[l.game];
+    if (!g || g.status !== 'live' || !hasScore(g) || legResult(l, g, boxes || {}) !== 'open') return;
+    let pn = null;
+    if (l.type === 'prop') { const ps = propState(l, g, (boxes || {})[g.id]); if (ps && ps.pl) pn = propProbLive(ps, p0, fracLeft(g)); }
+    else pn = legProbLive(l, g);
+    if (pn != null) r *= Math.max(0, pn) / p0;
+  });
+  return r;
 }
 const futureWeight = (b, W) => { const o = override(b); return o != null ? o : (Number(b.stake) || 0) * (Number(W.futureShare) || 0); };
 
@@ -781,8 +801,8 @@ function analyze(g, data) {
       const openElsewhere = new Set(all.filter((l) => l.kind === 'game' && l.game !== g.id && legResult(l, byId[l.game], boxes) === 'open').map((l) => l.game)).size;
       const type = all.length > 1 ? (new Set(all.filter((l) => l.kind === 'game').map((l) => l.game)).size > 1 ? 'parlay' : 'SGP') : '';
       const fv = bs === 'open' ? betFair(b, data) : null;
-      const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + '), ' + (bs === 'open' ? (g.status === 'final' && fv == null ? 'final, settle by hand' : Math.round(100 * betProb(b, W)) + '% to hit' + (fv != null ? ', worth ' + cash(fv) + ' now' : '')) : bs) + (bs === 'open' && openElsewhere ? ', needs ' + openElsewhere + ' other game' + (openElsewhere > 1 ? 's' : '') : '');
-      const w = bs === 'open' || g.status === 'final' ? betWeight(b, W, g.id) : 0;
+      const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + '), ' + (bs === 'open' ? (g.status === 'final' && fv == null ? 'final, settle by hand' : hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '')) : bs) + (bs === 'open' && openElsewhere ? ', needs ' + openElsewhere + ' other game' + (openElsewhere > 1 ? 's' : '') : '');
+      const w = bs === 'open' ? betWeight(b, W, g.id, byId, boxes) * restRatio(b, g.id, byId, boxes, W) : g.status === 'final' ? betWeight(b, W, g.id, byId, boxes) : 0;
       const side = here.find((l) => l.type === 'ml' || l.type === 'spread');
       const label = here.map(legText).join(', ');
       const prog = g.status === 'upcoming' ? [] : here.filter((l) => l.type === 'prop').map((l) => propLine(l, g, boxes[g.id])).filter(Boolean);
@@ -974,8 +994,20 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   const ids = new Set(data.games.map((g) => g.id));
   const weekBets = data.bets.filter((b) => b.status === 'open' && (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game)));
   const cashRisk = weekBets.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0);
+  const byIdR = {}; data.games.forEach((g) => { byIdR[g.id] = g; });
+  const openIds = new Set(open.map((a) => a.g.id));
+  let dup = 0;
+  data.bets.forEach((b) => {
+    if (b.status !== 'open' || betStatus(b, byIdR, data.boxes || {}) !== 'open') return;
+    const gs = [...new Set((b.legs || []).filter((l) => l.kind === 'game' && openIds.has(l.game) && legResult(l, byIdR[l.game], data.boxes || {}) === 'open').map((l) => l.game))];
+    if (gs.length < 2) return;
+    const bx = data.boxes || {}, pay = Number(b.toPay) || 0, fvT = betFair(b, data), qT = fvT != null && pay ? fvT / pay : null;
+    const whole = qT != null ? 2 * qT * (1 - qT) * pay : betWeight(b, data.weights, undefined, byIdR, bx);
+    dup += Math.max(0, gs.reduce((t, gid) => t + betWeight(b, data.weights, gid, byIdR, bx) * restRatio(b, gid, byIdR, bx, data.weights), 0) - whole);
+  });
+  const stakeTotal = Math.max(0, open.reduce((s, a) => s + a.score, 0) - dup);
   const stats = [
-    Stat(usd(open.reduce((s, a) => s + a.score, 0)), open.some((a) => a.pending) ? 'At stake so far (pools count at kickoff)' : 'At stake on games left'),
+    Stat(usd(stakeTotal), open.some((a) => a.pending) ? 'At stake so far (pools count at kickoff)' : 'At stake on games left'),
     Stat(open.filter((a) => !a.quiet).length + ' of ' + open.length, 'Games that matter'),
     Stat(both + ' / ' + sOnly + ' / ' + pOnly, 'Both pools / spread only / pick\u2019em only'),
     Stat(cash(cashRisk), 'Cash on ' + weekBets.length + ' bet' + (weekBets.length === 1 ? '' : 's') + ' this week'),
@@ -1018,7 +1050,7 @@ function BetsTab({ data, update }) {
   const open = data.bets.filter((b) => stOf(b) === 'open');
   const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b)), settled = data.bets.filter((b) => stOf(b) !== 'open');
   const net = (b) => { const st = stOf(b); return st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0; };
-  const wOf = (b) => (isFuture(b) && !isWeek(b) ? futureWeight(b, W) : betWeight(b, W));
+  const wOf = (b) => (isFuture(b) && !isWeek(b) ? futureWeight(b, W) : betWeight(b, W, undefined, byId, data.boxes || {}));
   const netAll = settled.reduce((s, b) => s + net(b), 0);
   const setStatus = (id, s) => update((d) => { const b = d.bets.find((x) => x.id === id); if (b) { b.status = s; if (s !== 'open') (b.legs || []).forEach((l) => { if (!l.status || l.status === 'open') l.status = s; }); } });
   const del = (id) => update((d) => { d.bets = d.bets.filter((x) => x.id !== id); });
@@ -1057,7 +1089,7 @@ function BetsTab({ data, update }) {
         h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), (b.legs || []).length ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null),
         h('td.tnum', { style: right }, cash(b.stake)),
         h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
-        h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : usd(wOf(b)), mode === 'week' ? h('div.hint', null, Math.round(100 * betProb(b, W)) + '% to hit') : null),
+        h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : usd(wOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
         mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
         h('td', null, h('select', { value: b.status, onChange: (e) => setStatus(b.id, e.target.value) }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s))), stOf(b) !== b.status ? h('div.hint', null, 'Auto: ' + stOf(b) + ' from the final score') : null),
         h('td', { style: { whiteSpace: 'nowrap' } }, h('button.btn.sm', { onClick: () => editBet(b) }, 'Edit'), ' ', h('button.btn.sm.danger', { onClick: () => del(b.id), title: 'Delete bet' }, '\u00d7')))))))));
@@ -1140,7 +1172,7 @@ function SetupTab({ data, viewData, update, replaceData, onDiscard }) {
         mIn('favPick', 'Pick\u2019em: take favorites (default)', 0.05),
         field('Bets count as', h('select', { value: W.betMethod, onChange: (e) => setW('betMethod', e.target.value) }, h('option', { value: 'ev' }, 'Expected swing'), h('option', { value: 'stake' }, 'Stake'), h('option', { value: 'payout' }, 'Payout'))),
         wIn('hold', 'Book margin, single bets', 0.005),
-        wIn('parlayHold', 'Book margin, parlays', 0.01),
+        wIn('parlayHold', 'Book margin, parlays (minimum)', 0.01, 'Grows with each leg on longer parlays'),
         wIn('futureShare', 'Futures, share of stake', 0.05),
         wIn('fan', 'Fan team ($)', 1),
         wIn('survivor', 'Survivor equity ($)', 1, 'What your entry is worth while alive'))),
