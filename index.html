@@ -85,7 +85,40 @@ span.pick{cursor:default}
 .pctl{color:var(--flag);font-weight:600}
 .howwent{padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
 .howwent b{color:var(--text)}
-.howwent .pctl{white-space:nowrap}
+.howwent .pctl{white-space:normal}
+.dv{min-width:120px}
+.dv .dvl{display:flex;align-items:baseline;justify-content:flex-end;gap:6px;white-space:nowrap}
+.dv .amt{font-size:21px;line-height:1.15}
+.dv .amt.up{color:var(--good)}
+.dv .amt.dn{color:var(--bad)}
+.dv .cap{font-size:11px;color:var(--muted)}
+.dv > .cap{text-align:right}
+.dv2{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;font-size:13px;white-space:nowrap}
+.dv2 .ok,.dv3 .ok{color:var(--good)}
+.dv2 .bad,.dv3 .bad{color:var(--bad)}
+.dv3{white-space:nowrap}
+.tracker{padding:12px 14px;margin:0 0 14px}
+.tr-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.tr-h .dim{font-size:12px}
+.tr-h .linkbtn{margin-left:auto}
+.tb{border-top:1px solid var(--line);padding:10px 0 6px}
+.tb-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tb-name{font-weight:600}
+.tb-pay{margin-left:auto;color:var(--muted);font-size:13px}
+.tb-st{font-size:12px;color:var(--muted);margin:2px 0 6px}
+.tb-st.ok{color:var(--good)}
+.tb-st.bad{color:var(--bad)}
+.leg{display:grid;grid-template-columns:16px minmax(0,1fr) auto;column-gap:8px;row-gap:3px;align-items:center;font-size:13px;padding:3px 0}
+.lg-mk{color:var(--dim);text-align:center;font-size:12px}
+.leg.won .lg-mk{color:var(--good)}
+.leg.lost .lg-mk{color:var(--bad)}
+.leg.live .lg-mk{color:var(--flag)}
+.leg.lost .lg-t{text-decoration:line-through;color:var(--muted)}
+.lg-g{color:var(--dim);font-size:11px}
+.lg-v{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}
+.leg .bar{grid-column:2/-1;height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
+.leg .bar .fill{display:block;height:100%;background:var(--flag)}
+.leg.won .bar .fill{background:var(--good)}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .matchup{display:flex;align-items:center;gap:10px;font:700 24px/1 "Barlow Condensed",sans-serif}
 .team{display:inline-flex;align-items:center;gap:7px}
@@ -855,12 +888,12 @@ function legend(data) {
 }
 
 // ---------- game card ----------
-function Row({ src, team, label, sub, prog, w, money, mk, cush, off }) {
+function Row({ src, team, label, sub, prog, w, money, dv, mk, cush, off }) {
   return h('div.r' + (off ? '.off' : ''), null,
     h('div.src', null, src),
     h('div.what', null, h(Logo, { t: team, size: 20 }), h('div.txt', null, h('b', null, label), sub ? h('span.d', null, sub) : null,
       prog && prog.length ? h('span.prog', null, prog.map((p, i) => h('span.' + (p.res === 'won' ? 'ok' : p.res === 'lost' ? 'bad' : 'pg'), { key: i }, p.text))) : null)),
-    h('div.w.tnum', null, money ? h('span.' + money.cls, null, money.text) : w != null && w >= 0.5 ? usd(w) : ''),
+    h('div.w.tnum', null, money ? h('span.' + money.cls, null, money.text) : dv ? h('span.dv2', { title: 'If it hits / if it misses, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.bad', null, MINUS + usd(dv.down))) : w != null && w >= 0.5 ? usd(w) : ''),
     h('div.mk.tnum', null, cush != null ? h('span.' + (cush > 0 ? 'ok' : cush < 0 ? 'bad' : 'dim'), { title: cush > 0 ? 'Ahead by this much right now' : cush < 0 ? 'Behind by this much right now' : 'Even right now' }, (cush > 0 ? '+' : cush < 0 ? MINUS : '') + Math.abs(cush)) : h(Mark, { v: mk })));
 }
 function verdictOf(a) {
@@ -915,7 +948,7 @@ function recapLines(prev, analyses) {
   });
   return out;
 }
-function GameCard({ a, rank }) {
+function GameCard({ a, rank, data }) {
   const g = a.g;
   const final = g.status === 'final', live = g.status === 'live', scored = hasScore(g);
   const k = parseKick(g.kick);
@@ -924,6 +957,7 @@ function GameCard({ a, rank }) {
   const cushOf = (i) => (inPlay && i && i.cush ? i.cush(a.margin) : undefined);
   const res = (i) => (final && i ? a.cur(i) : undefined);
   const v = verdictOf(a);
+  const dv = !final && data ? dollarView(a, data) : null;
   const sit = live && g.lv && g.lv.sit;
   const sitBox = sit && (sit.dd || sit.last) ? h('div.sitbox', null,
     sit.dd ? h('div.sit', null, sit.pos ? h(Logo, { t: sit.pos, size: 16 }) : null, h('span', null, (sit.pos ? sit.pos + ' ball, ' : '') + sit.dd), sit.rz ? h('span.rzpill', null, 'Red zone') : null) : null,
@@ -932,20 +966,22 @@ function GameCard({ a, rank }) {
   const poolRow = (p) => {
     if (p.state === 'none') return h(Row, { key: p.which, src: p.src, off: true, label: 'No pick yet' });
     if (p.state === 'noline') return h(Row, { key: p.which, src: p.src, off: true, team: p.side, label: p.side, sub: 'Needs a line to score' });
-    return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p, final), w: final ? null : p.weight, mk: final && a.margin != null && p.test ? p.test(a.margin) : undefined, cush: cushOf(p) });
+    return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p, final), w: final ? null : p.weight, dv: dv ? dv.per.get(p.which) : undefined, mk: final && a.margin != null && p.test ? p.test(a.margin) : undefined, cush: cushOf(p) });
   };
   const rows = [poolRow(a.spread), poolRow(a.pickem)];
   const surv = a.ints.find((i) => i.kind === 'survivor');
-  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: final ? null : surv.weight, mk: res(surv), cush: cushOf(surv) }));
+  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: final ? null : surv.weight, dv: dv ? dv.per.get('surv') : undefined, mk: res(surv), cush: cushOf(surv) }));
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
-    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, prog: b.prog, w: final ? null : b.weight, money: final ? pnlMoney(b) : undefined,
+    key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: b.sub, prog: b.prog, w: final ? null : b.weight, dv: dv ? dv.per.get(b.key) : undefined, money: final ? pnlMoney(b) : undefined,
     mk: b.done === 'won' ? true : b.done === 'lost' ? false : b.test ? res(b) : undefined, cush: b.done && b.done !== 'open' ? undefined : cushOf(b) })));
   if (a.minors.length) rows.push(h('div.r', { key: 'minor' }, h('div.src', null, 'Futures & fan'),
     h('div.chips', null, groupMinor(a.minors).map((x) => h('span.chip' + (a.root && x.side !== a.root ? '.against' : ''), { key: x.side + x.label, title: x.side + ' ' + x.label }, h(Logo, { t: x.side, size: 16 }), (x.label === 'fan' ? 'Your team' : x.label) + (x.n > 1 ? ' \u00d7' + x.n : ''), final ? h(Mark, { v: a.cur(x.first) }) : null))),
     h('div.w.tnum', null, final ? '' : usd(a.minors.reduce((t, i) => t + i.weight, 0))), h('div.mk')));
-  const stakeBox = final ? null : live && a.lev != null ? h('div.stake', { title: 'Expected swing still to be decided from here' }, h('div.amt.tnum', null, usd(a.lev) + (a.pending ? '+' : '')), h('div.cap', null, 'in play now')) : a.pending
-    ? (a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum.dim', null, usd(a.score)), h('div.cap', null, 'so far')) : null)
-    : a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum', null, rank ? h('span.rank', null, '#' + rank) : null, usd(a.score)), h('div.cap', null, 'at stake')) : null;
+  const stakeBox = final ? null : dv && (dv.up >= 0.5 || dv.down >= 0.5) ? h('div.stake.dv', { title: 'Best and worst case from this game, compared with where you stand now' + (a.pending ? '. Pool picks still hidden are not counted yet.' : '') },
+      h('div.dvl', null, h('span.amt.tnum.up', null, '+' + usd(dv.up)), h('span.cap', null, dv.upLabel)),
+      h('div.dvl', null, h('span.amt.tnum.dn', null, MINUS + usd(dv.down)), h('span.cap', null, dv.downLabel)),
+      a.pending ? h('div.cap', null, 'hidden pool picks not counted yet') : null)
+    : a.pending && a.score >= 0.5 ? h('div.stake', null, h('div.amt.tnum.dim', null, usd(a.score)), h('div.cap', null, 'so far')) : null;
   return h('div.card' + (live ? '.live' : '') + (final ? '.done' : ''), { id: 'g-' + g.id.replace('@', '-') },
     h('div.card-top', null,
       h('div', null,
@@ -959,7 +995,108 @@ function GameCard({ a, rank }) {
     h('div.rows', null, rows),
     a.notes.length ? h('div.warnline', null, a.notes.join(' ')) : null);
 }
-function LiveBar({ analyses }) {
+// ---------- dollar outcomes: what each result does for you, compared with where you stand now ----------
+function legNowP(l, g, boxes, p0) {
+  const r = legResult(l, g, boxes || {});
+  if (r === 'won' || r === 'void') return 1;
+  if (r === 'lost') return 0;
+  if (!g || g.status !== 'live' || !hasScore(g)) return p0;
+  if (l.type === 'prop') { const ps = propState(l, g, (boxes || {})[g.id]); return ps && ps.pl ? propProbLive(ps, p0, fracLeft(g)) : p0; }
+  const p = legProbLive(l, g);
+  return p == null ? p0 : p;
+}
+function dollarView(a, data) {
+  const g = a.g, W = data.weights, boxes = data.boxes || {};
+  if (g.status === 'final') return null;
+  const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
+  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f));
+  const mu = (g.status === 'live' && a.margin != null ? a.margin : 0) - (Number(g.line) || 0) * f;
+  const per = new Map();
+  const betOf = (id) => (data.bets || []).find((x) => x.id === id);
+  const betDelta = (b, q) => {
+    const pay = Number(b.toPay) || 0, fv = betFair(b, data), legs = b.legs || [], n = legs.length || 1;
+    const others = legs.some((l) => !(l.kind === 'game' && l.game === g.id));
+    if (fv != null) { const G = others ? Math.min(pay, fv / Math.max(q, 0.001)) : pay; return { up: Math.max(0, G - fv), down: fv }; }
+    const G = others ? pay * Math.pow(betProb(b, W), (n - 1) / n) : pay;
+    return { up: G * (1 - q), down: G * q };
+  };
+  a.ints.forEach((i) => {
+    if (i.minor || !i.cush || !i.test || !(i.weight > 0) || (i.done && i.done !== 'open')) return;
+    const q = normCdf(i.cush(mu) / sd);
+    if (i.kind === 'pool') { const p = i.key === 'spread' ? a.spread : a.pickem; if (!p || p.state !== 'edge') return; const G = Math.max(0, p.gap || 0); per.set(i.key, { up: G * (1 - q), down: G * q }); }
+    else if (i.kind === 'survivor') { const G = Number(W.survivor) || 0; per.set(i.key, { up: G * (1 - q), down: G * q }); }
+    else if (i.kind === 'bet') { const b = betOf(i.betId); if (b) per.set(i.key, betDelta(b, q)); }
+  });
+  let propsUp = 0, propsDown = 0;
+  a.wants.forEach((x) => {
+    if (x.done && x.done !== 'open') return;
+    const b = betOf(x.betId);
+    if (!b) return;
+    const legs = b.legs || [], p0 = Math.pow(betProb(b, W), 1 / (legs.length || 1));
+    const qh = legs.filter((l) => l.kind === 'game' && l.game === g.id).reduce((t, l) => t * legNowP(l, byId[l.game], boxes, p0), 1);
+    const d = betDelta(b, qh);
+    per.set(x.key, d); propsUp += d.up; propsDown += d.down;
+  });
+  const core = a.ints.filter((i) => per.has(i.key));
+  let best = null, worst = null;
+  if (core.length) {
+    outcomeRuns(g, core).forEach((r) => {
+      const m = r.a <= -BOUND ? r.b : r.b >= BOUND ? r.a : Math.round((r.a + r.b) / 2) || (r.b > 0 ? 1 : -1);
+      let v = 0;
+      core.forEach((i) => { const t = i.test(m), d = per.get(i.key); if (t === true) v += d.up; else if (t === false) v -= d.down; });
+      if (!best || v > best.v) best = { v, label: r.label };
+      if (!worst || v < worst.v) worst = { v, label: r.label };
+    });
+  }
+  if (best) return { per, up: Math.max(0, best.v), down: Math.max(0, -worst.v), upLabel: best.label, downLabel: worst.label };
+  const ups = a.wants.map((x) => (per.get(x.key) || { up: 0 }).up), n = ups.length;
+  return { per, up: n ? Math.max.apply(null, ups) : 0, down: propsDown, upLabel: n > 1 ? 'best prop hits' : 'if it hits', downLabel: n > 1 ? 'if all miss' : 'if it misses' };
+}
+// ---------- bet tracker: every bet that has started, leg by leg ----------
+const kickText = (g) => { const k = parseKick(g.kick); return [k.day ? DAYNAME[k.day].slice(0, 3) : '', k.time].filter(Boolean).join(' ') || g.kick || ''; };
+function legNow(l, g, boxes) {
+  if (!g) return { st: 'pre', text: '', pct: null };
+  const r = legResult(l, g, boxes);
+  const st = r === 'open' ? (g.status === 'upcoming' ? 'pre' : 'live') : r;
+  const out = (text, pct) => ({ st, text, pct: pct == null ? null : Math.max(0, Math.min(1, pct)) });
+  if (g.status === 'upcoming') return out(kickText(g));
+  if (l.type === 'prop') {
+    const ps = propState(l, g, boxes[g.id]);
+    if (!ps) return out(st === 'live' ? 'settles by hand' : '');
+    if (!ps.pl) return out(ps.loaded ? 'no stats yet' : 'loading stats');
+    const sp = ps.sp, target = COUNT_STATS[sp.stat] ? Math.floor(sp.line) + 1 : sp.line;
+    return out((Math.round(ps.val * 10) / 10) + ' of ' + target + ' ' + STATLBL[sp.stat] + (sp.side === 'under' ? ' (under)' : ''), sp.side === 'under' ? null : ps.val / (target || 1));
+  }
+  if (!hasScore(g)) return out('');
+  const m = marginOf(g), clk = g.status === 'final' ? 'final' : g.clock || 'live';
+  if (l.type === 'ml') { const c = l.side === g.home ? m : -m; return out((c > 0 ? 'up ' + c : c < 0 ? 'down ' + -c : 'tied') + ', ' + clk); }
+  if (l.type === 'spread') { const cf = coverCush(l.side, g, Number(l.line)), c = cf ? cf(m) : 0; return out((c > 0 ? 'covering by ' + c : c < 0 ? 'short by ' + -c : 'on the number') + ', ' + clk); }
+  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line); return out(T + ' of ' + L + ' pts, ' + clk, l.side === 'under' ? null : T / L); }
+  return out('');
+}
+function BetTracker({ data }) {
+  const [open, setOpen] = useState(true);
+  const byId = {}; data.games.forEach((g) => { byId[g.id] = g; });
+  const boxes = data.boxes || {};
+  const started = (b) => (b.legs || []).some((l) => l.kind === 'game' && byId[l.game] && byId[l.game].status !== 'upcoming');
+  const list = (data.bets || []).filter((b) => b.status === 'open' && started(b)).map((b) => {
+    const st = betStatus(b, byId, boxes), fv = st === 'open' ? betFair(b, data) : null;
+    return { b, st, fv, live: (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'live') ? 1 : 0 };
+  }).sort((x, y) => (y.st === 'open') - (x.st === 'open') || y.live - x.live || (y.fv || 0) - (x.fv || 0));
+  if (!list.length) return null;
+  const nameOf = (b) => { const legs = b.legs || []; if (legs.length <= 1) return legs.length ? legText(legs[0]) : b.desc; return legs.length + '-leg ' + (new Set(legs.map((l) => l.game)).size > 1 ? 'parlay' : 'same-game parlay'); };
+  return h('div.panel.tracker', null,
+    h('div.tr-h', null, h('b', null, 'Bet tracker'), h('span.dim', null, list.length + ' bet' + (list.length === 1 ? '' : 's') + ' underway'), h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show')),
+    open ? list.map(({ b, st, fv }) => h('div.tb', { key: b.id },
+      h('div.tb-top', null, h('span.book.' + b.book, null, b.book), h('span.tb-name', null, nameOf(b)), h('span.tb-pay.tnum', null, cash(b.stake) + ARROW + cash(b.toPay))),
+      h('div.tb-st' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : ''), null, st === 'won' ? 'Won' : st === 'lost' ? 'Lost' : st === 'void' ? 'Push' : hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, data.weights)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '')),
+      h('div.legs', null, (b.legs || []).filter((l) => l.kind === 'game').map((l, i) => { const g = byId[l.game], sN = legNow(l, g, boxes); return h('div.leg.' + sN.st, { key: i },
+        h('span.lg-mk', null, sN.st === 'won' ? '\u2713' : sN.st === 'lost' ? '\u2717' : sN.st === 'void' ? '\u2013' : sN.st === 'live' ? '\u25cf' : '\u25cb'),
+        h('span.lg-t', null, legText(l), g && new Set((b.legs || []).map((x) => x.game)).size > 1 ? h('span.lg-g', null, ' ' + g.away + '@' + g.home) : null),
+        h('span.lg-v.tnum', null, sN.text),
+        sN.pct != null && sN.st !== 'lost' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * sN.pct) + '%' } })) : null); })))) : null);
+}
+function LiveBar({ analyses, data }) {
   const rows = analyses.filter((a) => a.g.status === 'live' && !a.quiet).sort((x, y) => (y.lev != null ? y.lev : y.score) - (x.lev != null ? x.lev : x.score));
   if (!rows.length) return null;
   return h('div.livebar', null, h('div.lb-h', null, 'Live now: ' + rows.length + ' game' + (rows.length === 1 ? '' : 's') + ' that matter, most in doubt first'),
@@ -971,7 +1108,7 @@ function LiveBar({ analyses }) {
         h('span.mt', null, h(Logo, { t: g.away, size: 20 }), g.away + ' ' + (g.awayScore == null ? '' : g.awayScore), h('span.dim', null, '\u2013'), (g.homeScore == null ? '' : g.homeScore) + ' ' + g.home, h(Logo, { t: g.home, size: 20 }), h('span.clk', null, g.clock || 'Live'), g.lv && g.lv.sit && g.lv.sit.rz ? h('span.rzpill', null, 'Red zone' + (g.lv.sit.pos ? ': ' + g.lv.sit.pos : '')) : null),
         h('span.' + v.pcls + '.sm', { style: v.pstyle }, v.title),
         h('span.st', null, main ? h('span', null, h('b', null, main.src + (main.type ? ' ' + main.type : '') + ' ' + (main.label || main.side)), ': ' + cushText(main, c)) : 'Waiting on the score'),
-        h('span.amt.tnum' + (a.lev != null && a.lev < 0.15 * a.score ? '.dim' : ''), { title: 'Still in play: the expected swing from here' }, a.lev != null ? usd(a.lev) + (a.pending ? '+' : '') : a.pending ? 'pending' : usd(a.score)));
+        (() => { const dv = data ? dollarView(a, data) : null; return dv ? h('span.amt.tnum.dv3', { title: 'Best and worst case from here, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : h('span.amt.tnum.dim', null, 'pending'); })());
     }));
 }
 
@@ -1100,10 +1237,11 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
     auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and lines loaded from ESPN. Your pool picks, the CBS lines and your survivor pick come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results')) : null,
     outcomes.days.length ? h('div.panel.howwent', { title: PCTL_TIP }, h('b', null, 'How it went: '), outcomes.days.map((D, i) => h('span', { key: D.title }, i ? '; ' : '', D.title + (D.soFar ? ' so far' : '') + ' ', h('span.pctl', null, outcomeText(D)))), outcomes.week ? h('span', null, '; week so far ', h('span.pctl', null, outcomeText(outcomes.week))) : null) : null,
     h('div.strip', null, stats),
-    h(LiveBar, { analyses }),
+    h(LiveBar, { analyses, data }),
+    h(BetTracker, { data }),
     h('div.toolbar', null,
       h('label', null, h('input', { type: 'checkbox', checked: hideDone, onChange: (e) => setHideDone(e.target.checked) }), 'Hide completed games'),
-      h('span.legend', { style: { margin: 0 } }, 'At stake is the expected dollar swing from each game\u2019s result. ', h('button.linkbtn', { onClick: onHow }, 'How it\u2019s calculated'))),
+      h('span.legend', { style: { margin: 0 } }, 'Green and red figures show your best and worst case from each result, compared with where you stand now. ', h('button.linkbtn', { onClick: onHow }, 'How it\u2019s calculated'))),
     !data.games.length ? h('div.panel.empty-state', null, 'No games loaded. Add this week\u2019s games in Setup.') : null,
     slots.map((s) => {
       const cards = s.items.filter((a) => !a.quiet).sort((x, y) => order(x) - order(y) || y.score - x.score);
@@ -1114,7 +1252,7 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
         h('div.slot', null,
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone ? h('span.rz', null, 'RedZone') : null),
           outcomes[s.key] && s.items.every((a) => a.g.status === 'final') ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (stake >= 0.5 ? ', ' + usd(stake) + ' at stake' + (s.items.some((a) => a.pending) ? ' so far' : '') : ''))),
-        cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update }))) : null,
+        cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update, data }))) : null,
         quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
     }));
 }
