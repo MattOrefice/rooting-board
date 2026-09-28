@@ -329,12 +329,13 @@ const STAT_RE = [
   [/rec(?:eiving)?\s*(?:yds|yards)/i, 'recYds'],
   [/rush(?:ing)?\s*(?:td|tds|touchdowns?)/i, 'rushTD'],
   [/rec(?:eiving)?\s*(?:td|tds|touchdowns?)/i, 'recTD'],
+  [/intercep|\bints?\b/i, 'passInt'],
   [/receptions|catches/i, 'rec'],
   [/any\s*time\s*(?:td|touchdown)|td\s*scorer|to\s*score/i, 'td'],
 ];
-const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds' };
-const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0) };
-const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1 };
+const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds', passInt: 'INT' };
+const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0), passInt: (x) => x.passInt || 0 };
+const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1, passInt: 1 };
 const SUFFIX = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 const nameTokens = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((t) => t.replace(/'/g, '')).filter((t) => t && SUFFIX.indexOf(t) < 0);
 function propSpec(l) {
@@ -362,7 +363,7 @@ function parseBox(j) {
         if (!name) return;
         const p = byName[name] || (byName[name] = { name, team, tokens: nameTokens(name), s: {} });
         const v = (i) => (i >= 0 && a.stats && a.stats[i] != null ? parseFloat(String(a.stats[i]).split('/')[0]) || 0 : 0);
-        if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); }
+        if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); p.s.passInt = v(col('interceptions', 'INT')); }
         else if (cat.name === 'rushing') { p.s.rushYds = v(col('rushingYards', 'YDS')); p.s.rushTD = v(col('rushingTouchdowns', 'TD')); }
         else if (cat.name === 'receiving') { p.s.rec = v(col('receptions', 'REC')); p.s.recYds = v(col('receivingYards', 'YDS')); p.s.recTD = v(col('receivingTouchdowns', 'TD')); }
       });
