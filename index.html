@@ -302,6 +302,24 @@ const withLive = (data, live, boxes, espn) => {
 };
 
 const etKick = (dt) => { const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' }).formatToParts(dt); const get = (t) => (f.find((x) => x.type === t) || {}).value || ''; return get('weekday') + ' ' + get('hour') + ':' + get('minute') + (String(get('dayPeriod')).toLowerCase().charAt(0) === 'p' ? 'p' : 'a'); };
+// Live DraftKings lines (moneyline, spread, total) for games in progress, from ESPN's odds feed.
+async function fetchLiveOdds(eventId) {
+  try {
+    const r = await fetch('https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/' + eventId + '/competitions/' + eventId + '/odds', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const it = (j.items || []).find((i) => /live/i.test((i.provider && i.provider.name) || ''));
+    if (!it) return null;
+    const num = (x) => { const n = parseFloat(String(x == null ? '' : x).replace('+', '')); return isFinite(n) ? n : null; };
+    const am = (x) => { const n = x ? num(x.american != null ? x.american : x.alternateDisplayValue) : null; return n != null && Math.abs(n) >= 100 ? n : null; };
+    const H = it.homeTeamOdds || {}, A = it.awayTeamOdds || {}, Hc = H.current || {}, Ac = A.current || {}, C = it.current || {};
+    const out = { hml: num(H.moneyLine) != null ? num(H.moneyLine) : am(Hc.moneyLine), aml: num(A.moneyLine) != null ? num(A.moneyLine) : am(Ac.moneyLine), spread: num(it.spread), hsp: am(Hc.spread), asp: am(Ac.spread), total: num(it.overUnder), over: am(C.over), under: am(C.under) };
+    return out.hml != null || out.spread != null || out.total != null ? out : null;
+  } catch (e) { return null; }
+}
+async function addLiveOdds(res) {
+  await Promise.all(Object.keys(res).filter((k) => res[k].status === 'live' && res[k].eventId).map(async (k) => { const o = await fetchLiveOdds(res[k].eventId); if (o) res[k].mkLive = o; }));
+}
 async function fetchSchedule(season, week) {
   try {
     const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=' + week + '&dates=' + season, { cache: 'no-store' });
@@ -514,16 +532,32 @@ function fracLeft(g) {
 }
 // Expected final home margin. When ESPN's live win probability is available (it accounts for possession, field position,
 // down and distance, and timeouts), the margin is set so the win chance matches it; otherwise score, clock and the line.
+// Order of preference: DraftKings' live spread (then moneyline), ESPN's live win probability, then score, clock and line.
+const devig = (a, b) => { const ia = 1 / decOdds(a), ib = 1 / decOdds(b); return ia / (ia + ib); };
 function liveMu(g, m) {
-  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), wp = g.lv && g.lv.wp;
+  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), wp = g.lv && g.lv.wp, mk = g.status === 'live' && g.lv && g.lv.mkLive;
+  if (mk && mk.spread != null && mk.hsp != null && mk.asp != null) { const pc = devig(mk.hsp, mk.asp); if (pc > 0.01 && pc < 0.99) return { f, sd, mu: sd * invNorm(pc) - mk.spread }; }
+  if (mk && mk.hml != null && mk.aml != null) { const ph = devig(mk.hml, mk.aml); if (ph > 0.003 && ph < 0.997) return { f, sd, mu: sd * invNorm(ph) }; }
   if (g.status === 'live' && wp > 0.003 && wp < 0.997) return { f, sd, mu: sd * invNorm(wp) };
   return { f, sd, mu: (m != null ? m : 0) - (Number(g.line) || 0) * f };
 }
+// Expected points of the drive in progress, relative to an average drive: a team deep in enemy territory adds points.
+function driveAdj(g) {
+  const st = g.lv && g.lv.sit;
+  if (!st || !st.pos || !st.dd || !(fracLeft(g) > 0)) return 0;
+  const mm = st.dd.match(/at\s+(?:([A-Z]{2,4})\s+)?(\d{1,2})\b/);
+  if (!mm) return 0;
+  const side = mm[1] ? (ESPN_ABBR[mm[1]] || mm[1]) : null, yd = Number(mm[2]);
+  const ytg = side == null ? 50 : side === st.pos ? 100 - yd : yd;
+  return Math.max(-0.5, Math.min(6, 6 - 0.08 * ytg)) - 2;
+}
+const liveLineText = (g) => { const mk = g.lv && g.lv.mkLive; if (!mk || (mk.spread == null && mk.total == null)) return ''; return 'DK live ' + (mk.spread == null ? '' : mk.spread === 0 ? 'PK' : (mk.spread < 0 ? g.home : g.away) + ' ' + fmtLine(-Math.abs(mk.spread))) + (mk.total != null ? (mk.spread != null ? ', ' : '') + 'total ' + mk.total : ''); };
 function legProbLive(l, g) {
   const { f, sd, mu } = liveMu(g, marginOf(g));
-  if (l.type === 'ml') return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd);
+  const mk = g.status === 'live' && g.lv && g.lv.mkLive;
+  if (l.type === 'ml') { if (mk && mk.hml != null && mk.aml != null) { const ph = devig(mk.hml, mk.aml); return l.side === g.home ? ph : 1 - ph; } return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd); }
   if (l.type === 'spread') { const L = Number(l.line); return l.side === g.home ? 1 - normCdf((-L - mu) / sd) : normCdf((L - mu) / sd); }
-  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); const pOver = 1 - normCdf((L - (T + L * f)) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
+  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); let muT = T + L * f + driveAdj(g); if (mk && mk.total != null && mk.over != null && mk.under != null) muT = mk.total + tsd * invNorm(Math.min(0.99, Math.max(0.01, devig(mk.over, mk.under)))); const pOver = 1 - normCdf((L - muT) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
   return null;
 }
 function propProbLive(ps, p0, f) {
@@ -1042,7 +1076,7 @@ function GameCard({ a, rank, data }) {
           h('span.team', null, h(Logo, { t: g.away, size: 30 }), g.away, scored ? h('span.pts.tnum', null, g.awayScore) : null),
           h('span.at', null, 'at'),
           h('span.team', null, h(Logo, { t: g.home, size: 30 }), g.home, scored ? h('span.pts.tnum', null, g.homeScore) : null)),
-        h('div.sub', null, h('span' + (live ? '.livepill' : ''), null, when), h('span', null, lineText(g))), sitBox),
+        h('div.sub', null, h('span' + (live ? '.livepill' : ''), null, when), h('span', null, lineText(g)), live && liveLineText(g) ? h('span', null, liveLineText(g)) : null), sitBox),
       stakeBox),
     h('div.verdict', null, h('span.' + v.pcls, { style: v.pstyle }, v.title), v.target ? h('span.target', null, v.target) : null, v.notes.length ? h('span.note', null, v.notes.join(' ')) : null),
     h('div.rows', null, rows),
@@ -1620,6 +1654,7 @@ function App() {
       const res = await fetchLive(cur.season, cur.week);
       let epNow = null, boxNow = null;
       if (!alive) return;
+      if (res) { await addLiveOdds(res); if (!alive) return; }
       if (res) { setLive(res); setLiveAt(new Date()); setLiveErr(false); } else setLiveErr(true);
       if (res) {
         const need = {};
