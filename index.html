@@ -285,6 +285,8 @@ async function fetchLive(season, week) {
       if (status === 'live' && sit) {
         const pt = (c.competitors || []).find((x) => sit.possession != null && (String(x.id) === String(sit.possession) || String(x.team && x.team.id) === String(sit.possession)));
         rec.sit = { pos: pt ? ab(pt) : '', dd: String(sit.downDistanceText || sit.shortDownDistanceText || ''), rz: !!sit.isRedZone, last: String((sit.lastPlay && sit.lastPlay.text) || '') };
+        const pr = sit.lastPlay && sit.lastPlay.probability, hw0 = pr ? Number(pr.homeWinPercentage) : NaN, hw = hw0 > 1 ? hw0 / 100 : hw0;
+        if (hw > 0 && hw < 1) rec.wp = hw;
       }
       out[ab(away) + '@' + ab(home)] = rec;
     });
@@ -510,8 +512,15 @@ function fracLeft(g) {
   if (per > 4) return 0.03;
   return Math.max(0.005, Math.min(1, ((4 - per) * 900 + (isNaN(sec) ? 450 : sec)) / 3600));
 }
+// Expected final home margin. When ESPN's live win probability is available (it accounts for possession, field position,
+// down and distance, and timeouts), the margin is set so the win chance matches it; otherwise score, clock and the line.
+function liveMu(g, m) {
+  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), wp = g.lv && g.lv.wp;
+  if (g.status === 'live' && wp > 0.003 && wp < 0.997) return { f, sd, mu: sd * invNorm(wp) };
+  return { f, sd, mu: (m != null ? m : 0) - (Number(g.line) || 0) * f };
+}
 function legProbLive(l, g) {
-  const f = fracLeft(g), m = marginOf(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), mu = m - (Number(g.line) || 0) * f;
+  const { f, sd, mu } = liveMu(g, marginOf(g));
   if (l.type === 'ml') return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd);
   if (l.type === 'spread') { const L = Number(l.line); return l.side === g.home ? 1 - normCdf((-L - mu) / sd) : normCdf((L - mu) / sd); }
   if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); const pOver = 1 - normCdf((L - (T + L * f)) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
@@ -834,7 +843,7 @@ const poolSub = (p, final) => { if (p.state === 'noedge') return 'Everyone has i
 function liveLeverage(a) {
   const g = a.g;
   if (g.status !== 'live' || a.margin == null) return null;
-  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f)), mu = a.margin - (Number(g.line) || 0) * f, mu0 = -(Number(g.line) || 0);
+  const { sd, mu } = liveMu(g, a.margin), mu0 = -(Number(g.line) || 0);
   let lev = 0;
   a.ints.forEach((i) => {
     if (!i.cush || !(i.weight > 0.02) || (i.done && i.done !== 'open')) return;
@@ -1053,8 +1062,7 @@ function dollarView(a, data) {
   const g = a.g, W = data.weights, boxes = data.boxes || {};
   if (g.status === 'final') return null;
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
-  const f = fracLeft(g), sd = Math.max(0.6, 13.5 * Math.sqrt(f));
-  const mu = (g.status === 'live' && a.margin != null ? a.margin : 0) - (Number(g.line) || 0) * f;
+  const { sd, mu } = liveMu(g, g.status === 'live' && a.margin != null ? a.margin : 0);
   const per = new Map();
   const betOf = (id) => (data.bets || []).find((x) => x.id === id);
   const betDelta = (b, q) => {
