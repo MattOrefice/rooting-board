@@ -1425,7 +1425,7 @@ function App() {
       if (res) { setLive(res); setLiveAt(new Date()); setLiveErr(false); } else setLiveErr(true);
       if (res) {
         const need = {};
-        (cur.bets || []).forEach((b) => { if (b.status !== 'open') return; (b.legs || []).forEach((l) => { const r = res[l.game]; if (l.kind === 'game' && l.type === 'prop' && r && r.status !== 'upcoming' && r.eventId && propSpec(l)) need[l.game] = r; }); });
+        (cur.bets || []).forEach((b) => { if (b.status === 'void') return; (b.legs || []).forEach((l) => { const r = res[l.game]; if (l.kind === 'game' && l.type === 'prop' && r && r.status !== 'upcoming' && r.eventId && propSpec(l)) need[l.game] = r; }); });
         const got = {};
         await Promise.all(Object.keys(need).map(async (gid) => { if (need[gid].status === 'final' && BOX_CACHE[gid]) { got[gid] = BOX_CACHE[gid]; return; } const bx = await fetchBox(need[gid].eventId); if (bx) { got[gid] = bx; if (need[gid].status === 'final') BOX_CACHE[gid] = bx; } }));
         if (alive && Object.keys(got).length) { setBoxes((prev) => Object.assign({}, prev, got)); boxNow = got; }
