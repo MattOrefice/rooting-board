@@ -286,7 +286,7 @@ async function fetchLive(season, week) {
         const pt = (c.competitors || []).find((x) => sit.possession != null && (String(x.id) === String(sit.possession) || String(x.team && x.team.id) === String(sit.possession)));
         rec.sit = { pos: pt ? ab(pt) : '', dd: String(sit.downDistanceText || sit.shortDownDistanceText || ''), rz: !!sit.isRedZone, last: String((sit.lastPlay && sit.lastPlay.text) || '') };
         const pr = sit.lastPlay && sit.lastPlay.probability, hw0 = pr ? Number(pr.homeWinPercentage) : NaN, hw = hw0 > 1 ? hw0 / 100 : hw0;
-        if (hw > 0 && hw < 1) rec.wp = hw;
+        if (hw > 0 && hw < 1) { rec.wp = hw; LAST_WP[ev.id] = hw; }
       }
       out[ab(away) + '@' + ab(home)] = rec;
     });
@@ -295,7 +295,7 @@ async function fetchLive(season, week) {
 }
 const withLive = (data, live, boxes, espn) => {
   if (!Object.keys(live || {}).length && !Object.keys(boxes || {}).length && !espn) return data;
-  const games = data.games.map((g) => { const r = (live || {})[g.id]; let x = g; if (r) { x = Object.assign({}, g, { lv: r }); if (r.status !== 'upcoming') Object.assign(x, { status: r.status, clock: r.clock, awayScore: r.awayScore, homeScore: r.homeScore }); } if (espn && x.status !== 'upcoming') x = Object.assign({}, x, { pickemShown: true }); return x; });
+  const games = data.games.map((g) => { const r = (live || {})[g.id]; let x = g; if (r) { const bw = boxes && boxes[g.id] && boxes[g.id].wp, lw = r.eventId != null ? LAST_WP[r.eventId] : null; const r2 = r.status === 'live' && r.wp == null && (bw != null || lw != null) ? Object.assign({}, r, { wp: bw != null ? bw : lw }) : r; x = Object.assign({}, g, { lv: r2 }); if (r.status !== 'upcoming') Object.assign(x, { status: r.status, clock: r.clock, awayScore: r.awayScore, homeScore: r.homeScore }); } if (espn && x.status !== 'upcoming') x = Object.assign({}, x, { pickemShown: true }); return x; });
   let pickemPicks = data.pickemPicks;
   if (espn) { pickemPicks = Object.assign({}, data.pickemPicks); Object.keys(espn).forEach((n) => { pickemPicks[n] = Object.assign({}, pickemPicks[n] || {}, espn[n]); }); }
   return Object.assign({}, data, { boxes: boxes || {}, games, pickemPicks });
@@ -319,6 +319,8 @@ async function fetchLiveOdds(eventId) {
 }
 // A line that hasn't moved since the score last changed is stale (the feed lags right after scoring plays).
 const MK_SEEN = {};
+// Last known ESPN win probability per game, for moments with no new play (timeouts, the two-minute warning).
+const LAST_WP = {};
 async function addLiveOdds(res) {
   await Promise.all(Object.keys(res).filter((k) => res[k].status === 'live' && res[k].eventId).map(async (k) => {
     const o = await fetchLiveOdds(res[k].eventId);
@@ -380,6 +382,7 @@ function legResult(l, g, boxes) {
     return g.status === 'final' ? (a === tA && hs === tH ? 'won' : 'lost') : 'open';
   }
   if (l.type === 'prop') { if (g.status === 'upcoming') return 'open'; const ps = propState(l, g, boxes && boxes[g.id]); return ps && (ps.pl || ps.first) ? ps.res : 'open'; }
+  if (l.type === 'total' && g.status === 'live' && hasScore(g)) { const T = Number(g.homeScore) + Number(g.awayScore); if (T > Number(l.line)) return l.side === 'under' ? 'lost' : 'won'; }
   if (g.status !== 'final' || !hasScore(g)) return 'open';
   const m = marginOf(g);
   if (l.type === 'ml' || l.type === 'spread') { const t = l.type === 'ml' ? mlTest(l.side, g) : coverTest(l.side, g, Number(l.line)); const r = t ? t(m) : null; return r === true ? 'won' : r === false ? 'lost' : 'void'; }
@@ -455,6 +458,8 @@ function parseBox(j) {
   });
   const arr = Object.keys(byName).map((k) => byName[k]);
   arr.firstTD = firstTdScorer(j);
+  const wpl = (j && j.winprobability) || [], wpx = wpl.length ? Number(wpl[wpl.length - 1].homeWinPercentage) : NaN;
+  arr.wp = wpx > 0 && wpx < 1 ? wpx : null;
   return arr;
 }
 async function fetchBox(eventId) {
@@ -573,7 +578,7 @@ function legProbLive(l, g) {
   const mk = mkOk(g);
   if (l.type === 'ml') { if (mk && mk.hml != null && mk.aml != null) { const ph = devig(mk.hml, mk.aml); return l.side === g.home ? ph : 1 - ph; } return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd); }
   if (l.type === 'spread') { const L = Number(l.line); return l.side === g.home ? 1 - normCdf((-L - mu) / sd) : normCdf((L - mu) / sd); }
-  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); let muT = T + L * f + driveAdj(g); if (mk && mk.total != null && mk.over != null && mk.under != null) muT = mk.total + tsd * invNorm(Math.min(0.99, Math.max(0.01, devig(mk.over, mk.under)))); const pOver = 1 - normCdf((L - muT) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
+  if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line), tsd = Math.max(0.6, 13 * Math.sqrt(f)); let muT = T + L * f + driveAdj(g); if (mk && mk.total != null && mk.over != null && mk.under != null) muT = Math.max(T, mk.total + tsd * invNorm(Math.min(0.99, Math.max(0.01, devig(mk.over, mk.under))))); const pOver = 1 - normCdf((L - muT) / tsd); return l.side === 'under' ? 1 - pOver : pOver; }
   return null;
 }
 function propProbLive(ps, p0, f) {
