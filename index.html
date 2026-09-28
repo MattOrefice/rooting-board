@@ -343,7 +343,14 @@ function rolloverData(pv, sched) {
 function legResult(l, g, boxes) {
   if (l.status && l.status !== 'open') return l.status;
   if (l.kind !== 'game' || !g) return 'open';
-  if (l.type === 'prop') { if (g.status === 'upcoming') return 'open'; const ps = propState(l, g, boxes && boxes[g.id]); return ps && ps.pl ? ps.res : 'open'; }
+  if (l.type === 'score') {
+    if (g.status === 'upcoming' || !hasScore(g)) return 'open';
+    const sc = l.score || {}, tA = Number(sc[g.away]), tH = Number(sc[g.home]), a = Number(g.awayScore), hs = Number(g.homeScore);
+    if (isNaN(tA) || isNaN(tH)) return 'open';
+    if (a > tA || hs > tH) return 'lost';
+    return g.status === 'final' ? (a === tA && hs === tH ? 'won' : 'lost') : 'open';
+  }
+  if (l.type === 'prop') { if (g.status === 'upcoming') return 'open'; const ps = propState(l, g, boxes && boxes[g.id]); return ps && (ps.pl || ps.first) ? ps.res : 'open'; }
   if (g.status !== 'final' || !hasScore(g)) return 'open';
   const m = marginOf(g);
   if (l.type === 'ml' || l.type === 'spread') { const t = l.type === 'ml' ? mlTest(l.side, g) : coverTest(l.side, g, Number(l.line)); const r = t ? t(m) : null; return r === true ? 'won' : r === false ? 'lost' : 'void'; }
@@ -370,10 +377,11 @@ const STAT_RE = [
   [/rec(?:eiving)?\s*(?:td|tds|touchdowns?)/i, 'recTD'],
   [/intercep|\bints?\b/i, 'passInt'],
   [/receptions|catches/i, 'rec'],
+  [/first\s*(?:td|touchdown)/i, 'firstTD'],
   [/any\s*time\s*(?:td|touchdown)|td\s*scorer|to\s*score/i, 'td'],
 ];
-const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds', passInt: 'INT' };
-const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0), passInt: (x) => x.passInt || 0 };
+const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds', passInt: 'INT', firstTD: 'first TD' };
+const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0), passInt: (x) => x.passInt || 0, firstTD: () => 0 };
 const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1, passInt: 1 };
 const SUFFIX = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 const nameTokens = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((t) => t.replace(/'/g, '')).filter((t) => t && SUFFIX.indexOf(t) < 0);
@@ -389,6 +397,14 @@ function propSpec(l) {
   else if (m2) { line = parseInt(m2[1], 10) - 0.5; rest = rest.replace(m2[0], ' '); }
   const player = rest.replace(/[^A-Za-z.' -]/g, ' ').replace(/\s+/g, ' ').trim();
   return player ? { player, stat, side, line } : null;
+}
+function firstTdScorer(j) {
+  const plays = (j && j.scoringPlays) || [];
+  const td = plays.find((p) => /touchdown/i.test(((p.type || {}).text || '') + ' ' + ((p.scoringType || {}).name || '') + ' ' + ((p.scoringType || {}).displayName || '')));
+  if (!td) return null;
+  const t = String(td.text || '').trim();
+  const m = t.match(/^(.+?)\s+\d+\s*(?:yd|yds|yard|yards)\b/i) || t.match(/^(.+?)\s+(?:pass|run|rush|fumble|interception|punt|kick|blocked|recovery)\b/i);
+  return m ? m[1].trim() : '';
 }
 function parseBox(j) {
   const byName = {};
@@ -408,7 +424,9 @@ function parseBox(j) {
       });
     });
   });
-  return Object.keys(byName).map((k) => byName[k]);
+  const arr = Object.keys(byName).map((k) => byName[k]);
+  arr.firstTD = firstTdScorer(j);
+  return arr;
 }
 async function fetchBox(eventId) {
   try { const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + eventId, { cache: 'no-store' }); return r.ok ? parseBox(await r.json()) : null; } catch (e) { return null; }
@@ -439,9 +457,18 @@ async function fetchEspnPicks(L) {
   } catch (e) { return null; }
 }
 const findPlayer = (box, name) => { const t = nameTokens(name); return t.length ? box.find((p) => t.every((x) => p.tokens.indexOf(x) >= 0)) || null : null; };
+const sameName = (a, b) => { const ta = nameTokens(a), tb = nameTokens(b); return ta.length > 0 && tb.length > 0 && ta[ta.length - 1] === tb[tb.length - 1] && ta[0][0] === tb[0][0]; };
 function propState(l, g, box) {
   const sp = propSpec(l);
   if (!sp) return null;
+  if (sp.stat === 'firstTD') {
+    if (!box) return { sp, pl: null, val: null, res: 'open', loaded: false, first: true };
+    const ft = box.firstTD, fin = !!g && g.status === 'final';
+    if (ft == null) return { sp, pl: null, val: 0, res: fin ? 'lost' : 'open', loaded: true, first: true, ft: null };
+    if (ft === '') return { sp, pl: null, val: 0, res: 'open', loaded: true, first: true, ft: '' };
+    const mine = sameName(sp.player, ft);
+    return { sp, pl: { name: ft }, val: mine ? 1 : 0, res: mine ? 'won' : 'lost', loaded: true, first: true, ft };
+  }
   const pl = box ? findPlayer(box, sp.player) : null;
   if (!pl) return { sp, pl: null, val: null, res: 'open', loaded: !!box };
   const val = STATV[sp.stat](pl.s);
@@ -455,6 +482,7 @@ function propLine(l, g, box) {
   const ps = propState(l, g, box);
   if (!ps) return null;
   const sp = ps.sp;
+  if (ps.first) return { text: ps.ft ? 'First TD: ' + ps.ft + (ps.res === 'won' ? ' \u2713' : ' \u2717') : ps.ft === '' ? 'First TD scored, checking who' : ps.loaded ? 'No TD yet' : 'Loading', res: ps.res };
   if (!ps.pl) return { text: sp.player + ': ' + (ps.loaded ? 'no stats yet' : 'loading stats'), res: 'open' };
   const v = Math.round(ps.val * 10) / 10, showLine = ps.res === 'open' && !(sp.side === 'over' && sp.line === 0.5);
   return { text: sp.player + ' ' + v + (showLine ? '/' + sp.line : '') + ' ' + STATLBL[sp.stat] + (sp.side === 'under' ? ' (under)' : '') + (ps.res === 'won' ? ' \u2713' : ps.res === 'lost' ? ' \u2717' : ps.res === 'void' ? ' (push)' : ''), res: ps.res };
@@ -583,7 +611,7 @@ function legToString(l) {
   if (l.type === 'total') return l.game + ' total ' + l.side + ' ' + l.line + st;
   return l.game + ' prop ' + (l.desc || '') + st;
 }
-const legText = (l) => (l.type === 'ml' ? l.side + ' ML' : l.type === 'spread' ? l.side + ' ' + fmtLine(Number(l.line)) : l.type === 'total' ? (l.side === 'under' ? 'Under ' : 'Over ') + l.line : l.desc || '');
+const legText = (l) => (l.type === 'score' && l.score ? 'Exact score ' + Object.keys(l.score).map((k) => k + ' ' + l.score[k]).join(', ') : l.type === 'ml' ? l.side + ' ML' : l.type === 'spread' ? l.side + ' ' + fmtLine(Number(l.line)) : l.type === 'total' ? (l.side === 'under' ? 'Under ' : 'Over ') + l.line : l.desc || '');
 
 // ---------- outcomes by final margin (home minus away) ----------
 const BOUND = 45;
@@ -1081,12 +1109,14 @@ function legNow(l, g, boxes) {
   if (l.type === 'prop') {
     const ps = propState(l, g, boxes[g.id]);
     if (!ps) return out(st === 'live' ? 'settles by hand' : '');
+    if (ps.first) return out(ps.ft ? 'first TD: ' + ps.ft : ps.ft === '' ? 'first TD scored, checking who' : ps.loaded ? 'no TD yet' : 'loading');
     if (!ps.pl) return out(ps.loaded ? 'no stats yet' : 'loading stats');
     const sp = ps.sp, target = COUNT_STATS[sp.stat] ? Math.floor(sp.line) + 1 : sp.line;
     return out((Math.round(ps.val * 10) / 10) + ' of ' + target + ' ' + STATLBL[sp.stat] + (sp.side === 'under' ? ' (under)' : ''), sp.side === 'under' ? null : ps.val / (target || 1));
   }
   if (!hasScore(g)) return out('');
   const m = marginOf(g), clk = g.status === 'final' ? 'final' : g.clock || 'live';
+  if (l.type === 'score') { const sc = l.score || {}; return out(g.away + ' ' + g.awayScore + ' of ' + sc[g.away] + ', ' + g.home + ' ' + g.homeScore + ' of ' + sc[g.home] + ', ' + clk); }
   if (l.type === 'ml') { const c = l.side === g.home ? m : -m; return out((c > 0 ? 'up ' + c : c < 0 ? 'down ' + -c : 'tied') + ', ' + clk); }
   if (l.type === 'spread') { const cf = coverCush(l.side, g, Number(l.line)), c = cf ? cf(m) : 0; return out((c > 0 ? 'covering by ' + c : c < 0 ? 'short by ' + -c : 'on the number') + ', ' + clk); }
   if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line); return out(T + ' of ' + L + ' pts, ' + clk, l.side === 'under' ? null : T / L); }
