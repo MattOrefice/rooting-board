@@ -97,11 +97,13 @@ span.pick{cursor:default}
 .dv2 .ok,.dv3 .ok{color:var(--good)}
 .dv2 .bad,.dv3 .bad{color:var(--bad)}
 .dv3{white-space:nowrap}
-.tracker{padding:12px 14px;margin:0 0 14px}
+.tracker{margin:28px 0 22px}
+.tracker .slot{margin-top:0}
 .tr-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .tr-h .dim{font-size:12px}
 .tr-h .linkbtn{margin-left:auto}
-.tb{border-top:1px solid var(--line);padding:10px 0 6px}
+.tb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.tb{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .tb-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tb-name{font-weight:600}
 .tb-pay{margin-left:auto;color:var(--muted);font-size:13px}
@@ -1085,16 +1087,16 @@ function BetTracker({ data }) {
   }).sort((x, y) => (y.st === 'open') - (x.st === 'open') || y.live - x.live || (y.fv || 0) - (x.fv || 0));
   if (!list.length) return null;
   const nameOf = (b) => { const legs = b.legs || []; if (legs.length <= 1) return legs.length ? legText(legs[0]) : b.desc; return legs.length + '-leg ' + (new Set(legs.map((l) => l.game)).size > 1 ? 'parlay' : 'same-game parlay'); };
-  return h('div.panel.tracker', null,
-    h('div.tr-h', null, h('b', null, 'Bet tracker'), h('span.dim', null, list.length + ' bet' + (list.length === 1 ? '' : 's') + ' underway'), h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show')),
-    open ? list.map(({ b, st, fv }) => h('div.tb', { key: b.id },
+  return h('section.tracker', null,
+    h('div.slot', null, h('h2', null, 'Your bets', h('span.times', null, list.length + ' underway')), h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show')),
+    open ? h('div.tb-grid', null, list.map(({ b, st, fv }) => h('div.tb', { key: b.id },
       h('div.tb-top', null, h('span.book.' + b.book, null, b.book), h('span.tb-name', null, nameOf(b)), h('span.tb-pay.tnum', null, cash(b.stake) + ARROW + cash(b.toPay))),
       h('div.tb-st' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : ''), null, st === 'won' ? 'Won' : st === 'lost' ? 'Lost' : st === 'void' ? 'Push' : hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, data.weights)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '')),
       h('div.legs', null, (b.legs || []).filter((l) => l.kind === 'game').map((l, i) => { const g = byId[l.game], sN = legNow(l, g, boxes); return h('div.leg.' + sN.st, { key: i },
         h('span.lg-mk', null, sN.st === 'won' ? '\u2713' : sN.st === 'lost' ? '\u2717' : sN.st === 'void' ? '\u2013' : sN.st === 'live' ? '\u25cf' : '\u25cb'),
         h('span.lg-t', null, legText(l), g && new Set((b.legs || []).map((x) => x.game)).size > 1 ? h('span.lg-g', null, ' ' + g.away + '@' + g.home) : null),
         h('span.lg-v.tnum', null, sN.text),
-        sN.pct != null && sN.st !== 'lost' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * sN.pct) + '%' } })) : null); })))) : null);
+        sN.pct != null && sN.st !== 'lost' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * sN.pct) + '%' } })) : null); }))))) : null);
 }
 function LiveBar({ analyses, data }) {
   const rows = analyses.filter((a) => a.g.status === 'live' && !a.quiet).sort((x, y) => (y.lev != null ? y.lev : y.score) - (x.lev != null ? x.lev : x.score));
