@@ -82,6 +82,9 @@ span.pick{cursor:default}
 .recap{padding:10px 14px;margin-bottom:12px;font-size:13px;border-color:var(--flag)}
 .recap b{color:var(--flag)}
 .recap .linkbtn{margin-left:8px}
+.updbar{background:var(--flag);color:#141414;padding:9px 14px;border-radius:8px;margin-bottom:12px;font-weight:600}
+.updbar .linkbtn{color:#141414;text-decoration:underline;margin-left:6px;font-weight:700}
+.tb-done{margin:-4px 0 12px;font-size:13px}
 .pctl{color:var(--flag);font-weight:600}
 .howwent{padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
 .howwent b{color:var(--text)}
@@ -1198,11 +1201,17 @@ function BetTracker({ data }) {
   const [open, setOpen] = useState(true);
   const byId = {}; data.games.forEach((g) => { byId[g.id] = g; });
   const boxes = data.boxes || {};
-  const started = (b) => (b.legs || []).some((l) => l.kind === 'game' && byId[l.game] && byId[l.game].status !== 'upcoming');
-  const list = (data.bets || []).filter((b) => b.status === 'open' && started(b)).map((b) => {
-    const st = betStatus(b, byId, boxes), fv = st === 'open' ? betFair(b, data) : null;
-    return { b, st, fv, live: (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'live') ? 1 : 0 };
-  }).sort((x, y) => (y.st === 'open') - (x.st === 'open') || y.live - x.live || (y.fv || 0) - (x.fv || 0));
+  const [showDone, setShowDone] = useState(false);
+  const kickKey = (b) => Math.min.apply(null, (b.legs || []).filter((l) => l.kind === 'game' && byId[l.game]).map((l) => { const k = parseKick(byId[l.game].kick); return (k.day ? DAYS.indexOf(k.day) : 9) * 1440 + (k.mins || 0); }).concat([99999]));
+  const all = (data.bets || []).filter((b) => (b.legs || []).some((l) => l.kind === 'game' && byId[l.game])).map((b) => {
+    const st = b.status !== 'open' ? b.status : betStatus(b, byId, boxes), fv = st === 'open' ? betFair(b, data) : null;
+    return { b, st, fv, live: (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'live') ? 1 : 0, when: kickKey(b) };
+  });
+  const list = all.filter((x) => x.st === 'open').sort((x, y) => y.live - x.live || x.when - y.when || (y.fv || 0) - (x.fv || 0));
+  const doneList = all.filter((x) => x.st !== 'open');
+  const liveN = list.filter((x) => x.live).length;
+  const pnlOfB = (b, st) => (st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0);
+  const doneNet = doneList.reduce((t, x) => t + pnlOfB(x.b, x.st), 0);
   const todayKey = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date()).toLowerCase().slice(0, 3);
   const settledToday = (data.bets || []).filter((b) => (b.legs || []).some((l) => l.kind === 'game' && byId[l.game])).map((b) => ({ b, st: b.status !== 'open' ? b.status : betStatus(b, byId, boxes) })).filter(({ b, st }) => {
     if (st === 'open') return false;
@@ -1211,12 +1220,13 @@ function BetTracker({ data }) {
   });
   const tNet = settledToday.reduce((t, { b, st }) => t + (st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0), 0);
   const tCount = (k) => settledToday.filter((x) => x.st === k).length;
-  if (!list.length && !settledToday.length) return null;
+  if (!list.length && !doneList.length) return null;
   const nameOf = (b) => { const legs = b.legs || []; if (legs.length <= 1) return legs.length ? legText(legs[0]) : b.desc; return legs.length + '-leg ' + (new Set(legs.map((l) => l.game)).size > 1 ? 'parlay' : 'same-game parlay'); };
   return h('section.tracker', null,
-    h('div.slot', null, h('h2', null, 'Your bets', h('span.times', null, list.length + ' underway')), list.length ? h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show') : null),
+    h('div.slot', null, h('h2', null, 'Your bets', h('span.times', null, list.length + ' open' + (liveN ? ', ' + liveN + ' live' : ''))), list.length ? h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show') : null),
     settledToday.length ? h('div.tb-settled', null, 'Settled today: ' + tCount('won') + ' won, ' + tCount('lost') + ' lost' + (tCount('void') ? ', ' + tCount('void') + ' pushed' : '') + ', ', h('span' + (tNet >= 0 ? '.ok' : '.bad'), null, (tNet >= 0 ? '+' : MINUS) + cash(Math.abs(tNet)))) : null,
-    open && list.length ? h('div.tb-grid', null, list.map(({ b, st, fv }) => h('div.tb', { key: b.id },
+    doneList.length ? h('div.tb-done', null, h('button.linkbtn', { onClick: () => setShowDone(!showDone) }, (showDone ? 'Hide' : 'Show') + ' settled this week (' + doneList.length + ', ' + (doneNet >= 0 ? '+' : MINUS) + cash(Math.abs(doneNet)) + ')')) : null,
+    open && (list.length || (showDone && doneList.length)) ? h('div.tb-grid', null, list.concat(showDone ? doneList : []).map(({ b, st, fv }) => h('div.tb', { key: b.id },
       h('div.tb-top', null, h('span.book.' + b.book, null, b.book), h('span.tb-name', null, nameOf(b)), h('span.tb-pay.tnum', null, cash(b.stake) + ARROW + cash(b.toPay))),
       h('div.tb-st' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : ''), null, st === 'won' ? 'Won' : st === 'lost' ? 'Lost' : st === 'void' ? 'Push' : hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, data.weights)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '')),
       h('div.legs', null, (b.legs || []).filter((l) => l.kind === 'game').map((l, i) => { const g = byId[l.game], sN = legNow(l, g, boxes); return h('div.leg.' + sN.st, { key: i },
@@ -1631,6 +1641,22 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [recap, setRecap] = useState(null);
+  const [newVer, setNewVer] = useState(false);
+  useEffect(() => {
+    const h32 = (x) => { let v = 2166136261; for (let i = 0; i < x.length; i++) v = Math.imul(v ^ x.charCodeAt(i), 16777619) >>> 0; return v; };
+    const own = (() => { const sc = [...document.scripts].filter((x) => !x.src).pop(); return sc ? h32(sc.textContent) : 0; })();
+    const check = async () => {
+      try {
+        const txt = await (await fetch('index.html?v=' + Date.now(), { cache: 'no-store' })).text();
+        const i = txt.lastIndexOf('<scr' + 'ipt>'), j = txt.lastIndexOf('<\/scr' + 'ipt>');
+        if (own && i >= 0 && j > i && h32(txt.slice(i + 8, j)) !== own) setNewVer(true);
+      } catch (e) { /* offline */ }
+    };
+    const onVis = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVis);
+    const t = setInterval(check, 600000);
+    return () => { document.removeEventListener('visibilitychange', onVis); clearInterval(t); };
+  }, []);
   const [tickN, setTickN] = useState(0);
   const recapPending = useRef(true);
   const refreshRef = useRef(null);
@@ -1740,6 +1766,7 @@ function App() {
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
   const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['setup', 'Setup', 'Setup']];
   return h('div.wrap', null,
+    newVer ? h('div.updbar', null, 'The board was updated.', h('button.linkbtn', { onClick: () => window.location.reload() }, 'Reload')) : null,
     h('header.top', null,
       h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
       h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, h('span.full', null, l), h('span.short', null, sl))))),
