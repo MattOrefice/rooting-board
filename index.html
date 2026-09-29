@@ -600,6 +600,15 @@ function propProbLive(ps, p0, f) {
   else { const sd0 = Math.max(8, 0.4 * sp.line), mu0 = sp.line + sd0 * invNorm(pOver0); pOver = 1 - normCdf((sp.line - (ps.val + mu0 * f)) / Math.max(1, sd0 * Math.sqrt(f))); }
   return sp.side === 'over' ? pOver : 1 - pOver;
 }
+// Live chance for a prop leg. A player not yet in the box score has recorded nothing, so once the game is live
+// the odds use zero so far (settlement still waits for real stats).
+function propLiveP(l, g, box, p0) {
+  const ps = propState(l, g, box);
+  if (!ps) return null;
+  if (ps.pl) return propProbLive(ps, p0, fracLeft(g));
+  if (ps.first || !ps.loaded || !g || g.status !== 'live') return null;
+  return propProbLive(Object.assign({}, ps, { val: 0 }), p0, fracLeft(g));
+}
 function betFair(b, data) {
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
   const boxes = data.boxes || {}, legs = b.legs || [], pay = Number(b.toPay) || 0;
@@ -616,7 +625,7 @@ function betFair(b, data) {
     if (r === 'lost') { ratio = 0; return; }
     if (!g || g.status !== 'live' || !hasScore(g)) return;
     let pn = null;
-    if (l.type === 'prop') { const ps = propState(l, g, boxes[g.id]); if (ps && ps.pl) pn = propProbLive(ps, p0, fracLeft(g)); }
+    if (l.type === 'prop') pn = propLiveP(l, g, boxes[g.id], p0);
     else pn = legProbLive(l, g);
     if (pn != null) ratio *= Math.max(0, pn) / p0;
   });
@@ -774,7 +783,7 @@ function restRatio(b, gid, byId, boxes, W) {
     const g = byId[l.game];
     if (!g || g.status !== 'live' || !hasScore(g) || legResult(l, g, boxes || {}) !== 'open') return;
     let pn = null;
-    if (l.type === 'prop') { const ps = propState(l, g, (boxes || {})[g.id]); if (ps && ps.pl) pn = propProbLive(ps, p0, fracLeft(g)); }
+    if (l.type === 'prop') pn = propLiveP(l, g, (boxes || {})[g.id], p0);
     else pn = legProbLive(l, g);
     if (pn != null) r *= Math.max(0, pn) / p0;
   });
@@ -1121,7 +1130,7 @@ function legNowP(l, g, boxes, p0) {
   if (r === 'won' || r === 'void') return 1;
   if (r === 'lost') return 0;
   if (!g || g.status !== 'live' || !hasScore(g)) return p0;
-  if (l.type === 'prop') { const ps = propState(l, g, (boxes || {})[g.id]); return ps && ps.pl ? propProbLive(ps, p0, fracLeft(g)) : p0; }
+  if (l.type === 'prop') { const pp = propLiveP(l, g, (boxes || {})[g.id], p0); return pp == null ? p0 : pp; }
   const p = legProbLive(l, g);
   return p == null ? p0 : p;
 }
@@ -1185,7 +1194,7 @@ function legNow(l, g, boxes) {
     const ps = propState(l, g, boxes[g.id]);
     if (!ps) return out(st === 'live' ? 'settles by hand' : '');
     if (ps.first) return out(ps.ft ? 'first TD: ' + ps.ft : ps.ft === '' ? 'first TD scored, checking who' : ps.loaded ? 'no TD yet' : 'loading');
-    if (!ps.pl) return out(ps.loaded ? 'no stats yet' : 'loading stats');
+    if (!ps.pl) return out(ps.loaded && g.status === 'live' ? '0 of ' + (COUNT_STATS[ps.sp.stat] ? Math.floor(ps.sp.line) + 1 : ps.sp.line) + ' ' + STATLBL[ps.sp.stat] : ps.loaded ? 'no stats yet' : 'loading stats', ps.loaded && g.status === 'live' ? 0 : null);
     const sp = ps.sp, target = COUNT_STATS[sp.stat] ? Math.floor(sp.line) + 1 : sp.line;
     return out((Math.round(ps.val * 10) / 10) + ' of ' + target + ' ' + STATLBL[sp.stat] + (sp.side === 'under' ? ' (under)' : ''), sp.side === 'under' ? null : ps.val / (target || 1));
   }
