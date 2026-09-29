@@ -418,6 +418,7 @@ const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1, passInt: 1 
 const SUFFIX = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 const nameTokens = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((t) => t.replace(/'/g, '')).filter((t) => t && SUFFIX.indexOf(t) < 0);
 function propSpec(l) {
+  if (Array.isArray(l.players) && l.players.length && l.stat && STATV[l.stat]) return { player: l.players.join(' or '), players: l.players, stat: l.stat, side: l.side === 'under' ? 'under' : 'over', line: l.line != null && l.line !== '' ? Number(l.line) : 0.5 };
   if (l.player && l.stat && STATV[l.stat]) return { player: l.player, stat: l.stat, side: l.side === 'under' ? 'under' : 'over', line: l.line != null && l.line !== '' ? Number(l.line) : 0.5 };
   const d = String(l.desc || '');
   let stat = null, rest = d;
@@ -503,9 +504,17 @@ function propState(l, g, box) {
     const mine = sameName(sp.player, ft);
     return { sp, pl: { name: ft }, val: mine ? 1 : 0, res: mine ? 'won' : 'lost', loaded: true, first: true, ft };
   }
-  const pl = box ? findPlayer(box, sp.player) : null;
-  if (!pl) return { sp, pl: null, val: null, res: 'open', loaded: !!box };
-  const val = STATV[sp.stat](pl.s);
+  let pl = null, val = null;
+  if (sp.players) {
+    const found = box ? sp.players.map((n) => findPlayer(box, n)).filter(Boolean) : [];
+    if (!found.length) return { sp, pl: null, val: null, res: 'open', loaded: !!box };
+    pl = { name: sp.player, s: {} };
+    val = found.reduce((t, p) => t + STATV[sp.stat](p.s), 0);
+  } else {
+    pl = box ? findPlayer(box, sp.player) : null;
+    if (!pl) return { sp, pl: null, val: null, res: 'open', loaded: !!box };
+    val = STATV[sp.stat](pl.s);
+  }
   const fin = !!g && g.status === 'final';
   let res = 'open';
   if (sp.side === 'over') { if (val > sp.line) res = 'won'; else if (fin) res = val === sp.line ? 'void' : 'lost'; }
