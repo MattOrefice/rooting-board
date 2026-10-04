@@ -286,7 +286,8 @@ async function fetchLive(season, week) {
       rec.mkt = mkt;
       const sit = c.situation;
       if (status === 'live' && sit) {
-        const pt = (c.competitors || []).find((x) => sit.possession != null && (String(x.id) === String(sit.possession) || String(x.team && x.team.id) === String(sit.possession)));
+        const pid = sit.possession != null ? sit.possession : sit.lastPlay && sit.lastPlay.team ? sit.lastPlay.team.id : null;
+        const pt = (c.competitors || []).find((x) => pid != null && (String(x.id) === String(pid) || String(x.team && x.team.id) === String(pid)));
         rec.sit = { pos: pt ? ab(pt) : '', dd: String(sit.downDistanceText || sit.shortDownDistanceText || ''), rz: !!sit.isRedZone, last: String((sit.lastPlay && sit.lastPlay.text) || '') };
         const pr = sit.lastPlay && sit.lastPlay.probability, hw0 = pr ? Number(pr.homeWinPercentage) : NaN, hw = hw0 > 1 ? hw0 / 100 : hw0;
         if (hw > 0 && hw < 1) { rec.wp = hw; LAST_WP[ev.id] = hw; }
