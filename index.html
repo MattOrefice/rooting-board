@@ -1025,6 +1025,18 @@ function Row({ src, team, label, sub, prog, w, money, dv, mk, cush, off }) {
     h('div.w.tnum', null, money ? h('span.' + money.cls, null, money.text) : dv ? h('span.dv2', { title: 'If it hits / if it misses, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.bad', null, MINUS + usd(dv.down))) : w != null && w >= 0.5 ? usd(w) : ''),
     h('div.mk.tnum', null, cush != null ? h('span.' + (cush > 0 ? 'ok' : cush < 0 ? 'bad' : 'dim'), { title: cush > 0 ? 'Ahead by this much right now' : cush < 0 ? 'Behind by this much right now' : 'Even right now' }, (cush > 0 ? '+' : cush < 0 ? MINUS : '') + Math.abs(cush)) : h(Mark, { v: mk })));
 }
+// When every good outcome sits on one side of a line (e.g. TB win or GB by 1-3), name the cover ("TB +3.5")
+// rather than the single best band, which can point at the other team.
+function coverRoot(g, scen) {
+  if (!scen || scen.length < 3) return null;
+  const good = scen.map((r) => r.v > 0.5), first = good.indexOf(true), last = good.lastIndexOf(true);
+  if (first < 0 || good.every(Boolean) || last === first) return null;
+  for (let i = first; i <= last; i++) if (!good[i]) return null;
+  if (first !== 0 && last !== scen.length - 1) return null;
+  const best = scen.reduce((x, y) => (y.v > x.v ? y : x)).label;
+  if (last === scen.length - 1) { const L = scen[first].a; return { team: g.home, best, label: L >= 1 ? g.home + (L === 1 ? ' win' : ' by ' + L + '+') : g.home + ' +' + (0.5 - L) }; }
+  const U = scen[last].b; return { team: g.away, best, label: -U >= 1 ? g.away + (U === -1 ? ' win' : ' by ' + -U + '+') : g.away + ' +' + (U + 0.5) };
+}
 function verdictOf(a, dv) {
   const g = a.g;
   let pcls = 'plate.dead', pstyle = null, title = 'No stake', target = '';
@@ -1044,6 +1056,8 @@ function verdictOf(a, dv) {
     else if (a.kind === 'split') pcls = 'plate.split';
     else { const c = teamColor(a.root); pcls = 'plate'; pstyle = { background: c, color: ink(c) }; }
     target = a.bestRuns.map((r) => r.label).join(' or ');
+    const cov = dv && !a.minorOnly ? coverRoot(g, dv.scen) : null;
+    if (cov) { title = 'Root ' + cov.label; const cc = teamColor(cov.team); pcls = 'plate'; pstyle = { background: cc, color: ink(cc) }; target = cov.best && cov.best !== cov.label ? 'Best case: ' + cov.best : ''; }
     if (a.kind === 'split' && a.bestRuns[0] && a.bestRuns[0].misses.length) notes.push('Best case still loses your ' + a.bestRuns[0].misses.map((i) => (i.kind === 'bet' ? i.src + ' ' + (i.type || 'bet') : i.src.toLowerCase())).join(' and ') + '.');
     if (a.sweet) notes.push('Sweet spot: ' + a.sweet + '.');
     if ((a.kind === 'split' || a.bounded) && dv && dv.scen && dv.scen.length >= 3 && !a.pending) notes.push('Outcomes: ' + dv.scen.map((r) => r.label + ' ' + (r.v >= 0 ? '+' : MINUS) + usd(Math.abs(r.v))).join(', ') + '.');
@@ -1173,7 +1187,7 @@ function dollarView(a, data) {
       const m = r.a <= -BOUND ? r.b : r.b >= BOUND ? r.a : Math.round((r.a + r.b) / 2) || (r.b > 0 ? 1 : -1);
       let v = 0;
       core.forEach((i) => { const t = i.test(m), d = per.get(i.key); if (t === true) v += d.up; else if (t === false) v -= d.down; });
-      scen.push({ v, label: r.label });
+      scen.push({ v, label: r.label, a: r.a, b: r.b });
       if (!best || v > best.v) best = { v, label: r.label };
       if (!worst || v < worst.v) worst = { v, label: r.label };
     });
@@ -1249,14 +1263,14 @@ function LiveBar({ analyses, data }) {
   if (!rows.length) return null;
   return h('div.livebar', null, h('div.lb-h', null, 'Live now: ' + rows.length + ' game' + (rows.length === 1 ? '' : 's') + ' that matter, most in doubt first'),
     rows.map((a) => {
-      const g = a.g, v = verdictOf(a);
+      const g = a.g, dvL = data ? dollarView(a, data) : null, v = verdictOf(a, dvL);
       const main = a.margin == null ? null : a.ints.filter((i) => !i.minor && i.cush && i.weight > 0).sort((x, y) => y.weight - x.weight)[0];
       const c = main ? main.cush(a.margin) : null;
       return h('a.lb-row', { key: g.id, href: '#g-' + g.id.replace('@', '-') },
         h('span.mt', null, h(Logo, { t: g.away, size: 20 }), g.away + ' ' + (g.awayScore == null ? '' : g.awayScore), h('span.dim', null, '\u2013'), (g.homeScore == null ? '' : g.homeScore) + ' ' + g.home, h(Logo, { t: g.home, size: 20 }), h('span.clk', null, g.clock || 'Live'), g.lv && g.lv.sit && g.lv.sit.rz ? h('span.rzpill', null, 'Red zone' + (g.lv.sit.pos ? ': ' + g.lv.sit.pos : '')) : null),
         h('span.' + v.pcls + '.sm', { style: v.pstyle }, v.title),
         h('span.st', null, main ? h('span', null, h('b', null, main.src + (main.type ? ' ' + main.type : '') + ' ' + (main.label || main.side)), ': ' + cushText(main, c)) : 'Waiting on the score'),
-        (() => { const dv = data ? dollarView(a, data) : null; return dv ? h('span.amt.tnum.dv3', { title: 'Best and worst case from here, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : h('span.amt.tnum.dim', null, 'pending'); })());
+        (() => { const dv = dvL; return dv ? h('span.amt.tnum.dv3', { title: 'Best and worst case from here, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : h('span.amt.tnum.dim', null, 'pending'); })());
     }));
 }
 
