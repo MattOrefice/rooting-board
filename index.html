@@ -123,6 +123,8 @@ span.pick{cursor:default}
 .leg.lost .lg-mk{color:var(--bad)}
 .leg.live .lg-mk{color:var(--flag)}
 .leg.lost .lg-t{text-decoration:line-through;color:var(--muted)}
+.leg.void .lg-t{text-decoration:line-through;color:var(--muted)}
+.leg.void .lg-v{color:var(--muted)}
 .lg-g{color:var(--dim);font-size:11px}
 .lg-v{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}
 .leg .bar{grid-column:2/-1;height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
@@ -973,7 +975,7 @@ function analyze(g, data) {
       const sub = cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay) + ' (' + american(b) + '), ' + (bs === 'open' ? (g.status === 'final' && fv == null ? 'final, settle by hand' : hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '')) : bs) + (bs === 'open' && openElsewhere ? ', needs ' + openElsewhere + ' other game' + (openElsewhere > 1 ? 's' : '') : '');
       const w = bs === 'open' ? betWeight(b, W, g.id, byId, boxes) * restRatio(b, g.id, byId, boxes, W) : g.status === 'final' ? betWeight(b, W, g.id, byId, boxes) : 0;
       const side = here.find((l) => l.type === 'ml' || l.type === 'spread');
-      const label = here.map(legText).join(', ');
+      const label = here.map(legText).concat((b.voided || []).filter((v) => !v.game || v.game === g.id).map((v) => v.desc + ' (void)')).join(', ');
       const prog = g.status === 'upcoming' ? [] : here.filter((l) => l.type === 'prop').map((l) => propLine(l, g, boxes[g.id])).filter(Boolean);
       const pnl = bs === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : bs === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : bs === 'void' ? 0 : null;
       const rec = { key: 'bet:' + b.id, src: b.book, type, kind: 'bet', label, sub, prog, done: bs, pnl, weight: w, betId: b.id, subShort: bs === 'open' ? hitText(fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W)) + (fv != null ? ', worth ' + cash(fv) + ' now' : '') : null, q: fv != null && Number(b.toPay) ? fv / Number(b.toPay) : null, q0: betProb(b, W) };
@@ -1244,7 +1246,7 @@ function BetTracker({ data }) {
   const tNet = settledToday.reduce((t, { b, st }) => t + (st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0), 0);
   const tCount = (k) => settledToday.filter((x) => x.st === k).length;
   if (!list.length && !doneList.length) return null;
-  const nameOf = (b) => { const legs = b.legs || []; if (legs.length <= 1) return legs.length ? legText(legs[0]) : b.desc; return legs.length + '-leg ' + (new Set(legs.map((l) => l.game)).size > 1 ? 'parlay' : 'same-game parlay'); };
+  const nameOf = (b) => { const legs = b.legs || [], vn = (b.voided || []).length, tot = legs.length + vn; if (tot <= 1) return legs.length ? legText(legs[0]) : b.desc; return tot + '-leg ' + (new Set(legs.map((l) => l.game)).size > 1 ? 'parlay' : 'same-game parlay') + (vn ? ', ' + vn + ' void' : ''); };
   return h('section.tracker', null,
     h('div.slot', null, h('h2', null, 'Your bets', h('span.times', null, list.length + ' open' + (liveN ? ', ' + liveN + ' live' : ''))), list.length ? h('button.linkbtn', { onClick: () => setOpen(!open) }, open ? 'Hide' : 'Show') : null),
     settledToday.length ? h('div.tb-settled', null, 'Settled today: ' + tCount('won') + ' won, ' + tCount('lost') + ' lost' + (tCount('void') ? ', ' + tCount('void') + ' pushed' : '') + ', ', h('span' + (tNet >= 0 ? '.ok' : '.bad'), null, (tNet >= 0 ? '+' : MINUS) + cash(Math.abs(tNet)))) : null,
@@ -1256,7 +1258,7 @@ function BetTracker({ data }) {
         h('span.lg-mk', null, sN.st === 'won' ? '\u2713' : sN.st === 'lost' ? '\u2717' : sN.st === 'void' ? '\u2013' : sN.st === 'live' ? '\u25cf' : '\u25cb'),
         h('span.lg-t', null, legText(l), g && new Set((b.legs || []).map((x) => x.game)).size > 1 ? h('span.lg-g', null, ' ' + g.away + '@' + g.home) : null),
         h('span.lg-v.tnum', null, sN.text),
-        sN.pct != null && sN.st !== 'lost' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * sN.pct) + '%' } })) : null); }))))) : null);
+        sN.pct != null && sN.st !== 'lost' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * sN.pct) + '%' } })) : null); }), (b.voided || []).map((v, i) => h('div.leg.void', { key: 'v' + i }, h('span.lg-mk', null, '\u2013'), h('span.lg-t', null, v.desc), h('span.lg-v', null, 'void' + (v.why ? ', ' + v.why : '')))))))) : null);
 }
 function LiveBar({ analyses, data }) {
   const rows = analyses.filter((a) => a.g.status === 'live' && !a.quiet).sort((x, y) => (y.lev != null ? y.lev : y.score) - (x.lev != null ? x.lev : x.score));
