@@ -981,9 +981,9 @@ function analyze(g, data) {
     if (!(n > 0) || X === surv) return;
     const O = X === g.home ? g.away : g.home, nRest = Math.max(1, sfd.nExpWin - n * sfd.pWin(X));
     const gap = sfd.pMe * sfd.pot * (1 / nRest - 1 / (nRest + n));
-    if (!(gap > 0.5)) return;
+    if (!(gap >= 5)) return;
     const pL = gwp == null ? 1 - sfd.pWin(X) : X === g.home ? 1 - gwp : gwp;
-    ints.push({ key: 'sf:' + X, src: 'Survivor field', kind: 'survfield', side: O, gap, label: X + ' loses', sub: n + ' survivor entries (' + Math.round(100 * n / Math.max(1, sfd.total)) + '% of the field) took ' + X, weight: 2 * pL * (1 - pL) * gap, test: mlTest(O, g), cush: mlCush(O, g), ctype: 'su' });
+    ints.push({ key: 'sf:' + X, src: 'Survivor field', kind: 'survfield', side: O, gap, team: X, n, label: X + ' loses', sub: n + ' survivor entries (' + Math.round(100 * n / Math.max(1, sfd.total)) + '% of the field) took ' + X, weight: 2 * pL * (1 - pL) * gap, test: mlTest(O, g), cush: mlCush(O, g), ctype: 'su' });
   });
   const fan = uc(data.fanTeam);
   if (fan && inGame(fan)) ints.push({ key: 'fan', src: 'Fan', kind: 'fan', side: fan, label: 'fan', weight: Number(W.fan) || 0, test: mlTest(fan, g), cush: mlCush(fan, g), ctype: 'su', minor: true });
@@ -1113,10 +1113,15 @@ function recapLines(prev, analyses) {
       if (i.minor) return;
       const was = p.i && p.i[i.key], now = stateOf(a, i);
       if (!was || now === was) return;
-      const name = i.kind === 'pool' ? 'your ' + (i.key === 'spread' ? 'spread' : 'pick\u2019em') + ' pick ' + i.label : i.kind === 'survivor' ? 'your survivor pick ' + i.side : i.src + (i.type ? ' ' + i.type : '') + ' ' + short(i.label);
+      if (i.kind === 'pool') { const pp = i.key === 'spread' ? a.spread : a.pickem; if (!pp || !(pp.gap >= 5)) return; }
+      if (i.kind === 'survfield') {
+        if (now === 'down' && (was === 'up' || was === 'even')) out.push(i.team + ' back in front: those ' + i.n + ' survivor entries are safe for now');
+        else if (now === 'up' && (was === 'down' || was === 'even')) out.push(i.team + ' now trails: ' + i.n + ' survivor entries at risk');
+        return;
+      }
+      const name = i.kind === 'pool' ? (i.key === 'spread' ? 'your CBS pick ' + i.label : 'your ESPN pick ' + i.side) : i.kind === 'survivor' ? 'your survivor pick ' + i.side : 'your ' + i.src + (i.type ? ' ' + i.type : '') + ' ' + short(i.label);
       if (i.kind === 'bet' && (now === 'won' || now === 'lost' || now === 'void')) out.push(name + (now === 'won' ? ' won' : now === 'lost' ? ' lost' : ' pushed') + (i.pnl ? ' (' + (i.pnl > 0 ? '+' : MINUS) + cash(Math.abs(i.pnl)) + ')' : ''));
-      else if (now === 'down' && (was === 'up' || was === 'even')) out.push(name + ' fell behind');
-      else if (now === 'up' && (was === 'down' || was === 'even')) out.push(name + ' moved ahead');
+      else if ((now === 'up' || now === 'down') && was !== 'pre') { const sp = i.kind === 'pool' && i.key === 'spread', bt = i.kind === 'bet'; out.push(name + (now === 'up' ? (sp ? ' is now covering' : bt ? ' is now ahead' : ' is now winning') : (sp ? ' is no longer covering' : bt ? ' is now behind' : ' is now losing'))); }
     });
   });
   return out;
