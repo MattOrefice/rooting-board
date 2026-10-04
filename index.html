@@ -937,6 +937,24 @@ function liveLeverage(a) {
   });
   return lev;
 }
+// Survivor field: other entries' picks this week. An alive entry's value is roughly the prize pool divided by the
+// entries still alive, so every other entry eliminated (if yours survives) raises what yours is worth.
+function survField(data) {
+  const sf = data.survivorField, me = uc(data.survivor || '');
+  if (!sf || !sf.picks || Number(sf.week) !== Number(data.week) || !me) return null;
+  const gameOf = {}; data.games.forEach((g) => { gameOf[g.home] = g; gameOf[g.away] = g; });
+  const pWin = (t) => {
+    const g = gameOf[t];
+    if (!g) return 1;
+    if (g.status === 'final' && hasScore(g)) { const m = marginOf(g); return m !== 0 && (t === g.home ? m > 0 : m < 0) ? 1 : 0; }
+    let ph;
+    if (g.status === 'live' && hasScore(g)) { const L = liveMu(g, marginOf(g)); ph = normCdf(L.mu / L.sd); } else ph = g.homeWP != null && g.homeWP !== '' ? Number(g.homeWP) : 0.5;
+    return t === g.home ? ph : 1 - ph;
+  };
+  const nOf = (t) => Number(sf.picks[t]) || 0, teams = Object.keys(sf.picks).filter((t) => nOf(t) > 0);
+  const total = teams.reduce((s, t) => s + nOf(t), 0), nExpWin = teams.reduce((s, t) => s + nOf(t) * (t === me ? 1 : pWin(t)), 0), pot = Number(sf.pot) || 0;
+  return { me, pMe: pWin(me), pot, total, nOf, pWin, nExpWin, vMe: nExpWin > 0 ? pot / nExpWin : 0 };
+}
 function deciderOf(b, byId, boxes) {
   const legs = (b.legs || []).filter((l) => l.kind === 'game' && byId[l.game]);
   if (!legs.length) return null;
@@ -956,7 +974,17 @@ function analyze(g, data) {
   });
   const surv = uc(data.survivor);
   const gwp = g.homeWP == null || g.homeWP === '' ? null : Number(g.homeWP);
-  if (surv && inGame(surv)) { const ps = gwp == null ? 0.5 : surv === g.home ? gwp : 1 - gwp; ints.push({ key: 'surv', src: 'Survivor', kind: 'survivor', side: surv, label: surv + ' to win', sub: 'Lose and you\u2019re out, ' + Math.round(100 * ps) + '% to win', weight: 2 * ps * (1 - ps) * (Number(W.survivor) || 0), test: mlTest(surv, g), cush: mlCush(surv, g), ctype: 'su' }); }
+  const sfd = survField(data);
+  if (surv && inGame(surv)) { const ps = gwp == null ? 0.5 : surv === g.home ? gwp : 1 - gwp; const V = sfd ? sfd.vMe : Number(W.survivor) || 0; ints.push({ key: 'surv', src: 'Survivor', kind: 'survivor', side: surv, gap: V, label: surv + ' to win', sub: 'Lose and you\u2019re out, ' + Math.round(100 * ps) + '% to win' + (sfd ? '; your entry is worth about ' + cash(V) + ' if you survive' : ''), weight: 2 * ps * (1 - ps) * V, test: mlTest(surv, g), cush: mlCush(surv, g), ctype: 'su' }); }
+  if (sfd) [g.away, g.home].forEach((X) => {
+    const n = sfd.nOf(X);
+    if (!(n > 0) || X === surv) return;
+    const O = X === g.home ? g.away : g.home, nRest = Math.max(1, sfd.nExpWin - n * sfd.pWin(X));
+    const gap = sfd.pMe * sfd.pot * (1 / nRest - 1 / (nRest + n));
+    if (!(gap > 0.5)) return;
+    const pL = gwp == null ? 1 - sfd.pWin(X) : X === g.home ? 1 - gwp : gwp;
+    ints.push({ key: 'sf:' + X, src: 'Survivor field', kind: 'survfield', side: O, gap, label: X + ' loses', sub: n + ' survivor entries (' + Math.round(100 * n / Math.max(1, sfd.total)) + '% of the field) took ' + X, weight: 2 * pL * (1 - pL) * gap, test: mlTest(O, g), cush: mlCush(O, g), ctype: 'su' });
+  });
   const fan = uc(data.fanTeam);
   if (fan && inGame(fan)) ints.push({ key: 'fan', src: 'Fan', kind: 'fan', side: fan, label: 'fan', weight: Number(W.fan) || 0, test: mlTest(fan, g), cush: mlCush(fan, g), ctype: 'su', minor: true });
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
@@ -1116,6 +1144,7 @@ function GameCard({ a, rank, data }) {
   const rows = [poolRow(a.spread), poolRow(a.pickem)];
   const surv = a.ints.find((i) => i.kind === 'survivor');
   if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: final ? null : surv.weight, dv: dv ? dv.per.get('surv') : undefined, mk: res(surv), cush: cushOf(surv) }));
+  a.ints.filter((i) => i.kind === 'survfield').forEach((i) => rows.push(h(Row, { key: i.key, src: 'Survivor field', team: i.side, label: i.label, sub: i.sub, w: final ? null : i.weight, dv: dv ? dv.per.get(i.key) : undefined, mk: res(i), cush: cushOf(i) })));
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
     key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: live && b.subShort ? b.subShort : b.sub, prog: live ? null : b.prog, w: final ? null : b.weight, dv: dv ? dv.per.get(b.key) : undefined, money: final ? pnlMoney(b) : undefined,
     mk: b.done === 'won' ? true : b.done === 'lost' ? false : b.test ? res(b) : undefined, cush: b.done && b.done !== 'open' ? undefined : cushOf(b) })));
@@ -1168,7 +1197,8 @@ function dollarView(a, data) {
     if (i.minor || !i.cush || !i.test || !(i.weight > 0) || (i.done && i.done !== 'open')) return;
     const q = normCdf(i.cush(mu) / sd);
     if (i.kind === 'pool') { const p = i.key === 'spread' ? a.spread : a.pickem; if (!p || p.state !== 'edge') return; const G = Math.max(0, p.gap || 0); per.set(i.key, { up: G * (1 - q), down: G * q }); }
-    else if (i.kind === 'survivor') { const G = Number(W.survivor) || 0; per.set(i.key, { up: G * (1 - q), down: G * q }); }
+    else if (i.kind === 'survivor') { const G = i.gap != null ? i.gap : Number(W.survivor) || 0; per.set(i.key, { up: G * (1 - q), down: G * q }); }
+    else if (i.kind === 'survfield') { per.set(i.key, { up: i.gap * (1 - q), down: i.gap * q }); }
     else if (i.kind === 'bet') { const b = betOf(i.betId); if (b) per.set(i.key, betDelta(b, q)); }
   });
   let propsUp = 0, propsDown = 0;
@@ -1293,8 +1323,7 @@ function slateOutcome(items, data, firstKey) {
   const comps = [];
   items.forEach((a, gi) => {
     [a.spread, a.pickem].forEach((p) => { if (p && p.state === 'edge' && p.test && p.gap > 0) comps.push({ gi, gap: p.gap, test: p.test }); });
-    const sv = a.ints.find((i) => i.kind === 'survivor');
-    if (sv && sv.test) comps.push({ gi, gap: Number(W.survivor) || 0, test: sv.test });
+    a.ints.filter((i) => (i.kind === 'survivor' || i.kind === 'survfield') && i.test).forEach((i) => comps.push({ gi, gap: i.gap != null ? i.gap : Number(W.survivor) || 0, test: i.test }));
   });
   let unknown = 0;
   const bets = [];
