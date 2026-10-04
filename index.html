@@ -173,6 +173,7 @@ span.pick{cursor:default}
 .nologo{display:inline-block;flex:none}
 .quiet{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;color:var(--muted);font-size:12px}
 .quiet .q{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 6px}
+.lb-calm{color:var(--muted);font-size:12px;padding:8px 0 6px;border-top:1px solid var(--line)}
 .book{display:inline-block;padding:1px 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--panel2);color:var(--muted)}
 .book.DK{background:#15392A;color:#8EF0B4}
 .book.FD{background:#132A4A;color:#9CCBFF}
@@ -1259,8 +1260,9 @@ function BetTracker({ data }) {
 }
 function LiveBar({ analyses, data }) {
   const rows = analyses.filter((a) => a.g.status === 'live' && !a.quiet).sort((x, y) => (y.lev != null ? y.lev : y.score) - (x.lev != null ? x.lev : x.score));
-  if (!rows.length) return null;
-  return h('div.livebar', null, h('div.lb-h', null, 'Live now: ' + rows.length + ' game' + (rows.length === 1 ? '' : 's') + ' that matter, most in doubt first'),
+  const calm = analyses.filter((a) => a.g.status === 'live' && a.quiet);
+  if (!rows.length && !calm.length) return null;
+  return h('div.livebar', null, h('div.lb-h', null, rows.length ? 'Live now: ' + rows.length + ' game' + (rows.length === 1 ? '' : 's') + ' that matter, most in doubt first' : 'Live now'),
     rows.map((a) => {
       const g = a.g, dvL = data ? dollarView(a, data) : null, v = verdictOf(a, dvL);
       const main = a.margin == null ? null : a.ints.filter((i) => !i.minor && i.cush && i.weight > 0).sort((x, y) => y.weight - x.weight)[0];
@@ -1270,7 +1272,8 @@ function LiveBar({ analyses, data }) {
         h('span.' + v.pcls + '.sm', { style: v.pstyle }, v.title),
         h('span.st', null, main ? h('span', null, h('b', null, main.src + (main.type ? ' ' + main.type : '') + ' ' + (main.label || main.side)), ': ' + cushText(main, c)) : 'Waiting on the score'),
         (() => { const dv = dvL; return dv ? h('span.amt.tnum.dv3', { title: 'Best and worst case from here, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : h('span.amt.tnum.dim', null, 'pending'); })());
-    }));
+    }),
+    calm.length ? h('div.lb-calm', null, 'Also live, nothing riding: ', calm.map((a, i) => h('span', { key: a.g.id }, (i ? ', ' : '') + a.g.away + ' ' + (a.g.awayScore == null ? '' : a.g.awayScore) + '\u2013' + (a.g.homeScore == null ? '' : a.g.homeScore) + ' ' + a.g.home + (a.g.clock ? ' (' + a.g.clock + ')' : '')))) : null);
 }
 
 // ---------- tabs ----------
@@ -1411,7 +1414,7 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
           done && outcomes[s.key] ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (sUp >= 0.5 || sDn >= 0.5 ? ', best +' + usd(sUp) + ', worst ' + MINUS + usd(sDn) : '') + (s.items.some((a) => a.pending) ? ' so far' : ''))),
         done ? h('div.donesum', null, sumParts.map((x, i) => h('span', { key: i }, x[0], h('b', null, x[1]))), h('button.linkbtn', { onClick: () => setOpenSlots(Object.assign({}, openSlots, { [s.key]: !openSlots[s.key] })) }, shown ? 'Hide games' : 'Show ' + s.items.length + ' game' + (s.items.length === 1 ? '' : 's'))) : null,
         shown && cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update, data }))) : null,
-        !done && quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 }), a.minors.length ? h('span.dim', null, usd(a.score)) : null))) : null);
+        !done && quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.status !== 'upcoming' && hasScore(a.g) ? a.g.away + ' ' + a.g.awayScore + '\u2013' + a.g.homeScore + ' ' + a.g.home + (a.g.status === 'final' ? ', final' : a.g.clock ? ', ' + a.g.clock : '') : a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 })))) : null);
     }));
 }
 
