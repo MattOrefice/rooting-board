@@ -1285,7 +1285,9 @@ function slateOutcome(items, data, firstKey) {
   const byId = {}; data.games.forEach((g) => { byId[g.id] = g; });
   const idx = {}; items.forEach((a, i) => { idx[a.g.id] = i; });
   const mu = items.map((a) => { const g = a.g, mk = g.lv && g.lv.mkt; const L = mk && mk.homeLine != null ? Number(mk.homeLine) : Number(g.line); return isFinite(L) ? -L : 0; });
-  const act = items.map((a) => marginOf(a.g));
+  const live = items.some((a) => a.g.status !== 'final');
+  const act = items.map((a) => (a.g.status === 'final' ? marginOf(a.g) : null));
+  const lm = items.map((a) => (a.g.status === 'live' && a.margin != null ? liveMu(a.g, a.margin) : null));
   const comps = [];
   items.forEach((a, gi) => {
     [a.spread, a.pickem].forEach((p) => { if (p && p.state === 'edge' && p.test && p.gap > 0) comps.push({ gi, gap: p.gap, test: p.test }); });
@@ -1310,9 +1312,14 @@ function slateOutcome(items, data, firstKey) {
       if (r === 'lost') dead = true; else if (r === 'won' || r === 'void') fv0 /= pl;
     });
     if (dead) return;
-    const res = here.map((l) => legResult(l, byId[l.game], boxes));
-    if (res.some((r) => r === 'open')) { unknown++; return; }
-    bets.push({ fv0, pl, legs: here.map((l, k) => ({ gi: idx[l.game], res: res[k], t: l.type === 'ml' ? mlTest(l.side, byId[l.game]) : l.type === 'spread' ? coverTest(l.side, byId[l.game], Number(l.line)) : null })) });
+    const lg = here.map((l) => {
+      const g = byId[l.game], res = legResult(l, g, boxes);
+      let pNow = null;
+      if (res === 'open' && g.status === 'live') pNow = l.type === 'prop' ? propLiveP(l, g, boxes[g.id], pl) : l.type === 'total' ? legProbLive(l, g) : null;
+      return { gi: idx[l.game], res, fin: g.status === 'final', pNow, t: l.type === 'ml' ? mlTest(l.side, g) : l.type === 'spread' ? coverTest(l.side, g, Number(l.line)) : null };
+    });
+    if (lg.some((L) => L.res === 'open' && (L.fin || !live))) { unknown++; return; }
+    bets.push({ fv0, pl, legs: lg });
   });
   if (!comps.length && !bets.length) return null;
   let seed = 7;
@@ -1328,17 +1335,31 @@ function slateOutcome(items, data, firstKey) {
     betVal[s] = bv;
   }
   hitsMean.forEach((x, j) => { hitsMean[j] = x / SIMS; });
-  let actual = 0, mean = 0, below = 0, ties = 0;
-  comps.forEach((c, j) => { const r = c.test(act[c.gi]); actual += ((r === true ? 1 : r === false ? 0 : hitsMean[j]) - hitsMean[j]) * c.gap; });
-  bets.forEach((b) => { let f = 1; for (const L of b.legs) { if (L.res === 'won') f /= b.pl; else if (L.res === 'lost') { f = 0; break; } } actual += b.fv0 * (f - 1); });
   const totals = new Float64Array(SIMS);
-  for (let s = 0; s < SIMS; s++) { let t = betVal[s]; comps.forEach((c, j) => { t += (compHits[j][s] - hitsMean[j]) * c.gap; }); totals[s] = t; mean += t; }
-  mean /= SIMS;
-  for (let s = 0; s < SIMS; s++) { if (totals[s] < actual - 1e-6) below++; else if (Math.abs(totals[s] - actual) <= 1e-6) ties++; }
-  return { pct: Math.max(1, Math.min(99, Math.round(100 * (below + ties / 2) / SIMS))), vs: actual, unknown };
+  for (let s = 0; s < SIMS; s++) { let t = betVal[s]; comps.forEach((c, j) => { t += (compHits[j][s] - hitsMean[j]) * c.gap; }); totals[s] = t; }
+  // value of one complete set of results: settled legs as they stand, the rest from the margins and leg chances given
+  const score = (m, legP) => {
+    let t = 0;
+    comps.forEach((c, j) => { const r = c.test(m[c.gi]); t += ((r === true ? 1 : r === false ? 0 : hitsMean[j]) - hitsMean[j]) * c.gap; });
+    bets.forEach((b) => { let f = 1; for (const L of b.legs) { const r = L.res === 'won' ? true : L.res === 'lost' ? false : L.res === 'void' ? null : L.t ? L.t(m[L.gi]) : legP(L, b); if (r === true) f /= b.pl; else if (r === false) { f = 0; break; } } t += b.fv0 * (f - 1); });
+    return t;
+  };
+  const sorted = Float64Array.from(totals).sort();
+  const rankIn = (t) => { let lo = 0, hi = SIMS; while (lo < hi) { const md = (lo + hi) >> 1; if (sorted[md] < t - 1e-6) lo = md + 1; else hi = md; } let lo2 = lo, hi2 = SIMS; while (lo2 < hi2) { const md = (lo2 + hi2) >> 1; if (sorted[md] <= t + 1e-6) lo2 = md + 1; else hi2 = md; } return (lo + (lo2 - lo) / 2) / SIMS; };
+  const clampPct = (p) => Math.max(1, Math.min(99, Math.round(100 * p)));
+  if (!live) { const actual = score(act, () => null); return { pct: clampPct(rankIn(actual)), vs: actual, unknown }; }
+  // slate in progress: play out the rest from the current scores and live odds, and average where it would finish
+  const N2 = 2000;
+  let sumT = 0, sumP = 0;
+  for (let s = 0; s < N2; s++) {
+    const m = items.map((a, i) => (act[i] != null ? act[i] : lm[i] ? lm[i].mu + lm[i].sd * gauss() : mu[i] + SD * gauss()));
+    const t = score(m, (L, b) => rnd() < (L.pNow != null ? L.pNow : b.pl));
+    sumT += t; sumP += rankIn(t);
+  }
+  return { pct: clampPct(sumP / N2), vs: sumT / N2, unknown, live: true };
 }
-const outcomeText = (o) => ordinal(o.pct) + ' percentile, ' + (o.vs >= 0 ? '+' : MINUS) + usd(Math.abs(o.vs)) + ' vs expected' + (o.unknown ? ' (' + o.unknown + ' bet' + (o.unknown === 1 ? '' : 's') + ' still to settle)' : '');
-const PCTL_TIP = 'Where the actual results rank among 4,000 simulated outcomes of the same games from pre-game odds, counting pool equity, bets and survivor. 50th is a typical result; higher is better.';
+const outcomeText = (o) => (o.live ? 'on pace for ' : '') + ordinal(o.pct) + ' percentile, ' + (o.vs >= 0 ? '+' : MINUS) + usd(Math.abs(o.vs)) + ' vs expected' + (o.unknown ? ' (' + o.unknown + ' bet' + (o.unknown === 1 ? '' : 's') + ' still to settle)' : '');
+const PCTL_TIP = 'Where the actual results rank among 4,000 simulated outcomes of the same games from pre-game odds, counting pool equity, bets and survivor. 50th is a typical result; higher is better. While games are on, "on pace" projects where the slate is likely to finish from the current scores and live odds.';
 function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   const [openSlots, setOpenSlots] = useState({});
   const [how, setHow] = useState(false);
@@ -1361,12 +1382,12 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
     let first = null;
     [...bySlot.values()].sort((x, y) => x.s.key - y.s.key).forEach(({ s, items }) => {
       const dk = Math.floor(s.key / 10);
-      if (!days.has(dk)) days.set(dk, { title: s.title.split(' ')[0], slots: 0, done: 0, items: [], first: s.key });
+      if (!days.has(dk)) days.set(dk, { title: s.title.split(' ')[0], slots: 0, done: 0, started: 0, items: [], first: s.key });
       const D = days.get(dk);
       D.slots++;
-      if (items.every((a) => a.g.status === 'final')) { const o = slateOutcome(items, data, s.key); if (o) res[s.key] = o; D.done++; D.items = D.items.concat(items); all.push(...items); if (first == null) first = s.key; }
+      if (items.some((a) => a.g.status !== 'upcoming')) { const o = slateOutcome(items, data, s.key); if (o) res[s.key] = o; D.started++; D.items = D.items.concat(items); all.push(...items); if (first == null) first = s.key; if (items.every((a) => a.g.status === 'final')) D.done++; }
     });
-    res.days = [...days.values()].filter((D) => D.done > 0).map((D) => { const o = slateOutcome(D.items, data, D.first); return o ? Object.assign({ title: D.title, soFar: D.done < D.slots }, o) : null; }).filter(Boolean);
+    res.days = [...days.values()].filter((D) => D.started > 0).map((D) => { const o = slateOutcome(D.items, data, D.first); return o ? Object.assign({ title: D.title, soFar: D.done < D.slots }, o) : null; }).filter(Boolean);
     res.week = res.days.length > 1 ? slateOutcome(all, data, first) : null;
     return res;
   }, [analyses, data]);
@@ -1411,7 +1432,7 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
       return h('section', { key: s.key + s.title },
         h('div.slot', null,
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone && !done ? h('span.rz', null, 'RedZone') : null),
-          done && outcomes[s.key] ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (sUp >= 0.5 || sDn >= 0.5 ? ', best +' + usd(sUp) + ', worst ' + MINUS + usd(sDn) : '') + (s.items.some((a) => a.pending) ? ' so far' : ''))),
+          outcomes[s.key] ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (sUp >= 0.5 || sDn >= 0.5 ? ', best +' + usd(sUp) + ', worst ' + MINUS + usd(sDn) : '') + (s.items.some((a) => a.pending) ? ' so far' : ''))),
         done ? h('div.donesum', null, sumParts.map((x, i) => h('span', { key: i }, x[0], h('b', null, x[1]))), h('button.linkbtn', { onClick: () => setOpenSlots(Object.assign({}, openSlots, { [s.key]: !openSlots[s.key] })) }, shown ? 'Hide games' : 'Show ' + s.items.length + ' game' + (s.items.length === 1 ? '' : 's'))) : null,
         shown && cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update, data }))) : null,
         !done && quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.status !== 'upcoming' && hasScore(a.g) ? a.g.away + ' ' + a.g.awayScore + '\u2013' + a.g.homeScore + ' ' + a.g.home + (a.g.status === 'final' ? ', final' : a.g.clock ? ', ' + a.g.clock : '') : a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 })))) : null);
