@@ -125,6 +125,11 @@ span.pick{cursor:default}
 .leg.lost .lg-t{text-decoration:line-through;color:var(--muted)}
 .leg.void .lg-t{text-decoration:line-through;color:var(--muted)}
 .leg.void .lg-v{color:var(--muted)}
+tr.grp{cursor:pointer}
+tr.grp:hover td{background:rgba(255,255,255,.03)}
+tr.grp .caret{color:var(--muted)}
+tr.subrow td{font-size:13px;background:rgba(255,255,255,.02)}
+tr.subrow td:first-child{padding-left:18px}
 .lg-g{color:var(--dim);font-size:11px}
 .lg-v{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}
 .leg .bar{grid-column:2/-1;height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
@@ -1477,39 +1482,22 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
 
 const EMPTY_FORM = { id: null, book: 'DK', placed: '', desc: '', stake: '', toPay: '', status: 'open', bonus: false, weight: '', odds: '', legsText: '' };
 const LEG_HELP = ['One leg per line, for example:', 'ATL@GB ml ATL', 'ATL@GB spread ATL +6.5', 'ATL@GB total over 44.5', 'ATL@GB prop Bijan anytime TD', 'future PHI Super Bowl', 'Add won or lost at the end of a line to settle just that leg.'].join(NL);
-function BetsTab({ data, update }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+function BetsTab({ data }) {
   const [offers, setOffers] = useState({});
+  const [openGrp, setOpenGrp] = useState({});
   const W = data.weights;
   const ids = new Set(data.games.map((g) => g.id));
   const isWeek = (b) => (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game));
-  const isFuture = (b) => (b.legs || []).some((l) => l.kind === 'future');
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
   const stOf = (b) => betStatus(b, byId, data.boxes || {});
   const open = data.bets.filter((b) => stOf(b) === 'open');
   const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b)), settled = data.bets.filter((b) => stOf(b) !== 'open');
   const net = (b) => { const st = stOf(b); return st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0; };
-  const wOf = (b) => (isFuture(b) && !isWeek(b) ? futureWeight(b, W) : betWeight(b, W, undefined, byId, data.boxes || {}));
-  const netAll = settled.reduce((s, b) => s + net(b), 0);
-  const setStatus = (id, s) => update((d) => { const b = d.bets.find((x) => x.id === id); if (b) { b.status = s; if (s !== 'open') (b.legs || []).forEach((l) => { if (!l.status || l.status === 'open') l.status = s; }); } });
-  const del = (id) => update((d) => { d.bets = d.bets.filter((x) => x.id !== id); });
-  const editBet = (b) => setForm({ id: b.id, book: b.book || 'DK', placed: b.placed || '', desc: b.desc || '', stake: String(b.stake), toPay: String(b.toPay), status: b.status, bonus: !!b.bonus, weight: override(b) == null ? '' : String(override(b)), odds: b.odds == null ? '' : String(b.odds), legsText: (b.legs || []).map(legToString).join(NL) });
-  const save = () => {
-    if (!form.desc.trim()) return;
-    const rec = { book: form.book, placed: form.placed, desc: form.desc.trim(), stake: parseFloat(form.stake) || 0, toPay: parseFloat(form.toPay) || 0, status: form.status, bonus: form.bonus, legs: form.legsText.split(NL).map(parseLeg).filter(Boolean) };
-    update((d) => {
-      let b = form.id ? d.bets.find((x) => x.id === form.id) : null;
-      if (!b) { b = { id: 'b' + Date.now() }; d.bets.unshift(b); }
-      Object.assign(b, rec);
-      delete b.scoreWeight;
-      if (form.weight === '') delete b.weight; else b.weight = parseFloat(form.weight) || 0;
-      if (form.odds === '') delete b.odds; else b.odds = parseFloat(form.odds) || 0;
-    });
-    setForm(EMPTY_FORM);
-  };
-  const f = (k) => (e) => setForm(Object.assign({}, form, { [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const netAll = settled.reduce((t, b) => t + net(b), 0);
   const legLine = (l) => (l.kind === 'game' ? l.game + ' ' + legText(l) : l.kind === 'future' ? l.team + ' ' + (l.desc || '') : l.desc || '') + (l.status && l.status !== 'open' ? ' (' + l.status + ')' : '');
   const right = { textAlign: 'right' };
+  const fvOf = (b) => { const fv = betFair(b, data); return fv == null ? (Number(b.toPay) || 0) * betProb(b, W) : fv; };
+  const dvCell = (pay, fv) => h('span.dv3', { title: 'If it wins / if it loses, compared with what it is worth now' }, h('span.ok', null, '+' + usd(Math.max(0, pay - fv))), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(fv)));
   const fairCell = (b) => {
     const fv = betFair(b, data);
     if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settle by hand' : 'n/a');
@@ -1517,40 +1505,49 @@ function BetsTab({ data, update }) {
     return h('div', null, cash(fv),
       h('div', null, h('input', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', style: { width: 104, marginTop: 4, fontSize: 12 }, value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
       diff == null ? null : h('div' + (diff < -0.03 ? '.bad' : diff > 0.03 ? '.ok' : '.muted'), { style: { fontSize: 12, marginTop: 2 } }, diff < -0.03 ? Math.round(-diff * 100) + '% below fair' : diff > 0.03 ? Math.round(diff * 100) + '% above fair: take it' : 'about fair'));
+  };  const statusCell = (b) => { const st = stOf(b); return h('td', null, h('span' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : '.muted'), null, st)); };
+  const betRow = (b, mode, sub) => h('tr', { key: b.id, className: sub ? 'subrow' : undefined },
+    h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
+    h('td.muted.tnum', null, b.placed || ''),
+    h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), !sub && (b.legs || []).length ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null),
+    h('td.tnum', { style: right }, cash(b.stake)),
+    h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
+    h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : dvCell(Number(b.toPay) || 0, fvOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
+    mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
+    statusCell(b));
+  // futures on the same outcome share one row; tap it to see the individual tickets
+  const futureKey = (b) => { const L = b.legs || []; return L.length === 1 && L[0].kind === 'future' ? L[0].team + ' ' + (L[0].desc || '') : null; };
+  const groupRows = (list) => {
+    const groups = [], at = {};
+    list.forEach((b) => { const k = futureKey(b); if (k && at[k] != null) groups[at[k]].bets.push(b); else { if (k) at[k] = groups.length; groups.push({ key: k || b.id, label: k, bets: [b] }); } });
+    const rows = [];
+    groups.forEach((G) => {
+      if (G.bets.length === 1) { rows.push(betRow(G.bets[0], 'future')); return; }
+      const isOpen = !!openGrp[G.key];
+      const stake = G.bets.reduce((t, b) => t + (Number(b.stake) || 0), 0), bonus = G.bets.reduce((t, b) => t + (b.bonus ? Number(b.stake) || 0 : 0), 0);
+      const pay = G.bets.reduce((t, b) => t + (Number(b.toPay) || 0), 0), fv = G.bets.reduce((t, b) => t + fvOf(b), 0);
+      const books = [...new Set(G.bets.map((b) => b.book || 'Other'))];
+      rows.push(h('tr.grp', { key: 'g:' + G.key, onClick: () => setOpenGrp(Object.assign({}, openGrp, { [G.key]: !isOpen })), title: isOpen ? 'Hide the individual bets' : 'Show the individual bets' },
+        h('td', null, books.map((bk) => h('span.book.' + bk, { key: bk, style: { marginRight: 4 } }, bk))),
+        h('td', null, ''),
+        h('td', null, h('div', null, h('span.caret', null, isOpen ? '\u25be ' : '\u25b8 '), G.label), h('div.hint', null, G.bets.length + ' bets' + (bonus ? ', ' + cash(bonus) + ' of it bonus bets' : '') + (isOpen ? '' : ', tap for details'))),
+        h('td.tnum', { style: right }, cash(stake)),
+        h('td.tnum', { style: right }, cash(pay)),
+        h('td.tnum', { style: right }, dvCell(pay, fv)),
+        h('td', null, h('span.muted', null, 'open'))));
+      if (isOpen) G.bets.forEach((b) => rows.push(betRow(b, 'future', true)));
+    });
+    return rows;
   };
   const table = (title, list, mode) => (!list.length ? null : h('div.panel', { key: title },
     h('div.row.between', null, h('h3', null, title), h('span.hint', null, list.length + ' bet' + (list.length === 1 ? '' : 's'))),
     h('div.scroll', { style: { marginTop: 8 } }, h('table', null,
-      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Win / lose'].concat(mode === 'week' ? ['Fair value'] : [], ['Status', '']).map((c, i) => h('th', { key: i, style: i >= 3 && i <= (mode === 'week' ? 6 : 5) ? right : null }, c)))),
-      h('tbody', null, list.map((b) => h('tr', { key: b.id },
-        h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
-        h('td.muted.tnum', null, b.placed || ''),
-        h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), (b.legs || []).length ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null),
-        h('td.tnum', { style: right }, cash(b.stake)),
-        h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
-        h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : (() => { const pay = Number(b.toPay) || 0; let fv = betFair(b, data); if (fv == null) fv = pay * betProb(b, W); return h('span.dv3', { title: 'If it wins / if it loses, compared with what it is worth now' }, h('span.ok', null, '+' + usd(Math.max(0, pay - fv))), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(fv))); })(), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
-        mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
-        h('td', null, h('select', { value: b.status, onChange: (e) => setStatus(b.id, e.target.value) }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s))), stOf(b) !== b.status ? h('div.hint', null, 'Auto: ' + stOf(b) + ' from the final score') : null),
-        h('td', { style: { whiteSpace: 'nowrap' } }, h('button.btn.sm', { onClick: () => editBet(b) }, 'Edit'), ' ', h('button.btn.sm.danger', { onClick: () => del(b.id), title: 'Delete bet' }, '\u00d7')))))))));
+      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Win / lose'].concat(mode === 'week' ? ['Fair value'] : [], ['Status']).map((c, k) => h('th', { key: k, style: k >= 3 && k <= (mode === 'week' ? 6 : 5) ? right : null }, c)))),
+      h('tbody', null, mode === 'future' ? groupRows(list) : list.map((b) => betRow(b, mode)))))));
   return h('div.stack', null,
     h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(week.reduce((s2, b) => s2 + (betFair(b, data) || 0), 0)), 'This week\u2019s bets are worth now'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(week.reduce((s2, b) => s2 + (Number(b.toPay) || 0), 0)), 'Pays if this week\u2019s bets all hit'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
-    table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'),
-    h('div.panel', null, h('h3', null, form.id ? 'Edit bet' : 'Add a bet'),
-      h('div.row', { style: { marginTop: 12, alignItems: 'flex-end', gap: 12 } },
-        h('label.field', null, 'Book', h('select', { value: form.book, onChange: f('book') }, ['DK', 'FD', 'Other'].map((s) => h('option', { key: s, value: s }, s)))),
-        h('label.field', null, 'Placed', h('input', { value: form.placed, placeholder: '9/24', style: { width: 80 }, onChange: f('placed') })),
-        h('label.field', { style: { flex: '1 1 220px' } }, 'Description', h('input', { value: form.desc, placeholder: 'ATL ML +220', onChange: f('desc') })),
-        h('label.field', null, 'Stake', h('input', { type: 'number', step: 0.01, value: form.stake, onChange: f('stake') })),
-        h('label.field', null, 'To pay', h('input', { type: 'number', step: 0.01, value: form.toPay, onChange: f('toPay') })),
-        h('label.field', null, 'Odds before boost', h('input', { type: 'number', step: 1, value: form.odds, placeholder: '+220', style: { width: 90 }, onChange: f('odds') })),
-        h('label.field', null, 'Counts as ($)', h('input', { type: 'number', step: 1, value: form.weight, placeholder: 'auto', onChange: f('weight') })),
-        h('label.field', null, 'Status', h('select', { value: form.status, onChange: f('status') }, ['open', 'won', 'lost', 'void'].map((s) => h('option', { key: s, value: s }, s)))),
-        h('label', { className: 'row muted', style: { fontSize: 12, paddingBottom: 6 } }, h('input', { type: 'checkbox', checked: form.bonus, onChange: f('bonus') }), 'Bonus bet')),
-      h('textarea', { rows: 4, style: { width: '100%', marginTop: 10 }, value: form.legsText, onChange: f('legsText'), placeholder: LEG_HELP }),
-      h('div.row', { style: { marginTop: 10 } }, h('button.btn.primary', { onClick: save }, form.id ? 'Save changes' : 'Add bet'), form.id ? h('button.btn', { onClick: () => setForm(EMPTY_FORM) }, 'Cancel') : null,
-        h('span.hint', null, 'Legs tie a bet to a game (AWAY@HOME) so it shows up in the rooting guide. Leave \u201ccounts as\u201d blank to use the scoring rule.'))));
+    table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'));
 }
-
 function PoolPanel({ data, which, update }) {
   const [editing, setEditing] = useState(false);
   const L = data.leagues[which], isSpread = which === 'spread';
