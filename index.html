@@ -283,7 +283,7 @@ async function fetchLive(season, week) {
       const home = team('home'), away = team('away');
       const st = (c.status && c.status.type) || (ev.status && ev.status.type) || {};
       const status = st.state === 'in' ? 'live' : st.state === 'post' && st.completed !== false ? 'final' : 'upcoming';
-      const rec = { status, clock: status === 'live' ? String(st.shortDetail || '').replace(' - ', ' ') : '', eventId: ev.id, period: c.status && c.status.period, secLeft: c.status && c.status.clock };
+      const rec = { status, clock: status === 'live' ? String(st.shortDetail || '').replace(' - ', ' ') : '', eventId: ev.id, period: c.status && c.status.period, secLeft: c.status && c.status.clock, date: ev.date || c.date || '' };
       if (status !== 'upcoming') { rec.awayScore = Number(away.score) || 0; rec.homeScore = Number(home.score) || 0; }
       const od = (c.odds || [])[0] || {}, mkt = {}, det = String(od.details || '').trim();
       const dm = det.match(/^([A-Z]{2,3})\s+(-?\d+(?:\.\d+)?)$/);
@@ -963,6 +963,8 @@ function survField(data) {
   const total = teams.reduce((s, t) => s + nOf(t), 0), nExpWin = teams.reduce((s, t) => s + nOf(t) * (t === me ? 1 : pWin(t)), 0), pot = Number(sf.pot) || 0;
   return { me, pMe: pWin(me), pot, total, nOf, pWin, nExpWin, vMe: nExpWin > 0 ? pot / nExpWin : 0 };
 }
+// Reload from the network, bypassing any cached copy of the page.
+const hardReload = (tag) => { try { window.location.replace(window.location.pathname + '?v=' + (tag || Date.now())); } catch (e) { window.location.reload(); } };
 function deciderOf(b, byId, boxes) {
   const legs = (b.legs || []).filter((l) => l.kind === 'game' && byId[l.game]);
   if (!legs.length) return null;
@@ -1603,6 +1605,7 @@ function App() {
   const [recap, setRecap] = useState(null);
   const [newVer, setNewVer] = useState(false);
   const verCheckRef = useRef(null);
+  const newHashRef = useRef(0);
   useEffect(() => {
     const h32 = (x) => { let v = 2166136261; for (let i = 0; i < x.length; i++) v = Math.imul(v ^ x.charCodeAt(i), 16777619) >>> 0; return v; };
     const own = (() => { const sc = [...document.scripts].filter((x) => !x.src).pop(); return sc ? h32(sc.textContent) : 0; })();
@@ -1610,21 +1613,49 @@ function App() {
       try {
         const txt = await (await fetch('index.html?v=' + Date.now(), { cache: 'no-store' })).text();
         const i = txt.lastIndexOf('<scr' + 'ipt>'), j = txt.lastIndexOf('<\/scr' + 'ipt>');
-        const isNew = !!(own && i >= 0 && j > i && h32(txt.slice(i + 8, j)) !== own);
-        if (isNew) setNewVer(true);
+        const nh = i >= 0 && j > i ? h32(txt.slice(i + 8, j)) : 0;
+        const isNew = !!(own && nh && nh !== own);
+        if (isNew) { newHashRef.current = nh; setNewVer(true); }
         return isNew;
       } catch (e) { return false; }
     };
     verCheckRef.current = check;
     const onVis = () => { if (document.visibilityState === 'visible') check(); };
     document.addEventListener('visibilitychange', onVis);
-    const t = setInterval(check, 600000);
+    const t = setInterval(check, 120000);
     return () => { document.removeEventListener('visibilitychange', onVis); clearInterval(t); };
   }, []);
   const [tickN, setTickN] = useState(0);
+  const lastInputRef = useRef(Date.now());
+  useEffect(() => {
+    const mark = () => { lastInputRef.current = Date.now(); };
+    const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'];
+    evs.forEach((e) => window.addEventListener(e, mark, { passive: true }));
+    return () => evs.forEach((e) => window.removeEventListener(e, mark));
+  }, []);
+  useEffect(() => {
+    if (!newVer) return undefined;
+    const go = () => {
+      if (!(document.visibilityState === 'hidden' || Date.now() - lastInputRef.current > 20000)) return;
+      let tried = null;
+      try { tried = sessionStorage.getItem('rb-reloaded-for'); } catch (e) { return; }
+      if (tried === String(newHashRef.current)) return; // already reloaded once for this version; leave the banner rather than loop
+      try { sessionStorage.setItem('rb-reloaded-for', String(newHashRef.current)); sessionStorage.setItem('rb-scroll', String(window.scrollY || 0)); } catch (e) { return; }
+      hardReload(newHashRef.current);
+    };
+    go();
+    const t = setInterval(go, 5000);
+    return () => clearInterval(t);
+  }, [newVer]);
+  useEffect(() => {
+    if (!tickN) return;
+    let y = null;
+    try { y = sessionStorage.getItem('rb-scroll'); if (y != null) sessionStorage.removeItem('rb-scroll'); } catch (e) { y = null; }
+    if (y != null) window.scrollTo(0, Number(y) || 0);
+  }, [tickN > 0]);
   const recapPending = useRef(true);
   const refreshRef = useRef(null);
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 10000); return () => clearInterval(t); }, []);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -1659,13 +1690,14 @@ function App() {
   boxesRef.current = boxes;
   const espnRef = useRef(espn);
   espnRef.current = espn;
+  const espnAtRef = useRef(0), espnSeenRef = useRef(-1);
   useEffect(() => { if (rolled && Number(data.week) >= Number(rolled.week)) { setRolled(null); setPrevView(null); setShowPrev(false); } }, [data.week]);
   useEffect(() => {
     if (!loaded || !data.games.length) return undefined;
     let alive = true, timer = null;
     let running = false;
     const tickBody = async () => {
-      if (Date.now() - pubCheckRef.current > 180000) {
+      if (Date.now() - pubCheckRef.current > 60000) {
         pubCheckRef.current = Date.now();
         const pub = await fetchPublished();
         if (alive && pub && (pub.updatedAt || '') > (dataRef.current.updatedAt || '')) { setPublished(pub); setData(pub); setSource('published'); }
@@ -1685,7 +1717,8 @@ function App() {
       }
       if (res && Object.keys(res).some((k) => res[k].status !== 'upcoming')) {
         const Lp = (cur.leagues || {}).pickem;
-        if (Lp && Lp.espnGroup) { const ep = await fetchEspnPicks(Lp); if (alive && ep) { setEspn(ep); epNow = ep; } }
+        const nStarted = Object.keys(res).filter((k) => res[k].status !== 'upcoming').length;
+        if (Lp && Lp.espnGroup && (!espnRef.current || nStarted !== espnSeenRef.current || Date.now() - espnAtRef.current > 300000)) { const ep = await fetchEspnPicks(Lp); if (alive && ep) { setEspn(ep); epNow = ep; espnSeenRef.current = nStarted; espnAtRef.current = Date.now(); } }
       }
       if (res && !rolledRef.current) {
         const d0 = dataRef.current;
@@ -1696,12 +1729,14 @@ function App() {
         }
       }
       const anyLive = !!res && Object.keys(res).some((k) => res[k].status === 'live');
+      const soon = !!res && Object.keys(res).some((k) => res[k].status === 'upcoming' && res[k].date && Math.abs(Date.parse(res[k].date) - Date.now()) < 1200000);
       if (alive) setTickN((n) => n + 1);
-      timer = setTimeout(tick, anyLive ? 60000 : 180000);
+      // Live games every 15 seconds, the 20 minutes around a kickoff every 30, otherwise every 3 minutes. A hidden tab waits and refreshes the moment it is shown.
+      timer = setTimeout(tick, document.visibilityState === 'hidden' ? 300000 : anyLive ? 15000 : soon ? 30000 : 180000);
     };
     const tick = async () => { if (running) return; running = true; try { await tickBody(); } finally { running = false; setBusy(false); setNow(Date.now()); } };
-    refreshRef.current = () => { clearTimeout(timer); pubCheckRef.current = 0; tick(); };
-    const onVis = () => { if (document.visibilityState === 'visible') { clearTimeout(timer); pubCheckRef.current = 0; tick(); } };
+    refreshRef.current = () => { clearTimeout(timer); pubCheckRef.current = 0; espnAtRef.current = 0; tick(); };
+    const onVis = () => { clearTimeout(timer); if (document.visibilityState === 'visible') { pubCheckRef.current = 0; espnAtRef.current = 0; tick(); } else timer = setTimeout(tick, 300000); };
     document.addEventListener('visibilitychange', onVis);
     tick();
     return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
@@ -1725,14 +1760,14 @@ function App() {
     if (prev && prev.week === view.week && Date.now() - prev.t > 60000) { const lines = recapLines(prev, analyses); setRecap(lines.length ? lines : null); }
     try { localStorage.setItem('rb-snap', JSON.stringify(snapOf(view.week, analyses))); } catch (e) { /* storage unavailable */ }
   }, [tickN]);
-  const stale = !!liveAt && now - liveAt.getTime() > (view.games.some((g) => g.status === 'live') ? 180000 : 600000);
-  const doRefresh = () => { setBusy(true); if (refreshRef.current) refreshRef.current(); if (verCheckRef.current) verCheckRef.current().then((isNew) => { if (isNew) window.location.reload(); }); };
+  const stale = !!liveAt && now - liveAt.getTime() > (view.games.some((g) => g.status === 'live') ? 60000 : 600000);
+  const doRefresh = () => { setBusy(true); if (refreshRef.current) refreshRef.current(); if (verCheckRef.current) verCheckRef.current().then((isNew) => { if (isNew) hardReload(newHashRef.current); }); };
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
   const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor']];
   return h('div.wrap', null,
-    newVer ? h('div.updbar', null, 'The board was updated.', h('button.linkbtn', { onClick: () => window.location.reload() }, 'Reload')) : null,
+    newVer ? h('div.updbar', null, 'The board was updated; it reloads itself when you pause.', h('button.linkbtn', { onClick: () => hardReload(newHashRef.current) }, 'Reload now')) : null,
     h('header.top', null,
-      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
+      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
       h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, h('span.full', null, l), h('span.short', null, sl))))),
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
       : tab === 'root' ? h(RootingTab, { data: view, analyses, update, recap, onDismiss: () => setRecap(null), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
