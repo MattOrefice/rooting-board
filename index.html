@@ -299,6 +299,8 @@ async function fetchLive(season, week) {
         rec.sit = { pos: pt ? ab(pt) : '', dd: String(sit.downDistanceText || sit.shortDownDistanceText || ''), rz: !!sit.isRedZone, last: String((sit.lastPlay && sit.lastPlay.text) || '') };
         const pr = sit.lastPlay && sit.lastPlay.probability, hw0 = pr ? Number(pr.homeWinPercentage) : NaN, hw = hw0 > 1 ? hw0 / 100 : hw0;
         if (hw > 0 && hw < 1) { rec.wp = hw; LAST_WP[ev.id] = hw; }
+        const tp0 = pr ? Number(pr.tiePercentage) : NaN, tp = tp0 > 1 ? tp0 / 100 : tp0;
+        if (tp >= 0 && tp < 1) rec.tie = tp;
       }
       out[ab(away) + '@' + ab(home)] = rec;
     });
@@ -565,7 +567,8 @@ function fracLeft(g) {
   if (!g || g.status === 'final') return 0;
   if (g.status !== 'live') return 1;
   const lv = g.lv || {}, per = Number(lv.period) || 1, sec = Number(lv.secLeft);
-  if (per > 4) return 0.03;
+  // Overtime: 10 minutes, but it usually ends sooner (a touchdown on the first drive, or any score after that), so count about 60% of what's left.
+  if (per > 4 || (per === 4 && sec === 0 && hasScore(g) && marginOf(g) === 0)) { const left = per > 4 ? (isNaN(sec) ? 300 : Math.max(0, Math.min(600, sec))) : 600; return Math.max(0.005, 0.6 * left / 3600); }
   return Math.max(0.005, Math.min(1, ((4 - per) * 900 + (isNaN(sec) ? 450 : sec)) / 3600));
 }
 // Expected final home margin. When ESPN's live win probability is available (it accounts for possession, field position,
@@ -597,7 +600,42 @@ function driveAdj(g) {
   return Math.max(-0.5, Math.min(6, 6 - 0.08 * ytg)) - 2;
 }
 const liveLineText = (g) => { const mk = g.lv && g.lv.mkLive; if (!mk || (mk.spread == null && mk.total == null)) return ''; if (!mkOk(g)) return 'DK live line updating, using ESPN win odds'; return 'DK live ' + (mk.spread == null ? '' : mk.spread === 0 ? 'PK' : (mk.spread < 0 ? g.home : g.away) + ' ' + fmtLine(-Math.abs(mk.spread))) + (mk.total != null ? (mk.spread != null ? ', ' : '') + 'total ' + mk.total : ''); };
+// Overtime (regular season: 10 minutes, ties possible). The final margin is discrete: a field goal or a touchdown decides it, or
+// nobody wins and it ends tied. Returns [{ m: final home margin, add: points still to come, p }], or null outside overtime.
+function otDist(g) {
+  if (!g || g.status !== 'live' || !hasScore(g)) return null;
+  const lv = g.lv || {}, per = Number(lv.period) || 0, sec = Number(lv.secLeft), m = marginOf(g);
+  const pending = per === 4 && sec === 0 && m === 0;
+  if (per < 5 && !pending) return null;
+  const left = pending ? 600 : isNaN(sec) ? 300 : Math.max(0, Math.min(600, sec)), r = left / 600;
+  const mk = mkOk(g), tie0 = Number(lv.tie);
+  let ph; // chance the home team wins, if someone does
+  if (mk && mk.hml != null && mk.aml != null) ph = devig(mk.hml, mk.aml);
+  else if (lv.wp > 0 && lv.wp < 1) ph = tie0 > 0 && tie0 < 1 ? lv.wp / (1 - tie0) : lv.wp;
+  else { const pos = lv.sit && lv.sit.pos; ph = m > 0 ? 0.7 : m < 0 ? 0.3 : pos === g.home ? 0.56 : pos === g.away ? 0.44 : 0.5; }
+  ph = Math.max(0.01, Math.min(0.99, ph));
+  const pT = tie0 > 0.005 && tie0 < 1 ? tie0 : m === 0 ? Math.exp(-0.00443 * left) : 0.05 * r; // about 7% with a full overtime left
+  const out = [], add = (mm, a, p) => { if (p > 0) out.push({ m: mm, add: a, p }); };
+  if (m === 0) {
+    const multi = 0.27 * r, w3 = 0.36 + 0.135 * (1 - r), w6 = 0.37 + 0.135 * (1 - r); // a field goal answered by a touchdown needs time
+    [[1, ph], [-1, 1 - ph]].forEach(([sg, q]) => { const pw = (1 - pT) * q; add(3 * sg, 3, pw * w3); add(6 * sg, 6, pw * w6); add(3 * sg, 9, pw * multi * 0.85); add(6 * sg, 12, pw * multi * 0.15); });
+    add(0, 0, pT * (1 - 0.25 * r)); add(0, 6, pT * 0.25 * r);
+  } else {
+    const sL = m > 0 ? 1 : -1, pLead = (1 - pT) * (sL > 0 ? ph : 1 - ph);
+    add(m, 0, pLead); add(-sL * Math.max(1, 6 - Math.abs(m)), 6, 1 - pT - pLead); add(0, Math.abs(m), pT);
+  }
+  const tot = out.reduce((a2, o) => a2 + o.p, 0);
+  return out.map((o) => ({ m: o.m, add: o.add, p: o.p / tot }));
+}
+const discP = (od, test) => od.reduce((a2, o) => { const r = test(o.m); return a2 + o.p * (r === true ? 1 : r === null ? 0.5 : 0); }, 0);
+const sampleDisc = (od, u) => { let c = 0; for (const o of od) { c += o.p; if (u <= c) return o.m; } return od[od.length - 1].m; };
 function legProbLive(l, g) {
+  const od = otDist(g);
+  if (od) {
+    if (l.type === 'ml') { const t = mlTest(l.side, g); return t ? discP(od, t) : null; }
+    if (l.type === 'spread') { const t = coverTest(l.side, g, Number(l.line)); return t ? discP(od, t) : null; }
+    if (l.type === 'total') { const T = Number(g.homeScore) + Number(g.awayScore), L = Number(l.line); const pOver = od.reduce((a2, o) => a2 + o.p * (T + o.add > L ? 1 : T + o.add === L ? 0.5 : 0), 0); return l.side === 'under' ? 1 - pOver : pOver; }
+  }
   const { f, sd, mu } = liveMu(g, marginOf(g));
   const mk = mkOk(g);
   if (l.type === 'ml') { if (mk && mk.hml != null && mk.aml != null) { const ph = devig(mk.hml, mk.aml); return l.side === g.home ? ph : 1 - ph; } return l.side === g.home ? 1 - normCdf(-mu / sd) : normCdf(-mu / sd); }
@@ -931,11 +969,11 @@ const poolSub = (p, final) => { if (p.state === 'noedge') return 'Everyone has i
 function liveLeverage(a) {
   const g = a.g;
   if (g.status !== 'live' || a.margin == null) return null;
-  const { sd, mu } = liveMu(g, a.margin), mu0 = -(Number(g.line) || 0);
+  const { sd, mu } = liveMu(g, a.margin), mu0 = -(Number(g.line) || 0), od = otDist(g);
   let lev = 0;
   a.ints.forEach((i) => {
     if (!i.cush || !(i.weight > 0.02) || (i.done && i.done !== 'open')) return;
-    const p = normCdf(i.cush(mu) / sd), p0 = normCdf(i.cush(mu0) / 13.5);
+    const p = od && i.test ? discP(od, i.test) : normCdf(i.cush(mu) / sd), p0 = normCdf(i.cush(mu0) / 13.5);
     lev += i.weight * (p * (1 - p)) / Math.max(0.02, p0 * (1 - p0));
   });
   a.wants.forEach((x) => {
@@ -955,6 +993,8 @@ function survField(data) {
     const g = gameOf[t];
     if (!g) return 1;
     if (g.status === 'final' && hasScore(g)) { const m = marginOf(g); return m !== 0 && (t === g.home ? m > 0 : m < 0) ? 1 : 0; }
+    const od = otDist(g);
+    if (od) return od.reduce((a2, o) => a2 + o.p * ((t === g.home ? o.m > 0 : o.m < 0) ? 1 : 0), 0);
     let ph;
     if (g.status === 'live' && hasScore(g)) { const L = liveMu(g, marginOf(g)); ph = normCdf(L.mu / L.sd); } else ph = g.homeWP != null && g.homeWP !== '' ? Number(g.homeWP) : 0.5;
     return t === g.home ? ph : 1 - ph;
@@ -1198,7 +1238,7 @@ function dollarView(a, data) {
   const g = a.g, W = data.weights, boxes = data.boxes || {};
   if (g.status === 'final') return null;
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
-  const { sd, mu } = liveMu(g, g.status === 'live' && a.margin != null ? a.margin : 0);
+  const { sd, mu } = liveMu(g, g.status === 'live' && a.margin != null ? a.margin : 0), od = otDist(g);
   const per = new Map();
   const betOf = (id) => (data.bets || []).find((x) => x.id === id);
   const betDelta = (b, q) => {
@@ -1210,7 +1250,7 @@ function dollarView(a, data) {
   };
   a.ints.forEach((i) => {
     if (i.minor || !i.cush || !i.test || !(i.weight > 0) || (i.done && i.done !== 'open')) return;
-    const q = normCdf(i.cush(mu) / sd);
+    const q = od ? discP(od, i.test) : normCdf(i.cush(mu) / sd);
     if (i.kind === 'pool') { const p = i.key === 'spread' ? a.spread : a.pickem; if (!p || p.state !== 'edge') return; const G = Math.max(0, p.gap || 0); per.set(i.key, { up: G * (1 - q), down: G * q }); }
     else if (i.kind === 'survivor') { const G = i.gap != null ? i.gap : Number(W.survivor) || 0; per.set(i.key, { up: G * (1 - q), down: G * q }); }
     else if (i.kind === 'survfield') { per.set(i.key, { up: i.gap * (1 - q), down: i.gap * q }); }
@@ -1335,6 +1375,7 @@ function slateOutcome(items, data, firstKey) {
   const live = items.some((a) => a.g.status !== 'final');
   const act = items.map((a) => (a.g.status === 'final' ? marginOf(a.g) : null));
   const lm = items.map((a) => (a.g.status === 'live' && a.margin != null ? liveMu(a.g, a.margin) : null));
+  const odL = items.map((a) => otDist(a.g));
   const comps = [];
   items.forEach((a, gi) => {
     [a.spread, a.pickem].forEach((p) => { if (p && p.state === 'edge' && p.test && p.gap > 0) comps.push({ gi, gap: p.gap, test: p.test }); });
@@ -1398,7 +1439,7 @@ function slateOutcome(items, data, firstKey) {
   const N2 = 2000;
   let sumT = 0, sumP = 0;
   for (let s = 0; s < N2; s++) {
-    const m = items.map((a, i) => (act[i] != null ? act[i] : lm[i] ? lm[i].mu + lm[i].sd * gauss() : mu[i] + SD * gauss()));
+    const m = items.map((a, i) => (act[i] != null ? act[i] : odL[i] ? sampleDisc(odL[i], rnd()) : lm[i] ? lm[i].mu + lm[i].sd * gauss() : mu[i] + SD * gauss()));
     const t = score(m, (L, b) => rnd() < (L.pNow != null ? L.pNow : b.pl));
     sumT += t; sumP += rankIn(t);
   }
