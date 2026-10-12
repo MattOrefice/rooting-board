@@ -413,6 +413,8 @@ function betStatus(b, byId, boxes) {
 // ---------- player props from ESPN box scores ----------
 const STAT_RE = [
   [/rush(?:ing)?\s*(?:\+|and|&)\s*rec(?:eiving)?(?:\s*(?:yds|yards))?/i, 'rushRecYds'],
+  [/pass(?:ing)?\s*att(?:empt)?s?/i, 'passAtt'],
+  [/field\s*goals?(?:\s*made)?|\bfgs?\b/i, 'fgMade'],
   [/pass(?:ing)?\s*(?:yds|yards)/i, 'passYds'],
   [/pass(?:ing)?\s*(?:td|tds|touchdowns?)/i, 'passTD'],
   [/rush(?:ing)?\s*(?:yds|yards)/i, 'rushYds'],
@@ -424,9 +426,9 @@ const STAT_RE = [
   [/first\s*(?:td|touchdown)/i, 'firstTD'],
   [/any\s*time\s*(?:td|touchdown)|td\s*scorer|to\s*score/i, 'td'],
 ];
-const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds', passInt: 'INT', firstTD: 'first TD' };
-const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0), passInt: (x) => x.passInt || 0, firstTD: () => 0 };
-const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1, passInt: 1 };
+const STATLBL = { passYds: 'pass yds', passTD: 'pass TD', rushYds: 'rush yds', rushTD: 'rush TD', recYds: 'rec yds', rec: 'catches', recTD: 'rec TD', td: 'TD', rushRecYds: 'rush+rec yds', passInt: 'INT', firstTD: 'first TD', passAtt: 'pass att', fgMade: 'FG' };
+const STATV = { passYds: (x) => x.passYds || 0, passTD: (x) => x.passTD || 0, rushYds: (x) => x.rushYds || 0, rushTD: (x) => x.rushTD || 0, recYds: (x) => x.recYds || 0, rec: (x) => x.rec || 0, recTD: (x) => x.recTD || 0, td: (x) => (x.rushTD || 0) + (x.recTD || 0), rushRecYds: (x) => (x.rushYds || 0) + (x.recYds || 0), passInt: (x) => x.passInt || 0, firstTD: () => 0, passAtt: (x) => x.passAtt || 0, fgMade: (x) => x.fgMade || 0 };
+const COUNT_STATS = { passTD: 1, rushTD: 1, recTD: 1, td: 1, rec: 1, passInt: 1, passAtt: 1, fgMade: 1 };
 const SUFFIX = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 const nameTokens = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((t) => t.replace(/'/g, '')).filter((t) => t && SUFFIX.indexOf(t) < 0);
 function propSpec(l) {
@@ -463,7 +465,8 @@ function parseBox(j) {
         if (!name) return;
         const p = byName[name] || (byName[name] = { name, team, tokens: nameTokens(name), s: {} });
         const v = (i) => (i >= 0 && a.stats && a.stats[i] != null ? parseFloat(String(a.stats[i]).split('/')[0]) || 0 : 0);
-        if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); p.s.passInt = v(col('interceptions', 'INT')); }
+        if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); p.s.passInt = v(col('interceptions', 'INT')); const ca = col('completions/passingAttempts', 'C/ATT'); p.s.passAtt = ca >= 0 && a.stats && a.stats[ca] != null ? parseFloat(String(a.stats[ca]).split('/')[1]) || 0 : 0; }
+        else if (cat.name === 'kicking') { p.s.fgMade = v(col('fieldGoalsMade/fieldGoalAttempts', 'FG')); }
         else if (cat.name === 'rushing') { p.s.rushYds = v(col('rushingYards', 'YDS')); p.s.rushTD = v(col('rushingTouchdowns', 'TD')); }
         else if (cat.name === 'receiving') { p.s.rec = v(col('receptions', 'REC')); p.s.recYds = v(col('receivingYards', 'YDS')); p.s.recTD = v(col('receivingTouchdowns', 'TD')); }
       });
