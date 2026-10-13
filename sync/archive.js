@@ -115,7 +115,8 @@ const settled = [], unsettled = [];
   }
   const legs = b.legs.filter((l) => l.kind === 'game').map((l) => { const g = byId[l.game]; return { t: L.legText(l), g: l.game, r: L.legResult(l, g, boxes), v: legV(l, g) }; });
   const o = { id: b.id, book: b.book, placed: b.placed, desc: b.desc, stake: b.stake, toPay: b.toPay, status: st, net: r2(L.betNet(b, st)), legs };
-  ['bonus', 'voided', 'note', 'ref', 'st'].forEach((k) => { if (b0[k] != null && b0[k] !== false) o[k] = b0[k]; });
+  // kind, live and boost are the betting breakdown's overrides for what the description doesn't say
+  ['bonus', 'voided', 'note', 'ref', 'st', 'kind', 'live', 'boost'].forEach((k) => { if (b0[k] != null && b0[k] !== false) o[k] = b0[k]; });
   settled.push(o);
 });
 

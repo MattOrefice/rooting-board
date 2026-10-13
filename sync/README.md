@@ -9,8 +9,8 @@ Week N is the week that just finished (the week `data.json` is on). Week N+1 is 
 ## Ground rules
 
 - Never type a password or sign in. If CBS or GitHub shows a sign-in page, stop and ask Matt to sign in.
-- Don't open DraftKings, FanDuel, Splash or mattorefice.github.io in the browser. The books' bet histories come
-  from Matt's pastes, and the DraftKings survivor picks come from his screenshots.
+- Don't open DraftKings, FanDuel, Splash or mattorefice.github.io in the browser. Matt sends a screenshot of each
+  bet as he makes it, and of his DraftKings survivor picks. Don't ask him for his sportsbook histories.
 - Work in one Chrome tab you create, and close it at the end. Keep each `javascript_tool` call under about 40
   seconds: no waiting loops inside a call.
 - Data copied out of a page goes through `get_page_text`. Save it exactly, then check it with
@@ -71,7 +71,7 @@ survivor results, settled bets with each leg's result) and rolls `data.json` to 
 standings from CBS and ESPN, games left, open bets carried over, survivor entries updated with used teams and
 eliminations). It prints a report. Lines starting `STOP` mean nothing was written; fix the cause and rerun.
 Review every line under "Check these". Bets it couldn't settle stay open in `data.json` and are listed; settle
-them by hand from the box score or Matt's pastes.
+them by hand from the box score (step 7 has the format), or ask Matt about that one bet.
 
 Then render the result offline:
 
@@ -95,48 +95,46 @@ It must end with "No page errors".
 4. Check `https://api.github.com/repos/MattOrefice/rooting-board/actions/runs?per_page=1` until the
    "pages build and deployment" run for this commit is completed with success (one short check per call).
 
-## 6. Tell Matt, and ask for the sportsbook pastes
+## 6. Tell Matt, and ask for the survivor picks
 
 Send Matt a short summary from the report: both pools' week and season standing, survivor entries, the week's
-settled bets and net, and anything left to settle. Then ask for:
+settled bets and net, and anything left to settle. Don't ask for FanDuel or DraftKings bet histories: he sends a
+screenshot of each bet as he makes it. Ask only for:
 
-- FanDuel: My Bets, Settled and Open tabs. Select all and paste each one; one paste covers New York and
-  Pennsylvania.
-- DraftKings: My Bets, Settled (it loads 25 bets at a time, so paste in pieces, scrolling between copies, until
-  it reaches last Tuesday) and Open.
 - DraftKings survivor: a screenshot of the entries once he has made next week's picks, plus the pool's entry count
   (how many entries are still alive, if the pool screen shows it). The board values each live entry from the prize
   and that count.
+- Any bet the report couldn't settle from the box scores, by name.
 
-## 7. When the pastes come in
+## 7. When the screenshots come in
 
-Save each paste to `dumps/`, then:
+Put the survivor picks from the screenshot in `data.json` `survivorPool.entries[].pick`. If Matt gives the pool's
+entry count, set `survivorPool.alive` to it and `aliveEst` to false (and `survivorPool.field` to the starting count
+the first time). Rerun the smoke test and publish (step 5).
 
-```
-python3 -I sync/books.py --repo . --since <date of last Tuesday> --fd <FanDuel pastes> --dk <DraftKings pastes>
-```
+Add each bet screenshot Matt sends, at any point in the week, with the book's own numbers from it (stake, odds,
+payout, and the bet ID as `ref`). Never invent a payout.
 
-It lists disagreements (result, payout or stake), open bets the book has settled, NFL bets the board is
-missing (with the book's own text), and archived bets the pastes don't show. Fix each one:
-
-- A settled bet goes in `results.json` under its week, like the bets already there:
-  `{id, book, placed: "M/D", desc, stake, toPay, status: won|lost|void, net, legs: [{t, g, r, v}], ref}`, plus
-  `st` (PA or NY) for FanDuel and `bonus: true` for a bonus bet. A leg's `r` is won, lost, void, or unk when
-  the book's list doesn't say which player a DraftKings leg was on. `v` is the stat or score that settled it,
-  for example "4 catches" or "BAL 30-23 ATL".
-- An open bet goes in `data.json` `bets`:
+- A bet on this week's games, or a future, goes in `data.json` `bets` as an open bet:
   `{id, book, placed, desc, stake, toPay, odds, status: "open", bonus, legs, ref}`, with game legs like
   `{kind: "game", game: "AWAY@HOME", type: "ml", side: "PHI", status: "open"}`, `type: "spread"` with `line`,
   `type: "total"` with `side: "over"` and `line`, or a prop:
   `{kind: "game", game, type: "prop", desc, player, stat, line, side: "over"}` (stats: passYds, passTD,
   passInt, passAtt, rushYds, rushTD, rushAtt, recYds, rec, recTD, td, rushRecYds, fgMade, firstTD), and
-  futures as `{kind: "future", team: "LAC", desc: "Super Bowl", status: "open"}`.
-- Never invent a payout: use the book's numbers.
+  futures as `{kind: "future", team: "LAC", desc: "Super Bowl", status: "open"}`. The board settles game bets
+  from the scores, and the next sync archives them.
+- A bet from a week that's already archived goes in `results.json` under its week, settled, like the bets
+  already there: `{id, book, placed: "M/D", desc, stake, toPay, status: won|lost|void, net, legs: [{t, g, r, v}],
+  ref}`, plus `st` (PA or NY) for FanDuel and `bonus: true` for a bonus bet. A leg's `r` is won, lost, void, or
+  unk when the book doesn't say which player a DraftKings leg was on. `v` is the stat or score that settled it,
+  for example "4 catches" or "BAL 30-23 ATL".
+- The betting breakdown sorts bets by type, timing and boost from `desc`. Say "SGP:" for a same-game parlay,
+  "live" for a bet placed after kickoff, and the boost as the book shows it ("50% boost", "30% parlay boost",
+  "odds boost", "McAfee Super Boost"). When `desc` can't say it, set `kind`, `live: true` or `boost` ("special"
+  for a book special, or the percent) on the bet.
 
-Rerun `books.py` until only the expected items remain, rerun the smoke test, and publish again (step 5). Put the
-survivor picks from the screenshot in `data.json` `survivorPool.entries[].pick`. If Matt gives the pool's entry
-count, set `survivorPool.alive` to it and `aliveEst` to false (and `survivorPool.field` to the starting count the
-first time). Then publish.
+If Matt ever pastes a My Bets history, `python3 -I sync/books.py --repo . --fd <pastes> --dk <pastes>` checks the
+board against it (results, payouts, stakes, missing bets).
 
 ## Files
 
@@ -145,6 +143,7 @@ first time). Then publish.
   archives even if a game isn't final.
 - `applib.js`: loads the board's own functions from `index.html`, so the scripts settle bets exactly as the
   page does.
-- `books.py`, `fdparse.py`, `dkparse.py`: check the board against FanDuel and DraftKings pastes.
+- `books.py`, `fdparse.py`, `dkparse.py`: check the board against FanDuel and DraftKings My Bets pastes, if Matt
+  ever sends them.
 - `smoke.js`: offline render of every tab.
 - `fnv.py`: byte count and hash, for checking dumps and published files.
