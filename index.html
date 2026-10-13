@@ -260,19 +260,29 @@ tr.me td{font-weight:600}
 .seg button{background:none;border:0;color:var(--muted);font:600 13px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
 .seg button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
 .seg button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
-.bb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;align-items:start}
+.bb-cols{display:grid;gap:12px;align-items:stretch}
+.bb-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bb-cell{display:flex;flex-direction:column;min-width:0}
+.bb-cell>.bb-card{flex:1 1 auto}
+.bb-cols.multi .bb-col>.bb-cell:last-child{flex:1 1 auto}
+/* once a card is expanded, the other columns stop stretching to its height */
+.bb-cols.multi:has(.bb-card.open) .bb-col>.bb-cell:last-child{flex:0 0 auto}
 .bb-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
 .bb-h{font:700 19px/1.2 "Barlow Condensed",sans-serif;margin-bottom:6px}
 .bb-h .hint{font:400 12px Barlow,sans-serif}
 table.bb{width:100%;border-collapse:collapse;font-size:13px}
-table.bb th{color:var(--muted);font-size:11px;font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
-table.bb td{padding:5px 6px;border-bottom:1px solid var(--line)}
+table.bb th{color:var(--muted);font-size:11px;font-weight:600;text-align:left;padding:4px 5px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.bb td{padding:5px 5px;border-bottom:1px solid var(--line)}
 table.bb tr:last-child td{border-bottom:0}
 table.bb .rt{text-align:right;white-space:nowrap}
 table.bb tr.me td{background:rgba(242,194,48,.07)}
 .bb-team{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.bb-heads ul{margin:6px 0 0;padding-left:18px;font-size:14px}
-.bb-heads li{margin:4px 0}
+.bb-hl{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:10px;margin-top:10px}
+@media (max-width:860px){.bb-hl.n4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bb-hc{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.bb-hv{font:700 25px/1.1 "Barlow Condensed",sans-serif}
+.bb-hw{font-size:13px;font-weight:600;margin-top:3px}
+.bb-hw .tnum{font-weight:400;color:var(--muted);white-space:nowrap}
 .bb-bet{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:8px;row-gap:2px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
 .bb-bet:last-child{border-bottom:0}
 .bb-miss{grid-column:2/-1;font-size:12px}
@@ -403,7 +413,7 @@ tr.sv-out td{opacity:.55}
 .rz.compact .rz-item{font-size:14px;padding:4px 0}
 .rz.compact .rz-sit{font-size:13px}
 @media (max-width:430px){nav.tabs{gap:0}nav.tabs button{padding:10px 5px;font-size:14px}}
-@media (max-width:560px){.m-inl{display:inline-block}.rz-grid{grid-template-columns:minmax(0,1fr)}.rz-score{font-size:26px}.rz-score b{font-size:32px}.rz-item{font-size:16px}.bb-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.m-inl{display:inline-block}.rz-grid{grid-template-columns:minmax(0,1fr)}.rz-score{font-size:26px}.rz-score b{font-size:32px}.rz-item{font-size:16px}.bb-hl{gap:8px}.bb-hl.n3,.bb-hl.n1{grid-template-columns:minmax(0,1fr)}.bb-hv{font-size:21px}table.bb th,table.bb td{padding-left:4px;padding-right:4px}}
 .res-gh,.res-g{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.5fr);gap:10px;align-items:center}
 .res-gh{color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
 .res-g{padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
@@ -2408,7 +2418,7 @@ const bbRoi = (r) => (r.roi == null ? h('span.dim', null, 'bonus') : h('span' + 
 function BBTable({ title, rows, label, note, limit, fan }) {
   const [all, setAll] = useState(false);
   const shown = limit && !all ? rows.slice(0, limit) : rows;
-  return h('div.bb-card', null,
+  return h('div.bb-card' + (all ? '.open' : ''), null,
     h('div.bb-h', null, title),
     h('table.bb', null,
       h('thead', null, h('tr', null, h('th', null, ''), h('th.rt', null, 'Bets'), h('th.rt', null, 'W\u2013L'), h('th.rt.m-hide', null, 'Staked'), h('th.rt', null, 'Net'), h('th.rt', null, 'Return'))),
@@ -2448,7 +2458,7 @@ function SeasonChart({ weeks }) {
   useEffect(() => {
     const el = wrap.current;
     if (!el) return undefined;
-    const fit = () => setW(Math.round(el.clientWidth));
+    const fit = () => { const cw = Math.round(el.clientWidth); if (cw >= 100) setW(cw); }; // a hidden or printing page can report 0
     fit();
     if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }
     const ro = new ResizeObserver(fit);
@@ -2520,6 +2530,59 @@ function SeasonChart({ weeks }) {
       h('thead', null, h('tr', null, h('th', null, 'Week'), h('th.rt', null, 'W\u2013L'), h('th.rt', null, 'That week'), h('th.rt', null, 'Season'))),
       h('tbody', null, pts.map((p) => h('tr', { key: p.week }, h('td', null, wkName(p)), h('td.rt.tnum', null, rec(p)), h('td.rt.tnum', null, bbSigned(p.net)), h('td.rt.tnum', null, bbSigned(p.cum)))))) : null);
 }
+// Cards laid out in columns. Each column is a stack, so a short table never leaves a hole beside a tall one, and the
+// last card in each column stretches so the columns end level. `layouts` lists the card keys in each column for 3, 2
+// and 1 columns. The most columns win whose tables all fit without wrapping, measured from the tables themselves.
+// A card can be a function of the column count, to show more rows when its column has room.
+function BBCols({ cards, layouts, at2, at3, sig }) {
+  const ref = useRef(null);
+  const [fonts, setFonts] = useState(0);
+  const [w, setW] = useState(() => { try { return Math.min(window.innerWidth, 1320) - 32; } catch (e) { return 1000; } });
+  const [need, setNeed] = useState({});
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const fit = () => { const cw = Math.round(el.clientWidth); if (cw >= 100) setW(cw); }; // a hidden or printing page can report 0
+    fit();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => { try { document.fonts.ready.then(() => setFonts(1)); } catch (e) { /* no font loading API */ } }, []);
+  // the width each card needs to show its table with every row on one line. Measured when the data or fonts change,
+  // not when a card expands, so opening "Show all" never reshuffles the columns.
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const got = {};
+    el.querySelectorAll('[data-k]').forEach((c) => {
+      const t = c.querySelector('table'), card = c.firstElementChild;
+      if (!t || !card || card.classList.contains('open')) return; // an expanded card keeps the width it had folded
+      const old = t.style.width;
+      t.style.width = 'max-content';
+      const cs = getComputedStyle(card);
+      got[c.getAttribute('data-k')] = Math.ceil(t.getBoundingClientRect().width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth));
+      t.style.width = old;
+    });
+    if (Object.keys(got).some((k) => got[k] !== need[k])) setNeed(Object.assign({}, need, got));
+  }, [sig, fonts]);
+  const mins = (cols) => cols.map((keys) => Math.max.apply(null, [0].concat(keys.map((k) => need[k] || 0))));
+  const fits = (k) => { const cols = layouts[k]; return !!cols && mins(cols).reduce((a, b) => a + b, 0) + 12 * (cols.length - 1) <= w; };
+  const n = fits(3) && w >= (at3 || 0) ? 3 : fits(2) && w >= (at2 || 680) ? 2 : 1;
+  // equal columns when every table fits in an equal share, so sections line up; otherwise widths follow what each needs
+  const cols = layouts[n], m = mins(cols), even = m.every((x) => x <= (w - 12 * (n - 1)) / n);
+  return h('div.bb-cols' + (n > 1 ? '.multi' : ''), { ref, style: { gridTemplateColumns: n === 1 || even ? 'repeat(' + n + ',minmax(0,1fr))' : m.map((x) => (x ? 'minmax(' + x + 'px,' + x + 'fr)' : 'minmax(0,400fr)')).join(' ') } },
+    cols.map((keys, i) => h('div.bb-col', { key: n + ':' + i }, keys.filter((k) => cards[k]).map((k) => h('div.bb-cell', { key: k, 'data-k': k }, typeof cards[k] === 'function' ? cards[k](n) : cards[k])))));
+}
+// A card listing bets, with the first few shown and a toggle for the rest.
+function BBList({ title, hint, items, limit, empty }) {
+  const [all, setAll] = useState(false);
+  return h('div.bb-card' + (all ? '.open' : ''), null,
+    h('div.bb-h', null, title, hint ? h('span.hint', null, ' ' + hint) : null),
+    items.length ? (all ? items : items.slice(0, limit)) : h('div.hint', null, empty || 'None yet.'),
+    items.length > limit ? h('button.linkbtn', { style: { marginTop: 6 }, onClick: () => setAll(!all) }, all ? 'Show fewer' : 'Show all ' + items.length) : null);
+}
 function BetBreakdown({ weeks, data }) {
   const all = [];
   weeks.forEach((Wk) => (Wk.bets || []).forEach((b) => { if (b.status === 'won' || b.status === 'lost' || b.status === 'void') all.push(Object.assign({ week: Wk.week }, b)); }));
@@ -2542,7 +2605,7 @@ function BetBreakdown({ weeks, data }) {
   const close = all.filter((b) => b.status === 'lost' && (b.legs || []).length >= 2 && !(b.legs || []).some((l) => l.r === 'unk') && (b.legs || []).filter((l) => l.r === 'lost').length === 1 && (b.legs || []).every((l) => l.r === 'won' || l.r === 'lost' || l.r === 'void'))
     .sort((x, y) => (Number(y.toPay) || 0) - (Number(x.toPay) || 0));
   const closeMissed = close.reduce((t, b) => t + (Number(b.toPay) || 0), 0);
-  const wins = all.filter((b) => b.status === 'won').sort((x, y) => (Number(y.net) || 0) - (Number(x.net) || 0)).slice(0, 5);
+  const wins = all.filter((b) => b.status === 'won').sort((x, y) => (Number(y.net) || 0) - (Number(x.net) || 0));
   const bookLabel = (k) => h('span', null, h('span.book.' + k, null, k), ' ', k === 'DK' ? 'DraftKings' : k === 'FD' ? 'FanDuel' : k);
   const teamLabel = (k) => h('span.bb-team', null, h(Logo, { t: k, size: 16 }), k, k === fan ? h('span.you', null, 'your team') : null);
   const gamesOf = (b) => [...new Set((b.legs || []).map((l) => l.g || l.game).filter((g) => g && g.indexOf('@') > 0))];
@@ -2555,18 +2618,31 @@ function BetBreakdown({ weeks, data }) {
       Stat(bbSigned(tot.net), 'Net since Week ' + Math.min.apply(null, all.map((b) => b.week))),
       Stat(tot.roi == null ? '\u2013' : (tot.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(tot.roi) * 100) + '%', 'Return on cash staked')),
     h(SeasonChart, { weeks }),
-    heads.length ? h('div.panel.bb-heads', null, h('h3', null, 'What stands out'), h('ul', null, heads.map((r) => h('li', { key: r.what }, h('b', null, r.what + ': '), bbRec(r) + ', ', bbSigned(r.net), r.roi != null ? h('span.hint', null, ' (' + (r.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(r.roi) * 100) + '% on ' + cash(r.staked) + ' staked)') : null)))) : null,
-    h('div.bb-grid', null,
-      h(BBTable, { title: 'By book', rows: byBook, label: bookLabel }),
-      h(BBTable, { title: 'By bet type', rows: byKind, note: byKind.some((r) => r.key === 'Boosted special') ? 'Boosted specials are the books\u2019 own two-player combos (DraftKings odds boosts and McAfee Super Boosts).' : null }),
-      h(BBTable, { title: 'Live or before kickoff', rows: byLive }),
-      h(BBTable, { title: 'By boost', rows: byBoost, note: 'Profit boosts by size; boosted specials are the books\u2019 pre-priced specials and odds boosts.' }),
-      h(BBTable, { title: 'By team', rows: byTeam, label: teamLabel, limit: 8, fan, note: 'Every bet on that team\u2019s game, whichever side it was on. Multi-game parlays are left out.' })),
-    h('div.bb-grid', null,
-      h('div.bb-card', null, h('div.bb-h', null, 'Biggest wins'), wins.map((b) => betLine(b, h('span.tnum.ok.bb-amt', null, '+' + cash(b.net))))),
-      h('div.bb-card', null, h('div.bb-h', null, 'Lost by one leg', h('span.hint', null, ' ' + close.length + ' bet' + (close.length === 1 ? '' : 's') + (close.length ? ', ' + cash(closeMissed) + ' in payouts' : ''))),
-        close.length ? close.slice(0, 6).map((b) => { const miss = (b.legs || []).find((l) => l.r === 'lost'); return betLine(b, h('span.bb-miss', null, h('span.bad', null, '\u2717 ' + miss.t + (miss.v ? ' (' + miss.v + ')' : '')), h('span.tnum.dim', null, ' would have paid ' + cash(b.toPay)))); }) : h('div.hint', null, 'None yet.'),
-        close.length > 6 ? h('div.hint', { style: { marginTop: 6 } }, 'And ' + (close.length - 6) + ' more.') : null)));
+    heads.length ? h('div.panel.bb-heads', null, h('h3', null, 'What stands out'),
+      h('div.bb-hl.n' + heads.length, { style: { '--n': heads.length } }, heads.map((r) => h('div.bb-hc', { key: r.what },
+        h('div.bb-hv.tnum', null, bbSigned(r.net)),
+        h('div.bb-hw', null, r.what, h('span.tnum', null, ' ' + bbRec(r))),
+        r.roi != null ? h('div.hint.tnum', null, (r.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(r.roi) * 100) + '% on ' + cash(r.staked) + ' staked') : null)))) : null,
+    h(BBCols, {
+      sig: all.length + ':' + tot.net,
+      cards: {
+        book: h(BBTable, { title: 'By book', rows: byBook, label: bookLabel }),
+        kind: h(BBTable, { title: 'By bet type', rows: byKind, note: byKind.some((r) => r.key === 'Boosted special') ? 'Boosted specials are the books\u2019 own two-player combos (DraftKings odds boosts and McAfee Super Boosts).' : null }),
+        live: h(BBTable, { title: 'Live or before kickoff', rows: byLive }),
+        boost: h(BBTable, { title: 'By boost', rows: byBoost, note: 'Profit boosts by size; boosted specials are the books\u2019 pre-priced specials and odds boosts.' }),
+        team: (n) => h(BBTable, { title: 'By team', rows: byTeam, label: teamLabel, limit: n === 3 ? 12 : 10, fan, note: 'Every bet on that team\u2019s game, whichever side it was on. Multi-game parlays are left out.' }),
+      },
+      layouts: { 3: [['book', 'live', 'boost'], ['kind'], ['team']], 2: [['book', 'live', 'kind'], ['boost', 'team']], 1: [['book', 'kind', 'live', 'boost', 'team']] },
+    }),
+    h(BBCols, {
+      at2: 760,
+      cards: {
+        wins: h(BBList, { title: 'Biggest wins', items: wins.map((b) => betLine(b, h('span.tnum.ok.bb-amt', null, '+' + cash(b.net)))), limit: 8 }),
+        close: h(BBList, { title: 'Lost by one leg', hint: close.length + ' bet' + (close.length === 1 ? '' : 's') + (close.length ? ', ' + cash(closeMissed) + ' in payouts' : ''), limit: 5,
+          items: close.map((b) => { const miss = (b.legs || []).find((l) => l.r === 'lost'); return betLine(b, h('span.bb-miss', null, h('span.bad', null, '\u2717 ' + miss.t + (miss.v ? ' (' + miss.v + ')' : '')), h('span.tnum.dim', null, ' would have paid ' + cash(b.toPay)))); }) }),
+      },
+      layouts: { 2: [['wins'], ['close']], 1: [['wins', 'close']] },
+    }));
 }
 
 // ---------- RedZone view: the live games in big type, most in doubt first, with every ticket alongside ----------
