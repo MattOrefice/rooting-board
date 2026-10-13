@@ -255,6 +255,7 @@ tr.me td{font-weight:600}
 .res-sub .hint{font:400 13px Barlow,sans-serif;margin-left:4px}
 .res-score{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-weight:600}
 .res-pk{white-space:nowrap}
+.leg.unk .lg-mk{color:var(--dim)}
 .res-gh,.res-g{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.5fr);gap:10px;align-items:center}
 .res-gh{color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
 .res-g{padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
@@ -2007,8 +2008,8 @@ function WeekDetail({ Wk, weeks, setSel, data, me }) {
   const betCard = (b) => h('div.tb', { key: b.id },
     h('div.tb-top', null, h('span.book.' + (b.book || 'Other'), null, b.book), h('span.tb-name', null, b.desc), h('span.tb-pay.tnum', null, cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay))),
     h('div.tb-st' + (b.status === 'won' ? '.ok' : b.status === 'lost' ? '.bad' : ''), null, b.status === 'won' ? 'Won, +' + cash(b.net) : b.status === 'lost' ? (b.bonus ? 'Lost (bonus bet, no cash lost)' : 'Lost, ' + MINUS + cash(Math.abs(b.net))) : b.status === 'void' ? 'Push, stake back' : 'Still open'),
-    h('div.legs', null, (b.legs || []).map((l, i) => h('div.leg.' + (l.r === 'won' ? 'won' : l.r === 'lost' ? 'lost' : l.r === 'void' ? 'void' : 'pre'), { key: i },
-      h('span.lg-mk', null, l.r === 'won' ? '\u2713' : l.r === 'lost' ? '\u2717' : l.r === 'void' ? '\u2013' : '\u25cb'),
+    h('div.legs', null, (b.legs || []).map((l, i) => h('div.leg.' + (l.r === 'won' ? 'won' : l.r === 'lost' ? 'lost' : l.r === 'void' ? 'void' : l.r === 'unk' ? 'unk' : 'pre'), { key: i, title: l.r === 'unk' ? 'Result not shown in the sportsbook\u2019s bet list' : undefined },
+      h('span.lg-mk', null, l.r === 'won' ? '\u2713' : l.r === 'lost' ? '\u2717' : l.r === 'void' ? '\u2013' : l.r === 'unk' ? '\u00b7' : '\u25cb'),
       h('span.lg-t', null, l.t, l.g && new Set((b.legs || []).map((x) => x.g)).size > 1 ? h('span.lg-g', null, ' ' + l.g) : null),
       h('span.lg-v.tnum', null, l.v || ''))),
       (b.voided || []).map((v, i) => h('div.leg.void', { key: 'v' + i }, h('span.lg-mk', null, '\u2013'), h('span.lg-t', null, v.desc), h('span.lg-v', null, 'void')))),
