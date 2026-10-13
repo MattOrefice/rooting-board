@@ -326,6 +326,17 @@ input.cashout{width:104px;margin-top:4px;font-size:12px}
 .rz-calm,.rz-later,.rz-done{margin-top:14px;font-size:14px;color:var(--muted)}
 .rz-calm b,.rz-later b,.rz-done b{color:var(--text)}
 .rz-today{margin-bottom:12px}
+.qa{margin-bottom:12px}
+.qa-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:10px}
+.qa-seg{display:inline-flex;gap:4px}
+.qa-f{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.qa-leg{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.qa-leg select{max-width:100%}
+.qa-pl{width:170px}
+.qa-err{font-size:12px}
+.qa-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.qa-sum{font-size:14px}
+.rz-local{color:var(--flag)}
 .wrap.wide{max-width:2560px}
 .rz-latest{margin-bottom:6px}
 .rz-latest+.rz-rh{margin-top:14px}
@@ -1798,13 +1809,32 @@ const fmtAm = (a) => (a > 0 ? '+' + a : MINUS + Math.abs(a));
 const pctText = (p) => (p >= 0.995 ? '99%+' : p < 0.005 ? 'under 1%' : p < 0.1 ? (Math.round(p * 1000) / 10) + '%' : Math.round(p * 100) + '%');
 
 // ---------- survivor: the old single pick (data.survivor) and pools with several entries (data.survivorPool) ----------
-// survivorPool: { name, short, site, buyIn, value, startWeek, entries: [{ n, pick, used: [teams], out: week or null, outPick }] }
-// `value` is about what one live entry is worth this week in dollars (prize pool over entries still alive).
+// survivorPool: { name, short, site, buyIn, prize, field, alive, aliveEst, startWeek, value,
+//                 entries: [{ n, pick, used: [teams], out: week or null, outPick }] }
+// prize: the pool's prize. field: entries in the pool at the start (from Matt's screenshot; until then, the size that
+// just covers the guaranteed prize after the book's cut). alive: entries still alive (aliveEst when it is a guess).
+// value: a flat dollar figure per entry, used only when there is no prize.
+// What one live entry stands to lose on this week's game: the prize shared by the entries that survive the week.
+// The field mostly takes the week's biggest favorites, so its survival rate is a weighted average of the top five.
+function survValue(P, games) {
+  if (!P) return null;
+  const prize = Number(P.prize) || 0, buy = Number(P.buyIn) || 0;
+  if (!prize) { const v = Number(P.value) || buy || 0; return { V: v, now: v, flat: true }; }
+  const fieldGuess = buy ? Math.round(prize / (buy * 0.9)) : 1000;
+  const field = Number(P.field) || fieldGuess, alive = Math.max(1, Number(P.alive) || field);
+  const ps = [];
+  (games || []).forEach((g) => { if (g.homeWP == null || g.homeWP === '') return; const x = Number(g.homeWP); if (x > 0 && x < 1) ps.push(x, 1 - x); });
+  ps.sort((a, b) => b - a);
+  const wts = [0.35, 0.25, 0.2, 0.12, 0.08];
+  const s = ps.length >= 5 ? wts.reduce((t, w, i) => t + w * ps[i], 0) : 0.8;
+  return { V: prize / Math.max(1, alive * s), now: prize / alive, prize, field, alive, s, fieldGuess: !Number(P.field), aliveGuess: !Number(P.alive) || !!P.aliveEst };
+}
 function survEntries(data) {
   const out = [], sv = uc(data.survivor || '');
   if (sv) out.push({ key: 'surv', n: 0, pick: sv, who: 'Survivor', legacy: true });
   const P = data.survivorPool;
-  if (P && Array.isArray(P.entries)) P.entries.forEach((e) => { const pk = uc(e.pick); if (pk && !e.out) out.push({ key: 'surv' + e.n, n: e.n, pick: pk, who: (P.short || 'Survivor') + ' #' + e.n, V: Number(P.value) || Number(P.buyIn) || 0 }); });
+  const val = P && Array.isArray(P.entries) ? survValue(P, data.games) : null;
+  if (val) P.entries.forEach((e) => { const pk = uc(e.pick); if (pk && !e.out) out.push({ key: 'surv' + e.n, n: e.n, pick: pk, who: (P.short || 'Survivor') + ' #' + e.n, V: val.V }); });
   return out;
 }
 const survAlive = (P) => (P && Array.isArray(P.entries) ? P.entries.filter((e) => !e.out) : []);
@@ -1853,16 +1883,114 @@ function SurvivorPanel({ data }) {
     return h('span.sv-pick', null, h(Logo, { t, size: 18 }), h('b', null, t), h('span.muted', null, ' ' + opp), ' ', survMark(r), h('div.hint', null, state));
   };
   const usedCell = (e) => { const u = (e.used || []).map(uc); return u.length ? h('span.sv-used', null, u.map((t) => h('span.sv-u', { key: t, title: t }, h(Logo, { t, size: 14 }), t))) : h('span.hint', null, 'none yet'); };
-  const lost = P.entries.length - alive.length;
+  const lost = P.entries.length - alive.length, sv = survValue(P, games);
+  const worth = sv.flat ? 'Each live entry counts as about ' + cash(sv.V) + ' on the board. '
+    : 'A live entry is worth about ' + cash(Math.round(sv.now * 100) / 100) + ' now and about ' + cash(Math.round(sv.V * 100) / 100) + ' if it survives Week ' + data.week + ': the $' + Number(sv.prize).toLocaleString('en-US') + ' prize over ' + (sv.aliveGuess ? 'about ' : '') + sv.alive.toLocaleString() + ' live entries' + (sv.fieldGuess ? ' (the size that just covers the guarantee; send me the entry count from the pool screen and I\u2019ll use the real one)' : '') + ', with about ' + Math.round(100 * sv.s) + '% of the field expected to survive this week. ';
   return h('div.panel', null,
     h('div.row.between', { style: { alignItems: 'baseline' } }, h('h3', null, P.name || 'Survivor'), h('span.muted', { style: { fontSize: 13 } }, alive.length + ' of ' + P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' alive' + (lost ? ', ' + lost + ' out' : ''))),
-    h('p.hint', { style: { margin: '4px 0 8px' } }, (P.buyIn ? P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' at ' + cash(P.buyIn) + (P.startWeek ? ', picks from Week ' + P.startWeek : '') + '. ' : '') + 'Pick one team to win each week and never reuse it; a loss ends that entry. Each live entry counts as about ' + cash(Number(P.value) || Number(P.buyIn) || 0) + ' on the board. ' + (P.site || 'The pool') + ' can\u2019t be opened from here, so send me your picks each week (a screenshot works).'),
+    h('p.hint', { style: { margin: '4px 0 8px' } }, (P.buyIn ? P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' at ' + cash(P.buyIn) + (P.startWeek ? ', picks from Week ' + P.startWeek : '') + '. ' : '') + 'Pick one team to win each week and never reuse it; a loss ends that entry. ' + worth + (P.site || 'The pool') + ' can\u2019t be opened from here, so send me your picks each week (a screenshot works).'),
     h('div.scroll', null, h('table', null,
       h('thead', null, h('tr', null, h('th', null, 'Entry'), h('th', null, 'Week ' + data.week + ' pick'), h('th', null, 'Teams used'))),
       h('tbody', null, P.entries.map((e) => h('tr', { key: e.n, className: e.out ? 'sv-out' : undefined },
         h('td', null, '#' + e.n),
         h('td', null, pickCell(e)),
         h('td', null, usedCell(e))))))));
+}
+
+// ---------- bets added on this screen: a live bet shows up right away, saved in this browser ----------
+// They stay until the published board has the same bet (added from the book's history), or the week rolls over.
+const LOCAL_KEY = 'rb-local-bets';
+function loadLocalBets() { try { const j = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); return Array.isArray(j) ? j.filter((b) => b && b.id && Array.isArray(b.legs)) : []; } catch (e) { return []; } }
+function saveLocalBets(list) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch (e) { /* storage unavailable */ } }
+const legKey = (l) => [l.game, l.type, uc(l.side), l.line == null ? '' : Number(l.line), String(l.player || '').toLowerCase(), l.stat || ''].join('|');
+// the same bet already on the published board: same book, same stake, same legs
+function sameBet(x, b) {
+  if ((x.book || '') !== (b.book || '') || Math.abs((Number(x.stake) || 0) - (Number(b.stake) || 0)) > 0.011) return false;
+  const a = (x.legs || []).filter((l) => l.kind === 'game').map(legKey).sort(), c = (b.legs || []).filter((l) => l.kind === 'game').map(legKey).sort();
+  return a.length === c.length && a.every((k, i) => k === c[i]);
+}
+// what is still worth keeping: this week's local bets the published board doesn't have yet
+const liveLocal = (d, list) => (list || []).filter((b) => Number(b.week) === Number(d.week) && !(d.bets || []).some((x) => sameBet(x, b)));
+function withLocalBets(d, list) {
+  const keep = liveLocal(d, list);
+  return keep.length ? Object.assign({}, d, { bets: (d.bets || []).concat(keep) }) : d;
+}
+const QA_STATS = [['recYds', 'Receiving yards'], ['rushYds', 'Rushing yards'], ['passYds', 'Passing yards'], ['rec', 'Receptions'], ['rushRecYds', 'Rush + rec yards'], ['td', 'Touchdowns'], ['passTD', 'Passing TDs'], ['rushAtt', 'Carries'], ['passAtt', 'Pass attempts'], ['passInt', 'Interceptions thrown'], ['fgMade', 'Field goals made']];
+const QA_KINDS = [['ml', 'Moneyline'], ['spread', 'Spread'], ['total', 'Total points'], ['td', 'Anytime TD'], ['first', 'First TD'], ['stat', 'Player stat']];
+const qaBlank = (game) => ({ game: game || '', kind: 'ml', side: '', line: '', player: '', stat: 'recYds' });
+// one form row to a board leg, or a reason it isn't complete
+function qaLeg(r, games) {
+  const g = games.find((x) => x.id === r.game);
+  if (!g) return { err: 'Pick the game' };
+  const base = { kind: 'game', game: g.id, status: 'open' }, line = r.line === '' ? NaN : Number(String(r.line).replace('\u2212', '-'));
+  const who = String(r.player || '').trim();
+  if (r.kind === 'ml') return r.side === g.home || r.side === g.away ? Object.assign(base, { type: 'ml', side: r.side }) : { err: 'Pick a team' };
+  if (r.kind === 'spread') { if (r.side !== g.home && r.side !== g.away) return { err: 'Pick a team' }; if (!isFinite(line)) return { err: 'Enter the spread, for example -3.5' }; return Object.assign(base, { type: 'spread', side: r.side, line }); }
+  if (r.kind === 'total') { if (r.side !== 'over' && r.side !== 'under') return { err: 'Pick over or under' }; if (!(line > 0)) return { err: 'Enter the total' }; return Object.assign(base, { type: 'total', side: r.side, line }); }
+  if (!who) return { err: 'Enter the player' };
+  if (r.kind === 'td') return Object.assign(base, { type: 'prop', desc: who + ' anytime TD', player: who, stat: 'td', line: 0.5, side: 'over' });
+  if (r.kind === 'first') return Object.assign(base, { type: 'prop', desc: who + ' first TD', player: who, stat: 'firstTD', line: 0.5, side: 'over' });
+  if (r.side !== 'over' && r.side !== 'under') return { err: 'Pick over or under' };
+  if (!(line > 0)) return { err: 'Enter the line, for example 64.5' };
+  return Object.assign(base, { type: 'prop', desc: who + ' ' + (r.side === 'under' ? 'u' : 'o') + line + ' ' + (STATLBL[r.stat] || r.stat), player: who, stat: r.stat, line, side: r.side });
+}
+function QuickAdd({ data, onAdd, onClose }) {
+  const games = data.games.filter((g) => g.status !== 'final').slice().sort((x, y) => (y.status === 'live') - (x.status === 'live') || rzWhen(x) - rzWhen(y));
+  const [book, setBook] = useState(() => { try { return localStorage.getItem('rb-qa-book') || 'FD'; } catch (e) { return 'FD'; } });
+  const [rows, setRows] = useState(() => [qaBlank((games[0] || {}).id)]);
+  const [stake, setStake] = useState('10');
+  const [odds, setOdds] = useState('');
+  const [pay, setPay] = useState('');
+  const [bonus, setBonus] = useState(false);
+  const [tried, setTried] = useState(false);
+  const set = (i, k, v) => setRows(rows.map((r, j) => (j === i ? Object.assign({}, r, { [k]: v }, k === 'kind' || k === 'game' ? { side: '', line: k === 'game' ? r.line : '' } : {}) : r)));
+  const legs = rows.map((r) => qaLeg(r, games));
+  const st = Number(stake), od = Number(String(odds).replace('\u2212', '-').replace('+', ''));
+  const dec = isFinite(od) && Math.abs(od) >= 100 ? (od > 0 ? 1 + od / 100 : 1 + 100 / -od) : null;
+  const toPay = pay !== '' ? Number(pay) : dec && st > 0 ? Math.round(100 * st * (bonus ? dec - 1 : dec)) / 100 : null;
+  const errs = legs.filter((l) => l.err).map((l) => l.err);
+  if (!(st > 0)) errs.push('Enter the stake');
+  if (!(toPay > (bonus ? 0 : st))) errs.push('Enter the odds or what it pays');
+  const okLegs = legs.filter((l) => !l.err);
+  const sameGame = new Set(okLegs.map((l) => l.game)).size <= 1;
+  const desc = okLegs.length > 1 ? (sameGame ? 'SGP: ' : 'Parlay: ') + okLegs.map(legText).join(', ') : okLegs.length ? legText(okLegs[0]) + (dec ? ' ' + (od > 0 ? '+' : MINUS) + Math.abs(od) : '') : '';
+  const save = () => {
+    setTried(true);
+    if (errs.length) return;
+    try { localStorage.setItem('rb-qa-book', book); } catch (e) { /* storage unavailable */ }
+    const now = new Date(), md = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' }).format(now);
+    onAdd({ id: 'L' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6), local: true, week: Number(data.week), book, placed: md, desc: desc + (bonus ? ' (bonus bet)' : ''), stake: st, toPay, odds: dec ? od : null, status: 'open', bonus, legs: okLegs, at: now.toISOString() });
+    onClose();
+  };
+  const gameOpt = (g) => h('option', { key: g.id, value: g.id }, g.away + ' at ' + g.home + (g.status === 'live' ? ' (live' + (g.clock ? ', ' + g.clock : '') + ')' : ' (' + kickText(g) + ')'));
+  const sideBtns = (i, r, opts) => h('span.qa-seg', null, opts.map(([v, lab]) => h('button.btn.sm' + (r.side === v ? '.primary' : ''), { key: v, type: 'button', onClick: () => set(i, 'side', v) }, lab)));
+  return h('div.panel.qa', null,
+    h('div.row.between', { style: { alignItems: 'baseline' } }, h('h3', null, 'Add a bet'), h('button.linkbtn', { onClick: onClose }, 'Cancel')),
+    h('p.hint', { style: { margin: '2px 0 10px' } }, 'It shows up everywhere on the board right away. It\u2019s saved in this browser until the published board has it (I add it from your book\u2019s history at the Tuesday sync).'),
+    h('div.qa-top', null,
+      h('span.qa-seg', null, ['FD', 'DK'].map((b) => h('button.btn.sm' + (book === b ? '.primary' : ''), { key: b, type: 'button', onClick: () => setBook(b) }, b === 'FD' ? 'FanDuel' : 'DraftKings'))),
+      h('label.qa-f', null, 'Stake $', h('input', { type: 'number', min: 0, step: 0.01, value: stake, onChange: (e) => setStake(e.target.value) })),
+      h('label.qa-f', null, 'Odds', h('input', { type: 'text', inputMode: 'numeric', placeholder: '+450', value: odds, onChange: (e) => setOdds(e.target.value), style: { width: 76 } })),
+      h('label.qa-f', null, 'or pays $', h('input', { type: 'number', min: 0, step: 0.01, placeholder: 'boosted', value: pay, onChange: (e) => setPay(e.target.value) })),
+      h('label.qa-f', null, h('input', { type: 'checkbox', checked: bonus, onChange: (e) => setBonus(e.target.checked) }), 'Bonus bet')),
+    rows.map((r, i) => {
+      const g = games.find((x) => x.id === r.game);
+      return h('div.qa-leg', { key: i },
+        h('select', { value: r.game, onChange: (e) => set(i, 'game', e.target.value), 'aria-label': 'Game' }, games.map(gameOpt)),
+        h('select', { value: r.kind, onChange: (e) => set(i, 'kind', e.target.value), 'aria-label': 'Bet type' }, QA_KINDS.map(([v, lab]) => h('option', { key: v, value: v }, lab))),
+        (r.kind === 'ml' || r.kind === 'spread') && g ? sideBtns(i, r, [[g.away, g.away], [g.home, g.home]]) : null,
+        r.kind === 'total' || r.kind === 'stat' ? sideBtns(i, r, [['over', 'Over'], ['under', 'Under']]) : null,
+        r.kind === 'td' || r.kind === 'first' || r.kind === 'stat' ? h('input.qa-pl', { type: 'text', placeholder: 'Player', value: r.player, onChange: (e) => set(i, 'player', e.target.value), 'aria-label': 'Player' }) : null,
+        r.kind === 'stat' ? h('select', { value: r.stat, onChange: (e) => set(i, 'stat', e.target.value), 'aria-label': 'Stat' }, QA_STATS.map(([v, lab]) => h('option', { key: v, value: v }, lab))) : null,
+        r.kind === 'spread' || r.kind === 'total' || r.kind === 'stat' ? h('input', { type: 'text', inputMode: 'decimal', placeholder: r.kind === 'spread' ? '-3.5' : r.kind === 'total' ? '44.5' : '64.5', value: r.line, onChange: (e) => set(i, 'line', e.target.value), style: { width: 70 }, 'aria-label': 'Line' }) : null,
+        rows.length > 1 ? h('button.linkbtn', { type: 'button', onClick: () => setRows(rows.filter((x, j) => j !== i)), 'aria-label': 'Remove this leg' }, 'Remove') : null,
+        tried && legs[i].err ? h('span.bad.qa-err', null, legs[i].err) : null);
+    }),
+    h('button.linkbtn', { type: 'button', onClick: () => setRows(rows.concat([qaBlank(rows[rows.length - 1].game)])), style: { margin: '2px 0 10px' } }, '+ Add a leg (parlay)'),
+    h('div.qa-foot', null,
+      h('span.qa-sum', null, desc ? h('b', null, desc) : h('span.hint', null, 'Fill in the bet'), toPay > 0 && st > 0 ? h('span.muted', null, ', ' + cash(st) + (bonus ? ' bonus' : '') + ARROW + cash(toPay)) : null),
+      h('button.btn.primary', { type: 'button', onClick: save }, 'Add to the board')),
+    tried && errs.length ? h('div.bad', { style: { fontSize: 13, marginTop: 6 } }, errs.filter((x, i) => errs.indexOf(x) === i).join('. ') + '.') : null);
 }
 
 function BetsTab({ data, results, prev, futs }) {
@@ -2530,13 +2658,13 @@ function rzTickets(data) {
     return { b, st, fv, q, q0, legs, live, left, when, doneToday, net, trend, sweat: live && q != null ? pay * q * (1 - q) : 0 };
   });
 }
-function RZTicket({ T }) {
+function RZTicket({ T, onRemove }) {
   const { b, st, fv, q, legs, left, net, trend } = T, multi = new Set(legs.map((x) => x.l.game)).size > 1;
   const status = st === 'won' ? h('span.ok', null, 'Won ' + bbSignedText(net)) : st === 'lost' ? h('span.bad', null, 'Lost ' + bbSignedText(net)) : st === 'void' ? h('span.muted', null, 'Push') : h('span', null, hitText(q != null ? q : T.q0) + (fv != null ? ', worth ' + cash(fv) + ' now' : ''));
   const needs = st === 'open' && legs.length > 1 && left.length === 1 ? left[0] : null;
   return h('div.rz-tk' + (st === 'won' ? '.won' : st === 'lost' ? '.lost' : trend ? '.' + trend : '') + (T.live ? '.live' : ''), { key: b.id },
     h('div.rz-tk-top', null, h('span.book.' + (b.book || 'Other'), null, b.book), h('span.rz-tk-name', { title: b.desc }, rzBetName(b)), h('span.rz-tk-pay.tnum', null, cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay))),
-    h('div.rz-tk-st', null, status),
+    h('div.rz-tk-st', null, status, b.local ? h('span.rz-local', { title: 'Added on this screen; it stays in this browser until the published board has it' }, ' \u00b7 added here') : null, b.local && onRemove ? h('button.linkbtn', { onClick: () => onRemove(b.id), style: { marginLeft: 8, fontSize: 12 } }, 'Remove') : null),
     h('div.legs', null, legs.map((x, i) => h('div.leg.' + x.n.st, { key: i },
       h('span.lg-mk', null, rzMark(x.n.st)),
       h('span.lg-t', null, legText(x.l), multi && x.g ? h('span.lg-g', null, ' ' + x.g.away + '@' + x.g.home) : null),
@@ -2566,7 +2694,7 @@ function rzTodayStrip(data, analyses, tickets) {
 }
 function rzLoadFeed() { try { const j = JSON.parse(localStorage.getItem('rb-rz-feed') || 'null'); return j && j.day === rzDate() && Array.isArray(j.items) ? j.items : []; } catch (e) { return []; } }
 function rzSaveFeed(items) { try { localStorage.setItem('rb-rz-feed', JSON.stringify({ day: rzDate(), items })); } catch (e) { /* storage unavailable */ } }
-function RedZoneTab({ data, analyses }) {
+function RedZoneTab({ data, analyses, local }) {
   const canLock = typeof navigator !== 'undefined' && !!navigator.wakeLock && typeof navigator.wakeLock.request === 'function';
   const canFull = typeof document !== 'undefined' && !!document.documentElement && typeof document.documentElement.requestFullscreen === 'function';
   // keep the screen awake while this view is open; the browser drops the lock when the tab is hidden, so take it back on return
@@ -2586,6 +2714,7 @@ function RedZoneTab({ data, analyses }) {
   useEffect(() => { try { localStorage.setItem('rb-rz-compact', compact ? '1' : '0'); } catch (e) { /* storage unavailable */ } }, [compact]);
   const [showDone, setShowDone] = useState(false);
   const [moreFeed, setMoreFeed] = useState(false);
+  const [adding, setAdding] = useState(false);
   // scores, leg results and ticket results from the last refresh, to spot what just changed
   const memo = useRef(null);
   const [feed, setFeed] = useState(rzLoadFeed);
@@ -2661,18 +2790,20 @@ function RedZoneTab({ data, analyses }) {
   const rail = h('aside.rz-rail', null,
     feedBox,
     h('div.rz-rh', null, h('h3', null, 'Your tickets'), h('span.hint', null, openT.length + ' open' + (liveT ? ', ' + liveT + ' live' : ''))),
-    openT.length ? openT.map((T) => h(RZTicket, { key: T.b.id, T })) : h('div.hint', null, 'No open bets on this week\u2019s games.'),
+    openT.length ? openT.map((T) => h(RZTicket, { key: T.b.id, T, onRemove: local && local.remove })) : h('div.hint', null, 'No open bets on this week\u2019s games.'),
     doneT.length ? h('div.rz-donet', null,
       h('button.linkbtn', { onClick: () => setShowDone(!showDone) }, (showDone ? 'Hide' : 'Show') + ' settled today (' + doneT.filter((t) => t.st === 'won').length + ' won, ' + doneT.filter((t) => t.st === 'lost').length + ' lost, ' + bbSignedText(doneT.reduce((t, x) => t + x.net, 0)) + ')'),
-      showDone ? doneT.map((T) => h(RZTicket, { key: T.b.id, T })) : null) : null,
+      showDone ? doneT.map((T) => h(RZTicket, { key: T.b.id, T, onRemove: local && local.remove })) : null) : null,
     null);
   return h('div.rz' + (compact ? '.compact' : ''), null,
     h('div.rz-head', null,
       h('div', null, h('h2', null, 'RedZone'), h('div.hint', null, live.length ? live.length + ' live' + (hot.length ? ', ' + hot.length + ' with something riding, most in doubt first' : ', nothing riding') + '. Updates every 15 seconds.' : 'Nothing live right now. Games show here once they kick off.')),
       h('div.row', null,
+        local ? h('button.btn.sm' + (adding ? '' : '.primary'), { onClick: () => setAdding(!adding), title: 'Put a bet you just placed on the board right away', style: { marginRight: 8 } }, adding ? 'Close' : '+ Add a bet') : null,
         h('button.btn.sm' + (compact ? '.primary' : ''), { onClick: () => setCompact(!compact), 'aria-pressed': compact ? 'true' : 'false', title: 'Smaller tiles, so more games fit on one screen' }, 'Compact'),
         canLock ? h('button.btn.sm' + (want ? '.primary' : ''), { onClick: () => setWant(!want), 'aria-pressed': want ? 'true' : 'false', title: 'Stop the screen from dimming or locking while this is open', style: { marginLeft: 8 } }, want ? 'Screen stays on' : 'Keep screen on') : null,
         canFull ? h('button.btn.sm', { onClick: full, style: { marginLeft: 8 } }, 'Full screen') : null)),
+    adding && local ? h(QuickAdd, { data, onAdd: local.add, onClose: () => setAdding(false) }) : null,
     rzTodayStrip(data, analyses, tickets),
     h('div.rz-body', null,
       h('div.rz-main', null,
@@ -2817,7 +2948,7 @@ function App() {
       if (res) { setLive(res); setLiveAt(new Date()); setLiveErr(false); } else setLiveErr(true);
       if (res) {
         const need = {};
-        (cur.bets || []).forEach((b) => { if (b.status === 'void') return; (b.legs || []).forEach((l) => { const r = res[l.game]; if (l.kind === 'game' && l.type === 'prop' && r && r.status !== 'upcoming' && r.eventId && propSpec(l)) need[l.game] = r; }); });
+        (cur.bets || []).concat(localRef.current || []).forEach((b) => { if (b.status === 'void') return; (b.legs || []).forEach((l) => { const r = res[l.game]; if (l.kind === 'game' && l.type === 'prop' && r && r.status !== 'upcoming' && r.eventId && propSpec(l)) need[l.game] = r; }); });
         const got = {};
         await Promise.all(Object.keys(need).map(async (gid) => { if (need[gid].status === 'final' && BOX_CACHE[gid]) { got[gid] = BOX_CACHE[gid]; return; } const bx = await fetchBox(need[gid].eventId); if (bx) { got[gid] = bx; if (need[gid].status === 'final') BOX_CACHE[gid] = bx; } }));
         if (alive && Object.keys(got).length) { setBoxes((prev) => Object.assign({}, prev, got)); boxNow = got; }
@@ -2849,7 +2980,14 @@ function App() {
     return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
   }, [loaded, data.season, data.week, data.games.length]);
   const histR = useMemo(() => historyFromResults(results), [results]);
-  const view = useMemo(() => withHistory(rolled && showPrev && prevView ? prevView : withLive(rolled || data, live, boxes, espn), histR), [data, rolled, showPrev, prevView, live, boxes, espn, histR]);
+  // bets added on this screen (RedZone's quick add), kept in this browser until the published board has them
+  const [localBets, setLocalBets] = useState(loadLocalBets);
+  const localRef = useRef(localBets);
+  localRef.current = localBets;
+  useEffect(() => { saveLocalBets(localBets); }, [localBets]);
+  useEffect(() => { if (!loaded || source !== 'published') return; const keep = localBets.filter((b) => Number(b.week) >= Number(data.week) && !(data.bets || []).some((x) => sameBet(x, b))); if (keep.length !== localBets.length) setLocalBets(keep); }, [data, loaded, source]);
+  const localApi = useMemo(() => ({ list: localBets, add: (b) => setLocalBets((L) => L.concat([b])), remove: (id) => setLocalBets((L) => L.filter((x) => x.id !== id)) }), [localBets]);
+  const view = useMemo(() => withHistory(rolled && showPrev && prevView ? prevView : withLive(withLocalBets(rolled || data, localBets), live, boxes, espn), histR), [data, rolled, showPrev, prevView, live, boxes, espn, histR, localBets]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
   // the coming week while the board is showing last week's results (Advisor and Results always want the live week)
   const nextView = useMemo(() => (rolled ? withHistory(withLive(rolled, live, boxes, espn), histR) : null), [rolled, live, boxes, espn, histR]);
@@ -2882,7 +3020,7 @@ function App() {
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
       : h(Boundary, { k: tab },
         tab === 'root' ? h(RootingTab, { data: view, analyses, recap, onDismiss: () => setRecap(null), onAdvisor: () => setTab('advisor'), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
-        : tab === 'redzone' ? h(RedZoneTab, { data: view, analyses })
+        : tab === 'redzone' ? h(RedZoneTab, { data: view, analyses, local: localApi })
         : tab === 'bets' ? h(BetsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null, futs })
         : tab === 'pools' ? h(PoolsTab, { data: view, results })
         : tab === 'advisor' ? h(AdvisorTab, { data: nextView || view })
