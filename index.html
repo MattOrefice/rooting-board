@@ -1878,7 +1878,7 @@ const betNet = (b, st) => (st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.
 const archPicks = (W, src) => { const out = {}; Object.keys(src || {}).forEach((p) => { const v = src[p]; out[p] = typeof v === 'string' ? v.split(',').reduce((o, t, i) => { if (t && W.games[i]) o[W.games[i].id] = t; return o; }, {}) : Object.assign({}, v); }); return out; };
 function weekFromArchive(W) {
   const games = (W.games || []).map((g) => { const [away, home] = g.id.split('@'); return { id: g.id, away, home, awayScore: g.a, homeScore: g.h, line: g.line, status: 'final', ot: !!g.ot }; });
-  return { week: Number(W.week), games, picks: { spread: archPicks(W, (W.spread || {}).picks), pickem: archPicks(W, (W.pickem || {}).picks) }, order: (W.spread || {}).order || null, tb: (W.spread || {}).tb || null, survivor: W.survivor || null, bets: W.bets == null ? null : W.bets.map((b) => Object.assign({}, b)), done: true, total: games.length };
+  return { week: Number(W.week), games, picks: { spread: archPicks(W, (W.spread || {}).picks), pickem: archPicks(W, (W.pickem || {}).picks) }, order: (W.spread || {}).order || null, tb: (W.spread || {}).tb || null, survivor: W.survivor || null, bets: W.bets == null ? null : W.bets.map((b) => Object.assign({}, b)), betsNote: W.betsNote || null, done: true, total: games.length };
 }
 function weekFromLive(d) {
   const finals = d.games.filter((g) => g.status === 'final' && hasScore(g));
@@ -1966,7 +1966,7 @@ function ResultsTab({ data, results, prev }) {
     survWeeks.length || data.survivorOut ? Stat(outWk || data.survivorOut ? 'Out' : 'Alive', 'Survivor: ' + (outWk ? 'lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : data.survivorOut ? 'out in ' + data.survivorOut : survWeeks.length + ' weeks survived')) : null,
     tracked.length ? Stat(signed(betTot.net), 'Bets since Week ' + tracked[0].week + ': ' + betTot.won + ' won, ' + betTot.lost + ' lost, ' + cash(betTot.staked) + ' staked') : null);
   const cellPool = (Wk, which) => { const P = Wk.pools[which], m = P.mine; if (!m || !m.n) return h('span.hint', null, Wk.live && !Wk.finals ? '' : 'no picks'); return h('div', null, h('b.tnum', null, recText(m)), h('span.muted', null, ' ' + rankText(m) + ' this week'), h('div.hint', null, (Wk.live && !Wk.done ? 'so far; ' : '') + 'season ' + ordinal(m.seasonRank) + gapText(P))); };
-  const cellBets = (Wk) => (!Wk.betSum ? h('span.hint', null, 'not tracked') : !Wk.betSum.n ? h('span.hint', null, 'none') : h('div', null, signed(Wk.betSum.net), h('div.hint', null, Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : ''))));
+  const cellBets = (Wk) => (!Wk.betSum ? h('span.hint', null, 'not tracked') : !Wk.betSum.n ? h('span.hint', null, 'none') : h('div', null, signed(Wk.betSum.net), h('div.hint', null, Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : '')), Wk.betsNote ? h('div.hint.res-bn', null, Wk.betsNote) : null));
   const cellSurv = (Wk) => (!Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
   const table = h('div.panel', null,
     h('div.row.between', { style: { marginBottom: 8 } }, h('h3', null, 'Week by week'), h('span.hint', null, 'Tap a week for the details')),
@@ -2038,6 +2038,7 @@ function WeekDetail({ Wk, weeks, setSel, data, me }) {
       })),
     Wk.bets == null ? h('p.hint', { style: { marginTop: 12 } }, 'Bets weren\u2019t tracked on the board this week.') : !Wk.bets.length ? h('p.hint', { style: { marginTop: 12 } }, 'No bets this week.') : h('div', null,
       h('h4.res-sub', null, 'Bets', h('span.hint', null, ' ' + Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.push ? ', ' + Wk.betSum.push + ' pushed' : '') + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : '') + ', net '), h('span' + (Wk.betSum.net > 0 ? '.ok' : Wk.betSum.net < 0 ? '.bad' : '.muted'), { style: { fontSize: 14 } }, (Wk.betSum.net > 0 ? '+' : Wk.betSum.net < 0 ? MINUS : '') + cash(Math.abs(Wk.betSum.net)))),
+      Wk.betsNote ? h('p.hint', { style: { margin: '0 0 8px' } }, Wk.betsNote) : null,
       h('div.tb-grid', null, sortedBets.map(betCard))));
 }
 
