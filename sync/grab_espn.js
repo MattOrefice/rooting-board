@@ -1,7 +1,8 @@
 // Rooting board weekly sync, ESPN side. Run with javascript_tool in a www.cbssports.com tab (ESPN's public APIs
 // answer that origin; github.com blocks them). Send this file's text with one config line in front of it:
-//   const CFG = { season: 2026, week: 6, box: ['CAR@PHI'], challenge: 'nfl-pickem-2026', group: '<ESPN group id>' };
+//   const CFG = { season: 2026, week: 6, box: ['CAR@PHI'], players: ['Saquon Barkley'], challenge: 'nfl-pickem-2026', group: '<ESPN group id>' };
 // week: the week being archived. box: games whose player stats settle prop bets ('all' for every game).
+// players: optional; keeps only box-score rows sharing a name with one of these (node sync/archive.js --plan prints CFG).
 // It collects that week's finals, next week's schedule with DraftKings lines (read the way the board reads them),
 // box scores for the listed games and the ESPN pick'em group's picks, then replaces the page with one
 // <pre id="rbdump"> holding compact JSON. Read it with get_page_text, save the JSON exactly, and check the file
@@ -69,6 +70,10 @@ await (async () => {
     const m = t.match(/^(.+?)\s+\d+\s*(?:yd|yds|yard|yards)\b/i) || t.match(/^(.+?)\s+(?:pass|run|rush|fumble|interception|punt|kick|blocked|recovery)\b/i);
     return m ? m[1].trim() : '';
   };
+  const SUF = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
+  const toks = (n) => String(n || '').toLowerCase().replace(/[^a-z' -]/g, ' ').split(/[\s-]+/).map((x) => x.replace(/'/g, '')).filter((x) => x && SUF.indexOf(x) < 0);
+  const keepTok = CFG.players && CFG.players.length ? new Set([].concat(...CFG.players.map(toks))) : null;
+  const keep = (name) => !keepTok || toks(name).some((x) => keepTok.has(x));
   const want = CFG.box === 'all' ? Object.keys(evOf) : (CFG.box || []);
   for (const g of want) {
     const id = evOf[g];
@@ -94,7 +99,7 @@ await (async () => {
           });
         });
       });
-      out.box[g] = { ft: firstTd(j), p: order.map((n) => n.replace(/\|/g, '/') + '|' + byName[n].team + '|' + KEYS.map((k) => (byName[n].s[k] == null ? '' : byName[n].s[k])).join(',')) };
+      out.box[g] = { ft: firstTd(j), p: order.filter(keep).map((n) => { const v = KEYS.map((k) => (byName[n].s[k] == null ? '' : byName[n].s[k])); return n.replace(/\|/g, '/') + '|' + byName[n].team + (v.some((x) => x !== '') ? '|' + v.join(',') : ''); }) };
     } catch (e) { out.err.push('box ' + g + ': ' + e.message); }
   }
   // 4. ESPN pick'em group: every entry's picks for the week, its week score and its season total

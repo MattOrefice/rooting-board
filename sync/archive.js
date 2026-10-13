@@ -15,6 +15,20 @@ const argv = process.argv.slice(2), arg = (k) => { const i = argv.indexOf(k); re
 const repo = arg('--repo') || '.';
 const readJ = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const D = readJ(path.join(repo, 'data.json')), R = readJ(path.join(repo, 'results.json'));
+if (flag('--plan')) {
+  // the config line for sync/grab_espn.js: games and players that this week's prop bets need from the box scores
+  const Lp = require('./applib.js')(path.join(repo, 'index.html'));
+  const ids = new Set((D.games || []).map((g) => g.id)), box = new Set(), players = new Set();
+  (D.bets || []).forEach((b) => (b.legs || []).forEach((l) => {
+    if (l.kind !== 'game' || !ids.has(l.game) || l.type !== 'prop' || (l.status && l.status !== 'open')) return;
+    box.add(l.game);
+    const sp = Lp.propSpec(l);
+    if (sp && sp.players) sp.players.forEach((n) => players.add(n)); else if (sp && sp.player) players.add(sp.player);
+  }));
+  const P = (D.leagues || {}).pickem || {};
+  console.log('const CFG = ' + JSON.stringify({ season: D.season, week: Number(D.week), box: [...box], players: [...players], challenge: P.espnChallenge || 'nfl-pickem-' + D.season, group: P.espnGroup || '' }) + ';');
+  process.exit(0);
+}
 const E = readJ(arg('--espn')), C = readJ(arg('--cbs')), CN = arg('--cbs-next') ? readJ(arg('--cbs-next')) : null;
 const L = require('./applib.js')(path.join(repo, 'index.html'));
 const N = Number(D.week);
