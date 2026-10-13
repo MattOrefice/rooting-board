@@ -256,6 +256,69 @@ tr.me td{font-weight:600}
 .res-score{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-weight:600}
 .res-pk{white-space:nowrap}
 .leg.unk .lg-mk{color:var(--dim)}
+.seg{display:inline-flex;justify-self:start;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{background:none;border:0;color:var(--muted);font:600 13px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
+.seg button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.bb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;align-items:start}
+.bb-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.bb-h{font:700 19px/1.2 "Barlow Condensed",sans-serif;margin-bottom:6px}
+.bb-h .hint{font:400 12px Barlow,sans-serif}
+table.bb{width:100%;border-collapse:collapse;font-size:13px}
+table.bb th{color:var(--muted);font-size:11px;font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.bb td{padding:5px 6px;border-bottom:1px solid var(--line)}
+table.bb tr:last-child td{border-bottom:0}
+table.bb .rt{text-align:right;white-space:nowrap}
+table.bb tr.me td{background:rgba(242,194,48,.07)}
+.bb-team{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.bb-heads ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+.bb-heads li{margin:4px 0}
+.bb-bet{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:8px;row-gap:2px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.bb-bet:last-child{border-bottom:0}
+.bb-miss{grid-column:2/-1;font-size:12px}
+.bb-amt{white-space:nowrap;font-weight:700}
+.fut-now{color:var(--flag)}
+.m-inl{display:none}
+.book.m-inl{margin-right:6px}
+input.cashout{width:104px;margin-top:4px;font-size:12px}
+.rz-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.rz-head h2{font:700 30px/1.1 "Barlow Condensed",sans-serif;margin:0}
+.rz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.rz-tile{background:var(--panel);border:1px solid var(--line);border-top:6px solid var(--line2);border-radius:14px;padding:14px 16px 10px;min-width:0}
+.rz-tile.good{border-top-color:var(--good)}
+.rz-tile.bad{border-top-color:var(--bad)}
+.rz-tile.mixed{border-top-color:var(--flag)}
+.rz-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.rz-score{display:flex;align-items:center;gap:12px;font:700 32px/1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.rz-score .t{display:inline-flex;align-items:center;gap:8px}
+.rz-score b{font-size:40px}
+.rz-clock{display:flex;align-items:center;gap:8px;font:600 16px Barlow,sans-serif;color:var(--muted)}
+.rz-sit{color:var(--muted);font-size:15px;margin-top:4px}
+.rz-verdict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 6px}
+.rz-mood{font-weight:700;font-size:15px}
+.rz-tile.good .rz-mood{color:var(--good)}
+.rz-tile.bad .rz-mood{color:var(--bad)}
+.rz-tile.mixed .rz-mood{color:var(--flag)}
+.rz-swing{margin-left:auto;font:700 24px/1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.rz-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:8px;align-items:baseline;font-size:17px;font-weight:600;padding:7px 0;border-top:1px solid var(--line)}
+.rz-item .who{display:block;color:var(--muted);font-size:12px;font-weight:500}
+.rz-mk{font-size:13px;color:var(--dim)}
+.rz-item.up .rz-mk,.rz-item.up .rz-how{color:var(--good)}
+.rz-item.down .rz-mk,.rz-item.down .rz-how{color:var(--bad)}
+.rz-item.even .rz-mk{color:var(--flag)}
+.rz-how{white-space:nowrap;font-size:15px}
+.rz-legs{grid-column:2/-1;display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.rz-leg{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;font-size:14px;font-weight:500;color:var(--muted)}
+.rz-leg.won{color:var(--good)}
+.rz-leg.lost{color:var(--bad);text-decoration:line-through}
+.rz-leg .bar{grid-column:1/-1;height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
+.rz-leg .bar .fill{display:block;height:100%;background:var(--flag)}
+.rz-sub{font:700 22px/1.2 "Barlow Condensed",sans-serif;margin:20px 0 10px}
+.rz-sub .hint{font:400 13px Barlow,sans-serif}
+.rz-calm,.rz-later,.rz-done{margin-top:14px;font-size:14px;color:var(--muted)}
+.rz-calm b,.rz-later b,.rz-done b{color:var(--text)}
+@media (max-width:430px){nav.tabs{gap:0}nav.tabs button{padding:10px 5px;font-size:14px}}
+@media (max-width:560px){.m-inl{display:inline-block}input.cashout{width:90px}.rz-grid{grid-template-columns:minmax(0,1fr)}.rz-score{font-size:26px}.rz-score b{font-size:32px}.rz-item{font-size:16px}.bb-grid{grid-template-columns:minmax(0,1fr)}}
 .res-gh,.res-g{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.5fr);gap:10px;align-items:center}
 .res-gh{color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
 .res-g{padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
@@ -1602,7 +1665,75 @@ function RootingTab({ data, analyses, auto, recap, onDismiss, onAdvisor }) {
     }));
 }
 
-function BetsTab({ data, results, prev }) {
+// ---------- futures: today's prices from ESPN (DraftKings' board), so open futures are valued at the current market ----------
+const ESPN_TEAM = { 1: 'ATL', 2: 'BUF', 3: 'CHI', 4: 'CIN', 5: 'CLE', 6: 'DAL', 7: 'DEN', 8: 'DET', 9: 'GB', 10: 'TEN', 11: 'IND', 12: 'KC', 13: 'LV', 14: 'LAR', 15: 'MIA', 16: 'MIN', 17: 'NE', 18: 'NO', 19: 'NYG', 20: 'NYJ', 21: 'PHI', 22: 'ARI', 23: 'PIT', 24: 'LAC', 25: 'SF', 26: 'SEA', 27: 'TB', 28: 'WAS', 29: 'CAR', 30: 'JAX', 33: 'BAL', 34: 'HOU' };
+const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+// ESPN's market names ("Pro Football (N) South Division - Winner") to the board's ("NFC South")
+function futMarketKey(name) {
+  const n = String(name || '');
+  if (/super bowl/i.test(n)) return 'Super Bowl';
+  const conf = /\(A\)|\bAFC\b/i.test(n) ? 'AFC' : /\(N\)|\bNFC\b/i.test(n) ? 'NFC' : null;
+  const div = (n.match(/\b(North|South|East|West)\b/i) || [])[1];
+  if (conf && div) return conf + ' ' + cap1(div);
+  if (conf && /conference/i.test(n)) return conf;
+  if (/most games/i.test(n)) return 'Most wins';
+  return null;
+}
+async function fetchFutures(season) {
+  try {
+    const r = await fetch('https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/' + season + '/futures?lang=en&region=us&limit=100', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json(), mk = {};
+    (j.items || []).forEach((it) => {
+      const key = futMarketKey(it.name || it.displayName), f = (it.futures || [])[0];
+      if (!key || !f || !f.books) return;
+      const odds = {};
+      f.books.forEach((b) => { const m = ((b.team && b.team.$ref) || '').match(/teams\/(\d+)/), t = m && ESPN_TEAM[m[1]], v = parseInt(String(b.value).replace('\u2212', '-'), 10); if (t && v) odds[t] = v; });
+      const teams = Object.keys(odds);
+      if (teams.length < 2) return;
+      // strip the book's margin: scale every team's implied chance so the market adds up to 100%
+      const imp = {}; let sum = 0;
+      teams.forEach((t) => { imp[t] = 1 / decOdds(odds[t]); sum += imp[t]; });
+      const p = {}; teams.forEach((t) => { p[t] = imp[t] / sum; });
+      mk[key] = { odds, p, book: (f.provider && f.provider.name) || 'the market' };
+    });
+    return Object.keys(mk).length ? { at: Date.now(), mk } : null;
+  } catch (e) { return null; }
+}
+// "Super Bowl", "NFC South", "AFC" ... from a future leg's description
+function futKeyOf(desc) {
+  const d = String(desc || '');
+  if (/super bowl|\bSB\b/i.test(d)) return 'Super Bowl';
+  const m = d.match(/\b(AFC|NFC)\b\s*(North|South|East|West)?/i);
+  if (m) return m[1].toUpperCase() + (m[2] ? ' ' + cap1(m[2]) : '');
+  if (/most (regular[- ]season )?wins/i.test(d)) return 'Most wins';
+  return null;
+}
+// today's no-margin chance and price for one future leg, or null when the market or team isn't listed
+function futNow(l, futs) {
+  if (!futs || !l || l.kind !== 'future') return null;
+  const M = futs.mk[futKeyOf(l.desc)], t = uc(l.team);
+  if (!M || M.p[t] == null) return null;
+  return { p: M.p[t], odds: M.odds[t], book: M.book };
+}
+// what an all-futures bet is worth at today's prices; null when any leg can't be priced
+function futFair(b, futs) {
+  const legs = b.legs || [];
+  if (!futs || !legs.length || !legs.every((l) => l.kind === 'future')) return null;
+  let p = 1;
+  for (const l of legs) {
+    if (l.status === 'won') continue;
+    if (l.status === 'lost') return 0;
+    const fn = futNow(l, futs);
+    if (!fn) return null;
+    p *= fn.p;
+  }
+  return (Number(b.toPay) || 0) * p;
+}
+const fmtAm = (a) => (a > 0 ? '+' + a : MINUS + Math.abs(a));
+const pctText = (p) => (p >= 0.995 ? '99%+' : p < 0.005 ? 'under 1%' : p < 0.1 ? (Math.round(p * 1000) / 10) + '%' : Math.round(p * 100) + '%');
+
+function BetsTab({ data, results, prev, futs }) {
   const [offers, setOffers] = useState({});
   const [openGrp, setOpenGrp] = useState({});
   const W = data.weights;
@@ -1623,24 +1754,29 @@ function BetsTab({ data, results, prev }) {
   const firstTracked = arch.length ? Math.min.apply(null, arch.map((w) => Number(w.week))) : Number(data.week);
   const legLine = (l) => (l.kind === 'game' ? l.game + ' ' + legText(l) : l.kind === 'future' ? l.team + ' ' + (l.desc || '') : l.desc || '') + (l.status && l.status !== 'open' ? ' (' + l.status + ')' : '');
   const right = { textAlign: 'right' };
-  const fvOf = (b) => { const fv = betFair(b, data); return fv == null ? (Number(b.toPay) || 0) * betProb(b, W) : fv; };
+  const fvOf = (b) => { const ff = futFair(b, futs); if (ff != null) return ff; const fv = betFair(b, data); return fv == null ? (Number(b.toPay) || 0) * betProb(b, W) : fv; };
+  // today's price for a single-leg future, e.g. "Now +800 at DraftKings, 11% to win"
+  const nowOf = (b) => { const L = b.legs || []; return L.length === 1 ? futNow(L[0], futs) : null; };
+  const nowLine = (fn) => (fn ? h('div.hint.fut-now', null, 'Now ' + fmtAm(fn.odds) + ' at ' + fn.book + ', ' + pctText(fn.p) + ' to win') : null);
+  const worthCell = (b) => { const fv = fvOf(b), priced = futFair(b, futs) != null, d = fv - (b.bonus ? 0 : Number(b.stake) || 0); return h('td.tnum', { style: right }, cash(fv), h('div.hint', null, !priced ? 'at your price' : b.bonus ? 'bonus bet' : (d >= 0 ? '+' : MINUS) + cash(Math.abs(d)) + ' vs stake')); };
   const dvCell = (pay, fv) => h('span.dv3', { title: 'If it wins / if it loses, compared with what it is worth now' }, h('span.ok', null, '+' + usd(Math.max(0, pay - fv))), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(fv)));
   const fairCell = (b) => {
     const fv = betFair(b, data);
     if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settles by hand' : 'n/a');
     const o = parseFloat(offers[b.id]), diff = o > 0 && fv > 0 ? (o - fv) / fv : null;
     return h('div', null, cash(fv),
-      h('div', null, h('input', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', 'aria-label': 'Cash-out offer', style: { width: 104, marginTop: 4, fontSize: 12 }, value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
+      h('div', null, h('input.cashout', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', 'aria-label': 'Cash-out offer', value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
       diff == null ? null : h('div' + (diff < -0.03 ? '.bad' : diff > 0.03 ? '.ok' : '.muted'), { style: { fontSize: 12, marginTop: 2 } }, diff < -0.03 ? Math.round(-diff * 100) + '% below fair' : diff > 0.03 ? Math.round(diff * 100) + '% above fair: take it' : 'about fair'));
   };
   const statusCell = (b) => { const st = stOf(b); return h('td.m-hide', null, h('span' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : '.muted'), null, st === 'void' ? 'push' : st)); };
   const betRow = (b, mode, sub) => h('tr', { key: b.id, className: sub ? 'subrow' : undefined },
-    h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
+    h('td.m-hide', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
     h('td.muted.tnum.m-hide', null, b.placed || ''),
-    h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), !sub && (b.legs || []).length > 1 ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null, h('div.m-only.hint.tnum', null, cash(b.stake) + ARROW + cash(b.toPay) + (american(b) ? ' (' + american(b) + ')' : '') + (b.placed ? ', placed ' + b.placed : ''))),
+    h('td', null, h('div', null, h('span.book.m-inl.' + (b.book || 'Other'), null, b.book), b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), !sub && (b.legs || []).length > 1 ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null, mode === 'future' && !sub ? nowLine(nowOf(b)) : null, h('div.m-only.hint.tnum', null, cash(b.stake) + ARROW + cash(b.toPay) + (american(b) ? ' (' + american(b) + ')' : '') + (b.placed ? ', placed ' + b.placed : ''))),
     h('td.tnum.m-hide', { style: right }, cash(b.stake)),
     h('td.tnum.m-hide', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
-    h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) > 0 ? '.ok' : net(b) < 0 ? '.bad' : '.muted'), null, (net(b) > 0 ? '+' : net(b) < 0 ? MINUS : '') + cash(Math.abs(net(b)))) : dvCell(Number(b.toPay) || 0, fvOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
+    mode === 'future' ? worthCell(b) : null,
+    h('td.tnum' + (mode === 'future' ? '.m-hide' : ''), { style: right }, mode === 'settled' ? h('span' + (net(b) > 0 ? '.ok' : net(b) < 0 ? '.bad' : '.muted'), null, (net(b) > 0 ? '+' : net(b) < 0 ? MINUS : '') + cash(Math.abs(net(b)))) : dvCell(Number(b.toPay) || 0, fvOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
     mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
     statusCell(b));
   // futures on the same outcome share one row; tap it to see the individual tickets
@@ -1657,12 +1793,13 @@ function BetsTab({ data, results, prev }) {
       const books = [...new Set(G.bets.map((b) => b.book || 'Other'))];
       const toggle = () => setOpenGrp(Object.assign({}, openGrp, { [G.key]: !isOpen }));
       rows.push(h('tr.grp', { key: 'g:' + G.key, onClick: toggle, tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }, 'aria-expanded': isOpen ? 'true' : 'false', title: isOpen ? 'Hide the individual bets' : 'Show the individual bets' },
-        h('td', null, books.map((bk) => h('span.book.' + bk, { key: bk, style: { marginRight: 4 } }, bk))),
+        h('td.m-hide', null, books.map((bk) => h('span.book.' + bk, { key: bk, style: { marginRight: 4 } }, bk))),
         h('td.m-hide', null, ''),
-        h('td', null, h('div', null, h('span.caret', null, isOpen ? '\u25be ' : '\u25b8 '), G.label), h('div.hint', null, G.bets.length + ' bets' + (bonus ? ', ' + cash(bonus) + ' of it bonus bets' : '') + (isOpen ? '' : ', tap for details')), h('div.m-only.hint.tnum', null, cash(stake) + ARROW + cash(pay) + ' in all')),
+        h('td', null, h('div', null, h('span.caret', null, isOpen ? '\u25be ' : '\u25b8 '), books.map((bk) => h('span.book.m-inl.' + bk, { key: bk }, bk)), G.label), h('div.hint', null, G.bets.length + ' bets' + (bonus ? ', ' + cash(bonus) + ' of it bonus bets' : '') + (isOpen ? '' : ', tap for details')), nowLine(nowOf(G.bets[0])), h('div.m-only.hint.tnum', null, cash(stake) + ARROW + cash(pay) + ' in all')),
         h('td.tnum.m-hide', { style: right }, cash(stake)),
         h('td.tnum.m-hide', { style: right }, cash(pay)),
-        h('td.tnum', { style: right }, dvCell(pay, fv)),
+        h('td.tnum', { style: right }, cash(fv), h('div.hint', null, futFair(G.bets[0], futs) != null ? (() => { const d = fv - (stake - bonus); return (d >= 0 ? '+' : MINUS) + cash(Math.abs(d)) + ' vs cash in'; })() : 'at your price')),
+        h('td.tnum.m-hide', { style: right }, dvCell(pay, fv)),
         h('td.m-hide', null, h('span.muted', null, 'open'))));
       if (isOpen) G.bets.forEach((b) => rows.push(betRow(b, 'future', true)));
     });
@@ -1672,7 +1809,7 @@ function BetsTab({ data, results, prev }) {
     h('div.row.between', null, h('h3', null, title), h('span.hint', null, list.length + ' bet' + (list.length === 1 ? '' : 's'))),
     note ? h('p.hint', { style: { margin: '4px 0 0' } }, note) : null,
     h('div.scroll', { style: { marginTop: 8 } }, h('table', null,
-      h('thead', null, h('tr', null, [['Book'], ['Placed', 1], ['Bet'], ['Stake', 1, 1], ['To pay', 1, 1], [mode === 'settled' ? 'Net' : 'Win / lose', 0, 1]].concat(mode === 'week' ? [['Fair value', 0, 1]] : [], [['Status', 1]]).map(([c, hide, r], k) => h('th', { key: k, className: hide ? 'm-hide' : undefined, style: r ? right : null }, c)))),
+      h('thead', null, h('tr', null, [['Book', 1], ['Placed', 1], ['Bet'], ['Stake', 1, 1], ['To pay', 1, 1]].concat(mode === 'future' ? [['Worth now', 0, 1]] : [], [[mode === 'settled' ? 'Net' : 'Win / lose', mode === 'future' ? 1 : 0, 1]], mode === 'week' ? [['Fair value', 0, 1]] : [], [['Status', 1]]).map(([c, hide, r], k) => h('th', { key: k, className: hide ? 'm-hide' : undefined, style: r ? right : null }, c)))),
       h('tbody', null, mode === 'future' ? groupRows(list) : list.map((b) => betRow(b, mode)))))));
   const sgn = (v) => (v > 0 ? '+' : v < 0 ? MINUS : '') + cash(Math.abs(v));
   const signed = (v) => h('span' + (v > 0 ? '.ok' : v < 0 ? '.bad' : '.muted'), null, sgn(v));
@@ -1681,13 +1818,13 @@ function BetsTab({ data, results, prev }) {
     h('div.strip', null,
       Stat(week.length ? cash(weekWorth) : 'None yet', week.length ? 'Week ' + data.week + ': ' + week.length + ' open bet' + (week.length === 1 ? '' : 's') + ', worth now (pays ' + cash(week.reduce((t, b) => t + (Number(b.toPay) || 0), 0)) + ' if all hit)' : 'Week ' + data.week + ' bets'),
       Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk, all open bets'),
-      Stat(String(longer.length), 'Open futures, ' + cash(longer.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0)) + ' cash in' + (longer.some((b) => b.bonus) ? ' plus ' + cash(longer.reduce((t, b) => t + (b.bonus ? Number(b.stake) || 0 : 0), 0)) + ' in bonus bets' : '')),
+      Stat(futs && longer.length ? cash(longer.reduce((t, b) => t + fvOf(b), 0)) : String(longer.length), (futs && longer.length ? longer.length + ' open futures worth now, ' : 'Open futures, ') + cash(longer.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0)) + ' cash in' + (longer.some((b) => b.bonus) ? ' plus ' + cash(longer.reduce((t, b) => t + (b.bonus ? Number(b.stake) || 0 : 0), 0)) + ' in bonus bets' : '')),
       Stat(signed(netSeason), 'Net on settled bets since Week ' + firstTracked + (settled.length ? ' (' + sgn(netWeek) + ' this week)' : ''))),
     !week.length && !settled.length ? h('div.panel.empty-state', { style: { padding: 18 } }, 'No Week ' + data.week + ' bets yet. Send me your slips and I\u2019ll add them.') : null,
     table('Week ' + data.week, week, 'week'),
     table('Settled this week', settled, 'settled'),
     table('Waiting to settle', waiting, 'future', 'These games are over but a leg still needs a stat to settle, so they settle by hand.'),
-    table('Futures and season-long', longer, 'future', 'Worth now uses the odds you got, less the book\u2019s usual margin. Past weeks\u2019 bets are under Results.'));
+    table('Futures and season-long', longer, 'future', (futs ? 'Worth now uses today\u2019s ' + (Object.values(futs.mk)[0] || {}).book + ' odds (through ESPN, as of ' + new Date(futs.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ') with the book\u2019s margin taken out; a bet without a current price uses the odds you got.' : 'Worth now uses the odds you got, less the book\u2019s usual margin; today\u2019s prices load from ESPN when they\u2019re available.') + ' Past weeks\u2019 bets are under Results.'));
 }
 function PoolPanel({ data, which, results }) {
   const L = data.leagues[which], isSpread = which === 'spread';
@@ -1949,6 +2086,8 @@ function ResultsTab({ data, results, prev }) {
     return all;
   }, [results, data, prev]);
   const [sel, setSel] = useState(null);
+  const [pane, setPane] = useState(() => { try { return localStorage.getItem('rb-res-pane') === 'bets' ? 'bets' : 'weeks'; } catch (e) { return 'weeks'; } });
+  useEffect(() => { try { localStorage.setItem('rb-res-pane', pane); } catch (e) { /* storage unavailable */ } }, [pane]);
   const cur = weeks.find((w) => w.week === sel) || weeks[weeks.length - 1];
   if (results === undefined) return h('div.panel.empty-state', null, 'Loading results\u2026');
   if (!weeks.length) return h('div.panel.empty-state', null, 'No finished games yet this season.');
@@ -1979,7 +2118,8 @@ function ResultsTab({ data, results, prev }) {
       h('span.res-c', { 'data-l': 'Survivor' }, cellSurv(Wk)),
       h('span.res-c', { 'data-l': 'Bets' }, cellBets(Wk)))),
     results && results.notes && results.notes.bets ? h('p.hint', { style: { marginTop: 8 } }, results.notes.bets) : null);
-  return h('div.stack', null, strip, table, cur ? h(WeekDetail, { Wk: cur, weeks, setSel, data, me }) : null);
+  const seg = h('div.seg', { role: 'tablist', 'aria-label': 'Results view' }, [['weeks', 'Week by week'], ['bets', 'Betting breakdown']].map(([k, l]) => h('button' + (pane === k ? '.on' : ''), { key: k, role: 'tab', 'aria-selected': pane === k ? 'true' : 'false', onClick: () => setPane(k) }, l)));
+  return h('div.stack', null, strip, seg, pane === 'bets' ? h(BetBreakdown, { weeks, data }) : table, pane === 'bets' ? null : cur ? h(WeekDetail, { Wk: cur, weeks, setSel, data, me }) : null);
 }
 function WeekDetail({ Wk, weeks, setSel, data, me }) {
   const ix = weeks.indexOf(Wk);
@@ -2043,6 +2183,219 @@ function WeekDetail({ Wk, weeks, setSel, data, me }) {
       h('div.tb-grid', null, sortedBets.map(betCard))));
 }
 
+// ---------- betting breakdown: every settled bet sliced by book, bet type, timing, boost and team ----------
+// A bet can carry its own kind / live / boost; otherwise they are read from its description and legs.
+function betKind(b) {
+  if (b.kind) return b.kind;
+  const legs = b.legs || [], d = String(b.desc || ''), n = legs.length + (b.voided || []).length;
+  const games = new Set(legs.map((l) => l.g || l.game).filter(Boolean));
+  if (/promo/i.test(d)) return 'Promo';
+  if (/correct score|exact score/i.test(d + ' ' + ((legs[0] || {}).t || ''))) return 'Exact score';
+  if (games.size > 1) return 'Multi-game parlay';
+  if (/^SGP/.test(d) || n > 1) return 'Same-game parlay';
+  const L0 = legs[0] || {}, t = String(L0.t || (L0.type ? legText(L0) : '') || d);
+  if (/first TD/i.test(t)) return 'First TD';
+  if (/anytime TD|\d\+ TDs?|to score|\bTD$/i.test(t)) return 'TD scorer';
+  if (/\bML\b/.test(t)) return 'Moneyline';
+  if (/^[A-Z]{2,3} [+\u2212-]\d/.test(t)) return 'Spread';
+  if (/^(Over|Under) \d/i.test(t)) return 'Total';
+  return 'Player prop';
+}
+const betLive = (b) => (b.live != null ? !!b.live : /\blive\b/i.test(String(b.desc || '')));
+function betBoost(b) {
+  const d = String(b.boost != null ? b.boost + '% boost' : b.desc || '');
+  const m = d.match(/(\d+)% (?:parlay )?boost/i);
+  if (m && Number(m[1]) > 0) { const p = Number(m[1]); return p >= 100 ? '100% or more' : p >= 50 ? '50%' : '20\u201330%'; }
+  if (/odds boost|super boost/i.test(d)) return 'Boosted special';
+  return 'No boost';
+}
+const BB_ORDER = { kind: ['Moneyline', 'Spread', 'Total', 'Same-game parlay', 'Multi-game parlay', 'TD scorer', 'First TD', 'Player prop', 'Exact score', 'Promo'], boost: ['No boost', '20\u201330%', '50%', '100% or more', 'Boosted special'], live: ['Before kickoff', 'Live'] };
+function bbStats(list) {
+  const won = list.filter((b) => b.status === 'won').length, lost = list.filter((b) => b.status === 'lost').length, push = list.filter((b) => b.status === 'void').length;
+  const staked = list.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0), net = list.reduce((t, b) => t + (Number(b.net) || 0), 0);
+  return { n: list.length, won, lost, push, staked, net, roi: staked > 0 ? net / staked : null };
+}
+function bbGroup(list, keyOf, order) {
+  const m = new Map();
+  list.forEach((b) => { [].concat(keyOf(b)).forEach((k) => { if (!k) return; if (!m.has(k)) m.set(k, []); m.get(k).push(b); }); });
+  const rows = [...m.entries()].map(([k, bs]) => Object.assign({ key: k }, bbStats(bs)));
+  return order ? rows.sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key)) : rows;
+}
+const teamsOf = (b) => [...new Set((b.legs || []).map((l) => l.g || l.game).filter((g) => g && g.indexOf('@') > 0).flatMap((g) => g.split('@')))];
+const bbSigned = (v) => h('span' + (v > 0.004 ? '.ok' : v < -0.004 ? '.bad' : '.muted'), null, (v > 0.004 ? '+' : v < -0.004 ? MINUS : '') + cash(Math.abs(v)));
+const bbRec = (r) => r.won + '\u2013' + r.lost + (r.push ? '\u2013' + r.push : '');
+const bbRoi = (r) => (r.roi == null ? h('span.dim', null, 'bonus') : h('span' + (r.roi > 0.004 ? '.ok' : r.roi < -0.004 ? '.bad' : '.muted'), null, (r.roi > 0 ? '+' : r.roi < 0 ? MINUS : '') + Math.round(Math.abs(r.roi) * 100) + '%'));
+function BBTable({ title, rows, label, note, limit, fan }) {
+  const [all, setAll] = useState(false);
+  const shown = limit && !all ? rows.slice(0, limit) : rows;
+  return h('div.bb-card', null,
+    h('div.bb-h', null, title),
+    h('table.bb', null,
+      h('thead', null, h('tr', null, h('th', null, ''), h('th.rt', null, 'Bets'), h('th.rt', null, 'W\u2013L'), h('th.rt.m-hide', null, 'Staked'), h('th.rt', null, 'Net'), h('th.rt', null, 'Return'))),
+      h('tbody', null, shown.map((r) => h('tr', { key: r.key, className: fan && r.key === fan ? 'me' : undefined },
+        h('td', null, label ? label(r.key) : r.key),
+        h('td.rt.tnum', null, r.n),
+        h('td.rt.tnum', null, bbRec(r)),
+        h('td.rt.tnum.m-hide', null, cash(r.staked)),
+        h('td.rt.tnum', null, bbSigned(r.net)),
+        h('td.rt.tnum', null, bbRoi(r)))))),
+    limit && rows.length > limit ? h('button.linkbtn', { style: { marginTop: 6 }, onClick: () => setAll(!all) }, all ? 'Show fewer' : 'Show all ' + rows.length) : null,
+    note ? h('div.hint', { style: { marginTop: 6 } }, note) : null);
+}
+function BetBreakdown({ weeks, data }) {
+  const all = [];
+  weeks.forEach((Wk) => (Wk.bets || []).forEach((b) => { if (b.status === 'won' || b.status === 'lost' || b.status === 'void') all.push(Object.assign({ week: Wk.week }, b)); }));
+  if (!all.length) return h('div.panel.empty-state', null, 'No settled bets yet.');
+  const tot = bbStats(all), fan = uc(data.fanTeam);
+  const byBook = bbGroup(all, (b) => b.book || 'Other').sort((x, y) => y.n - x.n);
+  const byKind = bbGroup(all, betKind, BB_ORDER.kind);
+  const byLive = bbGroup(all, (b) => (betLive(b) ? 'Live' : 'Before kickoff'), BB_ORDER.live);
+  const byBoost = bbGroup(all, betBoost, BB_ORDER.boost);
+  const byTeam = bbGroup(all, teamsOf).sort((x, y) => (y.key === fan) - (x.key === fan) || y.n - x.n || x.net - y.net);
+  // headlines: the slice in each dimension that moved the most money, with enough bets to mean something
+  const big = (rows) => rows.filter((r) => r.n >= 5 && r.n < tot.n && Math.abs(r.net) >= 25).sort((x, y) => Math.abs(y.net) - Math.abs(x.net))[0];
+  const kindName = (k) => (k === 'TD scorer' ? 'Anytime TD bets' : k === 'First TD' ? 'First-TD bets' : k === 'Promo' ? 'Promos' : k + 's');
+  const heads = [
+    (() => { const r = big(byTeam); return r && Object.assign({ what: 'Bets on ' + r.key + ' games' }, r); })(),
+    (() => { const r = big(byKind); return r && Object.assign({ what: kindName(r.key) }, r); })(),
+    (() => { const r = big(byBook); return r && Object.assign({ what: r.key === 'DK' ? 'DraftKings' : r.key === 'FD' ? 'FanDuel' : r.key }, r); })(),
+    (() => { const r = big(byLive.filter((x) => x.key === 'Live')); return r && Object.assign({ what: 'Live bets' }, r); })(),
+  ].filter(Boolean).sort((x, y) => Math.abs(y.net) - Math.abs(x.net));
+  const close = all.filter((b) => b.status === 'lost' && (b.legs || []).length >= 2 && !(b.legs || []).some((l) => l.r === 'unk') && (b.legs || []).filter((l) => l.r === 'lost').length === 1 && (b.legs || []).every((l) => l.r === 'won' || l.r === 'lost' || l.r === 'void'))
+    .sort((x, y) => (Number(y.toPay) || 0) - (Number(x.toPay) || 0));
+  const closeMissed = close.reduce((t, b) => t + (Number(b.toPay) || 0), 0);
+  const wins = all.filter((b) => b.status === 'won').sort((x, y) => (Number(y.net) || 0) - (Number(x.net) || 0)).slice(0, 5);
+  const bookLabel = (k) => h('span', null, h('span.book.' + k, null, k), ' ', k === 'DK' ? 'DraftKings' : k === 'FD' ? 'FanDuel' : k);
+  const teamLabel = (k) => h('span.bb-team', null, h(Logo, { t: k, size: 16 }), k, k === fan ? h('span.you', null, 'your team') : null);
+  const gamesOf = (b) => [...new Set((b.legs || []).map((l) => l.g || l.game).filter((g) => g && g.indexOf('@') > 0))];
+  const whereOf = (b) => { const gs = gamesOf(b); return gs.length === 1 ? ', ' + gs[0].replace('@', ' at ') : gs.length > 1 ? ', ' + gs.length + ' games' : ''; };
+  const betLine = (b, extra) => h('div.bb-bet', { key: b.id }, h('span.book.' + (b.book || 'Other'), null, b.book), h('span.bb-bd', null, b.desc, h('span.hint', null, ' Week ' + b.week + whereOf(b))), extra);
+  return h('div.stack', null,
+    h('div.strip', null,
+      Stat(String(tot.n), 'Settled NFL bets, ' + bbRec(tot) + (tot.push ? ' (wins, losses, pushes)' : ' (wins and losses)')),
+      Stat(cash(tot.staked), 'Cash staked (bonus bets not counted)'),
+      Stat(bbSigned(tot.net), 'Net since Week ' + Math.min.apply(null, all.map((b) => b.week))),
+      Stat(tot.roi == null ? '\u2013' : (tot.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(tot.roi) * 100) + '%', 'Return on cash staked')),
+    heads.length ? h('div.panel.bb-heads', null, h('h3', null, 'What stands out'), h('ul', null, heads.map((r) => h('li', { key: r.what }, h('b', null, r.what + ': '), bbRec(r) + ', ', bbSigned(r.net), r.roi != null ? h('span.hint', null, ' (' + (r.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(r.roi) * 100) + '% on ' + cash(r.staked) + ' staked)') : null)))) : null,
+    h('div.bb-grid', null,
+      h(BBTable, { title: 'By book', rows: byBook, label: bookLabel }),
+      h(BBTable, { title: 'By bet type', rows: byKind }),
+      h(BBTable, { title: 'Live or before kickoff', rows: byLive }),
+      h(BBTable, { title: 'By boost', rows: byBoost, note: 'Profit boosts by size; boosted specials are the books\u2019 pre-priced specials and odds boosts.' }),
+      h(BBTable, { title: 'By team', rows: byTeam, label: teamLabel, limit: 8, fan, note: 'Every bet touching that team\u2019s game, whichever side it was on. A parlay counts for each team in it.' })),
+    h('div.bb-grid', null,
+      h('div.bb-card', null, h('div.bb-h', null, 'Biggest wins'), wins.map((b) => betLine(b, h('span.tnum.ok.bb-amt', null, '+' + cash(b.net))))),
+      h('div.bb-card', null, h('div.bb-h', null, 'Lost by one leg', h('span.hint', null, ' ' + close.length + ' parlay' + (close.length === 1 ? '' : 's') + (close.length ? ', ' + cash(closeMissed) + ' in payouts' : ''))),
+        close.length ? close.slice(0, 6).map((b) => { const miss = (b.legs || []).find((l) => l.r === 'lost'); return betLine(b, h('span.bb-miss', null, h('span.bad', null, '\u2717 ' + miss.t + (miss.v ? ' (' + miss.v + ')' : '')), h('span.tnum.dim', null, ' would have paid ' + cash(b.toPay)))); }) : h('div.hint', null, 'None yet.'),
+        close.length > 6 ? h('div.hint', { style: { marginTop: 6 } }, 'And ' + (close.length - 6) + ' more.') : null)));
+}
+
+// ---------- RedZone view: the live games in big type, most at stake first ----------
+// What you need from one game, in plain words, each with whether it is going your way right now.
+function rzItems(a, data) {
+  const g = a.g, boxes = data.boxes || {}, W = data.weights, out = [];
+  const live = g.status === 'live' && a.margin != null, final = g.status === 'final';
+  a.ints.filter((i) => !i.minor && i.kind !== 'bet' && i.weight > 0.02).forEach((i) => {
+    const c = live && i.cush ? i.cush(a.margin) : null;
+    const r = final ? a.cur(i) : undefined;
+    const st = final ? (r === true ? 'up' : r === false ? 'down' : 'even') : c == null ? 'pre' : c > 0 ? 'up' : c < 0 ? 'down' : 'even';
+    const who = i.kind === 'pool' ? (i.key === 'spread' ? 'CBS pool' : 'ESPN pool') : i.kind === 'survivor' ? 'Survivor' : 'Survivor field';
+    const what = i.kind === 'pool' ? i.label : i.label || i.side;
+    const how = final ? (r === true ? 'hit' : r === false ? 'missed' : 'push') : c == null ? '' : cushText(i, c);
+    out.push({ key: i.key, who, what, how, st, w: i.weight });
+  });
+  a.ints.filter((i) => i.kind === 'bet').concat(a.wants).forEach((x) => {
+    const b = (data.bets || []).find((y) => y.id === x.betId);
+    if (!b) return;
+    const legs = (b.legs || []).filter((l) => l.kind === 'game' && l.game === g.id).map((l) => { const n = legNow(l, g, boxes); return { t: legText(l), v: n.text, st: n.st, pct: n.pct }; });
+    const others = (b.legs || []).filter((l) => l.kind === 'game' && l.game !== g.id).length;
+    const done = x.done && x.done !== 'open' ? x.done : null;
+    // trending: the bet's live chance against its chance before kickoff
+    const fv = done ? null : betFair(b, data), q = fv != null && Number(b.toPay) ? fv / Number(b.toPay) : null, q0 = betProb(b, W);
+    const pre = g.status === 'upcoming';
+    const st = done ? (done === 'won' ? 'up' : done === 'lost' ? 'down' : 'even') : pre ? 'pre' : legs.some((l) => l.st === 'lost') ? 'down' : q != null && q0 > 0 ? (q > q0 * 1.15 ? 'up' : q < q0 * 0.85 ? 'down' : 'even') : 'even';
+    const how = done ? (done === 'won' ? 'won' : done === 'lost' ? 'lost' : 'push') : pctText(pre || q == null ? q0 : q) + ' to hit';
+    out.push({ key: x.key, who: x.src + (x.type ? ' ' + x.type : '') + (others ? ', +' + others + ' other game' + (others > 1 ? 's' : '') : ''), what: legs.length > 1 ? legs.length + '-leg ' + (x.type || 'bet') : legs.length ? legs[0].t : x.label, how, st, w: x.weight, legs: legs.length > 1 ? legs : legs[0] && legs[0].v && b.legs.length === 1 && (b.legs[0].type === 'prop' || b.legs[0].type === 'total') ? [Object.assign({}, legs[0], { t: '' })] : null, money: cash(b.stake) + ARROW + cash(b.toPay), pnl: x.pnl });
+  });
+  return out.sort((x, y) => y.w - x.w);
+}
+// overall: is this game going your way, weighting each interest by how much rides on it
+function rzMood(items) {
+  let v = 0, tot = 0;
+  items.forEach((x) => { const s = x.st === 'up' ? 1 : x.st === 'down' ? -1 : 0; v += s * x.w; tot += x.w; });
+  if (!tot) return 'calm';
+  const r = v / tot;
+  return r > 0.25 ? 'good' : r < -0.25 ? 'bad' : 'mixed';
+}
+const RZ_MOOD = { good: 'Going your way', bad: 'Going against you', mixed: 'Mixed', calm: '' };
+function RZTile({ a, data }) {
+  const g = a.g, live = g.status === 'live', final = g.status === 'final', scored = hasScore(g);
+  const dv = !final ? dollarView(a, data) : null, v = verdictOf(a, dv);
+  const items = rzItems(a, data), mood = live || final ? rzMood(items) : 'calm';
+  const sit = live && g.lv && g.lv.sit;
+  const pnl = a.ints.concat(a.wants).reduce((t, x) => t + (x.pnl || 0), 0);
+  const k = parseKick(g.kick);
+  return h('div.rz-tile.' + mood, { key: g.id },
+    h('div.rz-top', null,
+      h('div.rz-score.tnum', null,
+        h('span.t', null, h(Logo, { t: g.away, size: 34 }), g.away, scored ? h('b', null, g.awayScore) : null),
+        h('span.dim', null, scored ? '\u2013' : 'at'),
+        h('span.t', null, scored ? h('b', null, g.homeScore) : null, g.home, h(Logo, { t: g.home, size: 34 }))),
+      h('div.rz-clock', null, live ? h('span.livepill', null, g.clock || 'Live') : final ? 'Final' : [k.day ? DAYNAME[k.day].slice(0, 3) : '', k.time].filter(Boolean).join(' '), sit && sit.rz ? h('span.rzpill', null, 'Red zone' + (sit.pos ? ': ' + sit.pos : '')) : null)),
+    sit && sit.dd ? h('div.rz-sit', null, (sit.pos ? sit.pos + ' ball, ' : '') + sit.dd) : null,
+    h('div.rz-verdict', null,
+      h('span.' + v.pcls, { style: v.pstyle }, v.title),
+      RZ_MOOD[mood] ? h('span.rz-mood', null, RZ_MOOD[mood]) : null,
+      dv && (dv.up >= 0.5 || dv.down >= 0.5) ? h('span.rz-swing.tnum', { title: 'Best and worst case from this game, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : final && pnl ? h('span.rz-swing.tnum', null, bbSigned(pnl)) : null),
+    h('div.rz-items', null, items.map((x) => h('div.rz-item.' + x.st, { key: x.key },
+      h('span.rz-mk', null, x.st === 'up' ? '\u25b2' : x.st === 'down' ? '\u25bc' : x.st === 'even' ? '\u25c6' : '\u25cb'),
+      h('span.rz-what', null, h('span.who', null, x.who + (x.money ? ', ' + x.money : '')), x.what),
+      h('span.rz-how.tnum', null, x.how),
+      x.legs ? h('span.rz-legs', null, x.legs.map((l, i) => h('span.rz-leg.' + l.st, { key: i }, l.t ? h('span', null, (l.st === 'won' ? '\u2713 ' : l.st === 'lost' ? '\u2717 ' : '') + l.t) : null, l.v ? h('span.tnum', null, l.v) : null, l.pct != null && l.st !== 'lost' && l.st !== 'won' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * l.pct) + '%' } })) : null))) : null))),
+    a.notes.length ? h('div.hint', { style: { marginTop: 6 } }, a.notes.join(' ')) : null);
+}
+function RedZoneTab({ data, analyses }) {
+  const canLock = typeof navigator !== 'undefined' && !!navigator.wakeLock && typeof navigator.wakeLock.request === 'function';
+  const canFull = typeof document !== 'undefined' && !!document.documentElement && typeof document.documentElement.requestFullscreen === 'function';
+  // keep the screen awake while this view is open; the browser drops the lock when the tab is hidden, so take it back on return
+  const [want, setWant] = useState(false);
+  const lockRef = useRef(null);
+  useEffect(() => {
+    if (!want || !canLock) return undefined;
+    let alive = true;
+    const grab = async () => { try { const l = await navigator.wakeLock.request('screen'); if (!alive) { l.release().catch(() => {}); return; } lockRef.current = l; } catch (e) { if (alive) setWant(false); } };
+    const onVis = () => { if (document.visibilityState === 'visible' && (!lockRef.current || lockRef.current.released)) grab(); };
+    grab();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVis); if (lockRef.current) { lockRef.current.release().catch(() => {}); lockRef.current = null; } };
+  }, [want]);
+  const full = () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen().catch(() => {}); };
+  const live = analyses.filter((a) => a.g.status === 'live');
+  const hot = live.filter((a) => !a.quiet).sort((x, y) => (y.lev != null ? y.lev : y.score) - (x.lev != null ? x.lev : x.score));
+  const calm = live.filter((a) => a.quiet);
+  const when = (a) => { const kk = parseKick(a.g.kick); return (kk.day ? DAYS.indexOf(kk.day) : 9) * 1440 + (kk.mins || 0); };
+  const next = analyses.filter((a) => a.g.status === 'upcoming' && !a.quiet).sort((x, y) => when(x) - when(y));
+  const nextT = next.length ? when(next[0]) : null;
+  const soon = next.filter((a) => when(a) === nextT);
+  const later = next.filter((a) => when(a) !== nextT).slice(0, 6);
+  const todayKey = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date()).toLowerCase().slice(0, 3);
+  const doneToday = analyses.filter((a) => a.g.status === 'final' && !a.quiet && parseKick(a.g.kick).day === todayKey);
+  const pnlOfA = (a) => a.ints.concat(a.wants).reduce((t, x) => t + (x.pnl || 0), 0);
+  const dayNet = doneToday.reduce((t, a) => t + pnlOfA(a), 0);
+  return h('div.rz', null,
+    h('div.rz-head', null,
+      h('div', null, h('h2', null, 'RedZone'), h('div.hint', null, live.length ? live.length + ' live' + (hot.length ? ', ' + hot.length + ' with something riding, most in doubt first' : ', nothing riding') + '. Updates every 15 seconds.' : 'Nothing live right now. Games show here once they kick off.')),
+      h('div.row', null,
+        canLock ? h('button.btn.sm' + (want ? '.primary' : ''), { onClick: () => setWant(!want), 'aria-pressed': want ? 'true' : 'false', title: 'Stop the screen from dimming or locking while this is open' }, want ? 'Screen stays on' : 'Keep screen on') : null,
+        canFull ? h('button.btn.sm', { onClick: full, style: { marginLeft: 8 } }, 'Full screen') : null)),
+    hot.length ? h('div.rz-grid', null, hot.map((a) => h(RZTile, { key: a.g.id, a, data }))) : null,
+    calm.length ? h('div.rz-calm', null, h('b', null, 'Also live, nothing riding: '), calm.map((a, i) => h('span', { key: a.g.id }, (i ? ', ' : '') + a.g.away + ' ' + (a.g.awayScore == null ? '' : a.g.awayScore) + '\u2013' + (a.g.homeScore == null ? '' : a.g.homeScore) + ' ' + a.g.home + (a.g.clock ? ' (' + a.g.clock + ')' : '')))) : null,
+    soon.length ? h('div', null, h('h3.rz-sub', null, hot.length ? 'Up next' : 'Next up', h('span.hint', null, ' ' + kickText(soon[0].g))), h('div.rz-grid', null, soon.map((a) => h(RZTile, { key: a.g.id, a, data })))) : null,
+    later.length ? h('div.rz-later', null, h('b', null, 'Later: '), later.map((a, i) => { const vv = verdictOf(a, dollarView(a, data)); return h('span', { key: a.g.id }, (i ? '; ' : '') + a.g.away + ' at ' + a.g.home + ' ' + kickText(a.g) + ' (' + vv.title + ')'); })) : null,
+    doneToday.length ? h('div.rz-done', null, h('b', null, 'Final today: '), doneToday.map((a, i) => { const p = pnlOfA(a); return h('span', { key: a.g.id }, (i ? '; ' : '') + a.g.away + ' ' + a.g.awayScore + '\u2013' + a.g.homeScore + ' ' + a.g.home, p ? h('span' + (p > 0 ? '.ok' : '.bad'), null, ' ' + (p > 0 ? '+' : MINUS) + cash(Math.abs(p))) : null); }), dayNet ? h('span', null, '. Bets today: ', bbSigned(dayNet)) : null) : null,
+    !live.length && !next.length && !doneToday.length ? h('div.panel.empty-state', null, 'No games with anything riding this week yet.') : null);
+}
+
 
 // ---------- app ----------
 // A tab that throws shows a note instead of taking the whole board down with it.
@@ -2058,7 +2411,7 @@ const fetchPublished = async () => { try { const r = await fetch(DATA_URL + '?t=
 function App() {
   const [data, setData] = useState(() => migrate(EMPTY));
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem('rb-tab'); return ['root', 'bets', 'pools', 'advisor', 'results'].indexOf(t) >= 0 ? t : 'root'; } catch (e) { return 'root'; } });
+  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem('rb-tab'); return ['root', 'redzone', 'bets', 'pools', 'advisor', 'results'].indexOf(t) >= 0 ? t : 'root'; } catch (e) { return 'root'; } });
   useEffect(() => { try { localStorage.setItem('rb-tab', tab); } catch (e) { /* storage unavailable */ } }, [tab]);
   const [published, setPublished] = useState(null);
   const [source, setSource] = useState('');
@@ -2138,6 +2491,9 @@ function App() {
   useEffect(() => { if (loaded) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ } } }, [data, loaded]);
   const [results, setResults] = useState(undefined);
   useEffect(() => { let alive = true; fetchResults().then((r) => { if (alive) setResults(r); }); return () => { alive = false; }; }, [data.updatedAt]);
+  // today's futures prices (ESPN, DraftKings' board), every 30 minutes
+  const [futs, setFuts] = useState(null);
+  useEffect(() => { let alive = true; const go = async () => { const f = await fetchFutures(data.season || new Date().getFullYear()); if (alive && f) setFuts(f); }; go(); const t = setInterval(go, 1800000); return () => { alive = false; clearInterval(t); }; }, [data.season]);
   const [live, setLive] = useState({});
   const [liveAt, setLiveAt] = useState(null);
   const [liveErr, setLiveErr] = useState(false);
@@ -2228,7 +2584,7 @@ function App() {
   const stale = !!liveAt && now - liveAt.getTime() > (view.games.some((g) => g.status === 'live') ? 60000 : 600000);
   const doRefresh = () => { setBusy(true); if (refreshRef.current) refreshRef.current(); if (verCheckRef.current) verCheckRef.current().then((isNew) => { if (isNew) hardReload(newHashRef.current); }); };
   const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Offline copy from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
-  const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['results', 'Results', 'Results']];
+  const tabs = [['root', 'Rooting guide', 'Guide'], ['redzone', 'RedZone', 'RedZone'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['results', 'Results', 'Results']];
   return h('div.wrap', null,
     newVer ? h('div.updbar', null, 'The board was updated; it reloads itself when you pause.', h('button.linkbtn', { onClick: () => hardReload(newHashRef.current) }, 'Reload now')) : null,
     h('header.top', null,
@@ -2237,7 +2593,8 @@ function App() {
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
       : h(Boundary, { k: tab },
         tab === 'root' ? h(RootingTab, { data: view, analyses, recap, onDismiss: () => setRecap(null), onAdvisor: () => setTab('advisor'), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
-        : tab === 'bets' ? h(BetsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null })
+        : tab === 'redzone' ? h(RedZoneTab, { data: view, analyses })
+        : tab === 'bets' ? h(BetsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null, futs })
         : tab === 'pools' ? h(PoolsTab, { data: view, results })
         : tab === 'advisor' ? h(AdvisorTab, { data: nextView || view })
         : h(ResultsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null })));
