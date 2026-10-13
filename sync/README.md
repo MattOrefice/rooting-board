@@ -104,7 +104,9 @@ settled bets and net, and anything left to settle. Then ask for:
   Pennsylvania.
 - DraftKings: My Bets, Settled (it loads 25 bets at a time, so paste in pieces, scrolling between copies, until
   it reaches last Tuesday) and Open.
-- DraftKings survivor: a screenshot of the entries once he has made next week's picks.
+- DraftKings survivor: a screenshot of the entries once he has made next week's picks, plus the pool's entry count
+  (how many entries are still alive, if the pool screen shows it). The board values each live entry from the prize
+  and that count.
 
 ## 7. When the pastes come in
 
@@ -132,7 +134,9 @@ missing (with the book's own text), and archived bets the pastes don't show. Fix
 - Never invent a payout: use the book's numbers.
 
 Rerun `books.py` until only the expected items remain, rerun the smoke test, and publish again (step 5). Put the
-survivor picks from the screenshot in `data.json` `survivorPool.entries[].pick` and publish.
+survivor picks from the screenshot in `data.json` `survivorPool.entries[].pick`. If Matt gives the pool's entry
+count, set `survivorPool.alive` to it and `aliveEst` to false (and `survivorPool.field` to the starting count the
+first time). Then publish.
 
 ## Files
 

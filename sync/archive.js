@@ -180,6 +180,13 @@ if (sched.length) {
     else if (res === 'tie') warn((nd.survivorPool.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' tied. Kept alive; check the pool\'s rule for ties');
     else if (res !== 'won') warn((nd.survivorPool.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' has no final result');
   });
+  // the survivor field after this week: Matt's count when he sends one, otherwise an estimate from the week's favorites
+  if (nd.survivorPool && nd.survivorPool.prize && D.survivorPool) {
+    const sv0 = L.survValue(D.survivorPool, D.games);
+    nd.survivorPool.alive = Math.max(1, Math.round(sv0.alive * sv0.s));
+    nd.survivorPool.aliveEst = true;
+    warn((nd.survivorPool.short || 'Survivor') + ' field: about ' + nd.survivorPool.alive + ' entries left (an estimate from about ' + Math.round(100 * sv0.s) + '% surviving). Ask Matt for the real count from the pool screen; set survivorPool.alive to it and aliveEst to false' + (nd.survivorPool.field ? '' : ', and survivorPool.field to the starting count'));
+  }
   ['boxes', 'history', 'autoWeek'].forEach((k) => { delete nd[k]; });
   nd.updatedAt = stamp;
 }
