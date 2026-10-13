@@ -278,6 +278,14 @@ table.bb tr.me td{background:rgba(242,194,48,.07)}
 .bb-miss{grid-column:2/-1;font-size:12px}
 .bb-amt{white-space:nowrap;font-weight:700}
 .fut-now{color:var(--flag)}
+.flagtxt{color:var(--flag);font-weight:600}
+.sv-pick{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sv-pick .hint{flex-basis:100%}
+.sv-used{display:flex;flex-wrap:wrap;gap:6px}
+.sv-u{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
+tr.sv-out td{opacity:.55}
+.res-sv.multi{display:flex;flex-wrap:wrap;gap:4px 8px}
+.res-sve{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .m-inl{display:none}
 .book.m-inl{margin-right:6px}
 input.cashout{width:104px;margin-top:4px;font-size:12px}
@@ -1157,7 +1165,11 @@ function analyze(g, data) {
   const surv = uc(data.survivor);
   const gwp = g.homeWP == null || g.homeWP === '' ? null : Number(g.homeWP);
   const sfd = survField(data);
-  if (surv && inGame(surv)) { const ps = gwp == null ? 0.5 : surv === g.home ? gwp : 1 - gwp; const V = sfd ? sfd.vMe : Number(W.survivor) || 0; ints.push({ key: 'surv', src: 'Survivor', kind: 'survivor', side: surv, gap: V, label: surv + ' to win', sub: 'Lose and you\u2019re out, ' + Math.round(100 * ps) + '% to win' + (sfd ? '; your entry is worth about ' + cash(V) + ' if you survive' : ''), weight: 2 * ps * (1 - ps) * V, test: mlTest(surv, g), cush: mlCush(surv, g), ctype: 'su' }); }
+  survEntries(data).forEach((E) => {
+    if (!inGame(E.pick)) return;
+    const t = E.pick, ps = gwp == null ? 0.5 : t === g.home ? gwp : 1 - gwp, V = E.legacy ? (sfd ? sfd.vMe : Number(W.survivor) || 0) : E.V;
+    ints.push({ key: E.key, src: E.who, kind: 'survivor', side: t, gap: V, label: t + ' to win', sub: (E.legacy ? 'Lose and you\u2019re out, ' : 'Lose and entry #' + E.n + ' is out, ') + Math.round(100 * ps) + '% to win' + (E.legacy && sfd ? '; your entry is worth about ' + cash(V) + ' if you survive' : ''), weight: 2 * ps * (1 - ps) * V, test: mlTest(t, g), cush: mlCush(t, g), ctype: 'su' });
+  });
   if (sfd) [g.away, g.home].forEach((X) => {
     const n = sfd.nOf(X);
     if (!(n > 0) || X === surv) return;
@@ -1301,7 +1313,7 @@ function recapLines(prev, analyses) {
         else if (now === 'up' && (was === 'down' || was === 'even')) out.push(i.team + ' now trails: ' + i.n + ' survivor entries at risk');
         return;
       }
-      const name = i.kind === 'pool' ? (i.key === 'spread' ? 'your CBS pick ' + i.label : 'your ESPN pick ' + i.side) : i.kind === 'survivor' ? 'your survivor pick ' + i.side : 'your ' + i.src + (i.type ? ' ' + i.type : '') + ' ' + short(i.label);
+      const name = i.kind === 'pool' ? (i.key === 'spread' ? 'your CBS pick ' + i.label : 'your ESPN pick ' + i.side) : i.kind === 'survivor' ? 'your ' + (i.src && i.src !== 'Survivor' ? i.src : 'survivor') + ' pick ' + i.side : 'your ' + i.src + (i.type ? ' ' + i.type : '') + ' ' + short(i.label);
       if (i.kind === 'bet' && (now === 'won' || now === 'lost' || now === 'void')) out.push(name + (now === 'won' ? ' won' : now === 'lost' ? ' lost' : ' pushed') + (i.pnl ? ' (' + (i.pnl > 0 ? '+' : MINUS) + cash(Math.abs(i.pnl)) + ')' : ''));
       else if ((now === 'up' || now === 'down') && was !== 'pre') { const sp = i.kind === 'pool' && i.key === 'spread', bt = i.kind === 'bet'; out.push(name + (now === 'up' ? (sp ? ' is now covering' : bt ? ' is now ahead' : ' is now winning') : (sp ? ' is no longer covering' : bt ? ' is now behind' : ' is now losing'))); }
     });
@@ -1329,8 +1341,7 @@ function GameCard({ a, rank, data }) {
     return h(Row, { key: p.which, src: p.src, off: p.state === 'noedge', team: p.side, label: p.label, sub: poolSub(p, final), w: final ? null : p.weight, dv: dv ? dv.per.get(p.which) : undefined, mk: final && a.margin != null && p.test ? p.test(a.margin) : undefined, cush: cushOf(p) });
   };
   const rows = [poolRow(a.spread), poolRow(a.pickem)];
-  const surv = a.ints.find((i) => i.kind === 'survivor');
-  if (surv) rows.push(h(Row, { key: 'surv', src: 'Survivor', team: surv.side, label: surv.label, sub: surv.sub, w: final ? null : surv.weight, dv: dv ? dv.per.get('surv') : undefined, mk: res(surv), cush: cushOf(surv) }));
+  a.ints.filter((i) => i.kind === 'survivor').forEach((sv) => rows.push(h(Row, { key: sv.key, src: sv.src, team: sv.side, label: sv.label, sub: sv.sub, w: final ? null : sv.weight, dv: dv ? dv.per.get(sv.key) : undefined, mk: res(sv), cush: cushOf(sv) })));
   a.ints.filter((i) => i.kind === 'survfield').forEach((i) => rows.push(h(Row, { key: i.key, src: 'Survivor field', team: i.side, label: i.label, sub: i.sub, w: final ? null : i.weight, dv: dv ? dv.per.get(i.key) : undefined, mk: res(i), cush: cushOf(i) })));
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).sort((x, y) => y.weight - x.weight).forEach((b) => rows.push(h(Row, {
     key: b.key, src: h('span', null, h('span.book.' + b.src, null, b.src), b.type ? ' ' + b.type : ''), team: b.side, label: b.label, sub: live && b.subShort ? b.subShort : b.sub, prog: live ? null : b.prog, w: final ? null : b.weight, dv: dv ? dv.per.get(b.key) : undefined, money: final ? pnlMoney(b) : undefined,
@@ -1626,9 +1637,10 @@ function RootingTab({ data, analyses, auto, recap, onDismiss, onAdvisor }) {
     Stat(cash(fvWk), 'Open bets worth now (' + openWk.length + ', ' + cash(costWk) + ' staked)'),
   ] : [Stat('None yet', 'Bets this week')];
   ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(data, w); if (s) { const sim = poolSim(data, w); const pct = sim.pot ? Math.round(100 * sim.equity(null) / sim.pot) : 0; stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts, ' + pct + '% to win')); } });
+  { const SP = data.survivorPool; if (SP && Array.isArray(SP.entries) && SP.entries.length) { const al = survAlive(SP); stats.push(Stat(al.length + ' of ' + SP.entries.length + ' alive', (SP.short || 'Survivor') + (al.length ? ': ' + al.map((e) => uc(e.pick) || 'no pick').join(', ') + ' this week' : ', every entry out'))); } }
   return h('div', null,
     recap && recap.length ? h('div.panel.recap', null, h('b', null, 'Since you last looked: '), recap.slice(0, 6).join('; ') + (recap.length > 6 ? '; and ' + (recap.length - 6) + ' more' : '') + '.', h('button.linkbtn', { onClick: onDismiss }, 'Dismiss')) : null,
-    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and DraftKings lines loaded from ESPN. Your pool picks' + (data.survivorOut ? '' : ', your survivor pick') + ' and the CBS lines come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results'), !auto.showPrev && onAdvisor ? h('button.linkbtn', { onClick: onAdvisor, style: { marginLeft: 14 } }, 'See pick suggestions') : null) : null,
+    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and DraftKings lines loaded from ESPN. Your pool picks' + (data.survivorOut && !survAlive(data.survivorPool).length ? '' : ', your survivor picks') + ' and the CBS lines come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results'), !auto.showPrev && onAdvisor ? h('button.linkbtn', { onClick: onAdvisor, style: { marginLeft: 14 } }, 'See pick suggestions') : null) : null,
     outcomes.days.length ? h('div.panel.howwent', { title: PCTL_TIP }, h('b', null, 'How it went: '), outcomes.days.map((D, i) => h('span', { key: D.title }, i ? '; ' : '', D.title + (D.soFar ? ' so far' : '') + ' ', h('span.pctl', null, outcomeText(D)))), outcomes.week ? h('span', null, '; week so far ', h('span.pctl', null, outcomeText(outcomes.week))) : null) : null,
     h('div.strip', null, stats),
     (() => {
@@ -1653,8 +1665,8 @@ function RootingTab({ data, analyses, auto, recap, onDismiss, onAdvisor }) {
       const times = [...new Set(s.items.map((a) => parseKick(a.g.kick)).filter((x) => x.time).sort((x, y) => x.mins - y.mins).map((x) => x.time))];
       const rec = (w) => { let W2 = 0, L2 = 0; s.items.forEach((a) => { const p = a[w]; if (!p || !p.test || a.margin == null) return; const r = p.test(a.margin); if (r === true) W2++; else if (r === false) L2++; }); return W2 + L2 ? W2 + '\u2013' + L2 : null; };
       const pnlS = s.items.reduce((t, a) => t + a.ints.concat(a.wants).reduce((u, x) => u + (x.pnl || 0), 0), 0);
-      const sv = s.items.map((a) => a.ints.find((i) => i.kind === 'survivor') && a.cur(a.ints.find((i) => i.kind === 'survivor'))).find((x) => x != null);
-      const sumParts = [rec('spread') ? ['CBS ', rec('spread')] : null, rec('pickem') ? ['ESPN ', rec('pickem')] : null, sv != null ? ['Survivor ', sv ? '\u2713' : '\u2717'] : null, pnlS ? ['Bets ', (pnlS > 0 ? '+' : MINUS) + cash(Math.abs(pnlS))] : null].filter(Boolean);
+      const svs = s.items.flatMap((a) => a.ints.filter((i) => i.kind === 'survivor').map((i) => a.cur(i))).filter((x) => x != null);
+      const sumParts = [rec('spread') ? ['CBS ', rec('spread')] : null, rec('pickem') ? ['ESPN ', rec('pickem')] : null, svs.length ? ['Survivor ', svs.map((x) => (x ? '\u2713' : '\u2717')).join('')] : null, pnlS ? ['Bets ', (pnlS > 0 ? '+' : MINUS) + cash(Math.abs(pnlS))] : null].filter(Boolean);
       return h('section', { key: s.key + s.title },
         h('div.slot', null,
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone && !done ? h('span.rz', null, 'RedZone') : null),
@@ -1732,6 +1744,74 @@ function futFair(b, futs) {
 }
 const fmtAm = (a) => (a > 0 ? '+' + a : MINUS + Math.abs(a));
 const pctText = (p) => (p >= 0.995 ? '99%+' : p < 0.005 ? 'under 1%' : p < 0.1 ? (Math.round(p * 1000) / 10) + '%' : Math.round(p * 100) + '%');
+
+// ---------- survivor: the old single pick (data.survivor) and pools with several entries (data.survivorPool) ----------
+// survivorPool: { name, short, site, buyIn, value, startWeek, entries: [{ n, pick, used: [teams], out: week or null, outPick }] }
+// `value` is about what one live entry is worth this week in dollars (prize pool over entries still alive).
+function survEntries(data) {
+  const out = [], sv = uc(data.survivor || '');
+  if (sv) out.push({ key: 'surv', n: 0, pick: sv, who: 'Survivor', legacy: true });
+  const P = data.survivorPool;
+  if (P && Array.isArray(P.entries)) P.entries.forEach((e) => { const pk = uc(e.pick); if (pk && !e.out) out.push({ key: 'surv' + e.n, n: e.n, pick: pk, who: (P.short || 'Survivor') + ' #' + e.n, V: Number(P.value) || Number(P.buyIn) || 0 }); });
+  return out;
+}
+const survAlive = (P) => (P && Array.isArray(P.entries) ? P.entries.filter((e) => !e.out) : []);
+// a team's result this week: won, lost, tie, or open while its game isn't final
+function survResult(t, games) {
+  const g = (games || []).find((x) => x.home === t || x.away === t);
+  if (!g || g.status !== 'final' || !hasScore(g)) return 'open';
+  const r = mlTest(t, g)(marginOf(g));
+  return r === true ? 'won' : r === false ? 'lost' : 'tie';
+}
+// this week's survivor-pool picks and their results so far, in the shape the Results tab archives
+function survWeekLive(d) {
+  const P = d.survivorPool;
+  if (!P || !Array.isArray(P.entries)) return null;
+  const wk = Number(d.week);
+  const entries = P.entries.filter((e) => e.pick && !(e.out && Number(e.out) < wk)).map((e) => ({ n: e.n, pick: uc(e.pick), result: survResult(uc(e.pick), d.games) }));
+  return entries.length ? { pool: P.short || 'Survivor', entries } : null;
+}
+const survMark = (r) => (r === 'won' ? h('span.ok', null, '\u2713') : r === 'lost' ? h('span.bad', null, '\u2717') : r === 'tie' ? h('span.flagtxt', null, 'tie') : null);
+// one line for the Pick advisor: this week's picks, or that the old pool is over
+function survNote(data) {
+  const P = data.survivorPool, alive = survAlive(P);
+  if (P && P.entries && P.entries.length) {
+    if (!alive.length) return (P.short || 'Survivor') + ': every entry is out.';
+    const missing = alive.filter((e) => !e.pick).length;
+    return (P.short || 'Survivor') + ': ' + alive.map((e) => '#' + e.n + ' ' + (uc(e.pick) || 'no pick yet')).join(', ') + ' this week.' + (missing ? ' The Pools tab lists the safest teams each entry hasn\u2019t used.' : '');
+  }
+  return data.survivorOut ? 'Survivor: you were knocked out in ' + data.survivorOut + '.' : null;
+}
+function SurvivorPanel({ data }) {
+  const P = data.survivorPool;
+  if (!P || !Array.isArray(P.entries) || !P.entries.length) return null;
+  const games = data.games || [], alive = survAlive(P);
+  const gameOf = (t) => games.find((x) => x.home === t || x.away === t);
+  const pWin = (t) => { const g = gameOf(t); if (!g || g.homeWP == null || g.homeWP === '') return null; return t === g.home ? Number(g.homeWP) : 1 - Number(g.homeWP); };
+  const open = (t) => { const g = gameOf(t); return g && g.status === 'upcoming'; };
+  // safest teams this week that an entry hasn't used, for entries still needing a pick
+  const best = (e) => { const used = new Set((e.used || []).map(uc)); return games.filter((g) => g.status === 'upcoming').flatMap((g) => [g.home, g.away]).filter((t) => !used.has(t) && pWin(t) != null).sort((x, y) => pWin(y) - pWin(x)).slice(0, 3); };
+  const pickCell = (e) => {
+    const t = uc(e.pick);
+    if (e.out) return h('span.muted', null, 'Out in Week ' + e.out + (e.outPick ? ' (' + e.outPick + ')' : ''));
+    if (!t) { const b = best(e); return h('span', null, h('span.flagtxt', null, 'No pick yet'), b.length ? h('div.hint', null, 'Safest unused: ' + b.map((x) => x + ' ' + Math.round(100 * pWin(x)) + '%').join(', ')) : null); }
+    const g = gameOf(t), r = survResult(t, games), p = pWin(t);
+    const opp = g ? (t === g.home ? 'vs ' + g.away : 'at ' + g.home) : '';
+    const state = !g ? 'no game this week' : g.status === 'live' ? (g.clock || 'live') + ', ' + (t === g.home ? g.homeScore + '\u2013' + g.awayScore : g.awayScore + '\u2013' + g.homeScore) : g.status === 'final' ? (r === 'won' ? 'won' : r === 'lost' ? 'lost' : 'tied') + ' ' + (t === g.home ? g.homeScore + '\u2013' + g.awayScore : g.awayScore + '\u2013' + g.homeScore) : kickText(g) + (p != null ? ', ' + Math.round(100 * p) + '% to win' : '');
+    return h('span.sv-pick', null, h(Logo, { t, size: 18 }), h('b', null, t), h('span.muted', null, ' ' + opp), ' ', survMark(r), h('div.hint', null, state));
+  };
+  const usedCell = (e) => { const u = (e.used || []).map(uc); return u.length ? h('span.sv-used', null, u.map((t) => h('span.sv-u', { key: t, title: t }, h(Logo, { t, size: 14 }), t))) : h('span.hint', null, 'none yet'); };
+  const lost = P.entries.length - alive.length;
+  return h('div.panel', null,
+    h('div.row.between', { style: { alignItems: 'baseline' } }, h('h3', null, P.name || 'Survivor'), h('span.muted', { style: { fontSize: 13 } }, alive.length + ' of ' + P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' alive' + (lost ? ', ' + lost + ' out' : ''))),
+    h('p.hint', { style: { margin: '4px 0 8px' } }, (P.buyIn ? P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' at ' + cash(P.buyIn) + (P.startWeek ? ', picks from Week ' + P.startWeek : '') + '. ' : '') + 'Pick one team to win each week and never reuse it; a loss ends that entry. Each live entry counts as about ' + cash(Number(P.value) || Number(P.buyIn) || 0) + ' on the board. ' + (P.site || 'The pool') + ' can\u2019t be opened from here, so send me your picks each week (a screenshot works).'),
+    h('div.scroll', null, h('table', null,
+      h('thead', null, h('tr', null, h('th', null, 'Entry'), h('th', null, 'Week ' + data.week + ' pick'), h('th', null, 'Teams used'))),
+      h('tbody', null, P.entries.map((e) => h('tr', { key: e.n, className: e.out ? 'sv-out' : undefined },
+        h('td', null, '#' + e.n),
+        h('td', null, pickCell(e)),
+        h('td', null, usedCell(e))))))));
+}
 
 function BetsTab({ data, results, prev, futs }) {
   const [offers, setOffers] = useState({});
@@ -1869,7 +1949,7 @@ function PoolPanel({ data, which, results }) {
     h('p.hint', { style: { margin: anyPicks ? '10px 0 0' : '0' } }, (anyPicks ? '' : 'No Week ' + data.week + ' picks in yet. ') + (isSpread ? 'Opponents\u2019 picks stay hidden until each game kicks off and come in when I refresh.' : 'Opponents\u2019 picks stay hidden until each game kicks off, then fill in automatically from ESPN.') + (isSpread && data.lineSource && data.lineSource !== 'CBS' ? ' Lines shown are DraftKings\u2019 until CBS posts the pool\u2019s lines.' : '')),
     h('p.hint', { style: { margin: '4px 0 0' } }, rateLine));
 }
-const PoolsTab = ({ data, results }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', results }), h(PoolPanel, { data, which: 'pickem', results }));
+const PoolsTab = ({ data, results }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', results }), h(PoolPanel, { data, which: 'pickem', results }), h(SurvivorPanel, { data }));
 
 // ---------- pick advisor ----------
 // For every game not yet started, the pick that gives you the best chance of winning each winner-take-all pool.
@@ -1995,7 +2075,7 @@ function AdvisorTab({ data }) {
       h('h3', null, 'Week ' + data.week + ' pick advisor'),
       h('p.adv-intro', null, 'For each game that hasn\u2019t started, the pick that gives you the best shot at each pool\u2019s prize. It weighs how likely each side is to be right (DraftKings\u2019 odds) against how the others usually pick. The dollar figure is how much more of the prize that pick is worth than the other side, on average.'),
       tbTotal != null && lastGame ? h('p.hint', { style: { marginTop: 6 } }, 'Tiebreaker: ' + lastGame.away + ' at ' + lastGame.home + ' total points. The market total is ' + tbTotal + ', so ' + Math.round(tbTotal) + ' is the best single guess.') : null,
-      data.survivorOut ? h('p.hint', { style: { marginTop: 4 } }, 'Survivor: you were knocked out in ' + data.survivorOut + '.') : null),
+      survNote(data) ? h('p.hint', { style: { marginTop: 4 } }, survNote(data)) : null),
     !open.length ? h('div.panel.empty-state', null, 'Every Week ' + data.week + ' game has started. Advice for Week ' + (Number(data.week) + 1) + ' shows up once its schedule loads.') : null,
     pools.map((P) => { if (P.none) return null; const allToss = P.isSpread && !cbsLines && P.rows.every((r) => r.locked || r.noline || r.toss); const showRows = !allToss || showAll; return h('div.panel', { key: P.which },
       h('div.row.between', { style: { alignItems: 'baseline', marginBottom: 4 } }, h('h3', null, P.L.name, h('span.hint', { style: { marginLeft: 10, fontFamily: 'Barlow, sans-serif' } }, P.isSpread ? 'against the spread' : 'straight up')), h('span.muted', { style: { fontSize: 13 } }, leadText(P))),
@@ -2035,7 +2115,7 @@ function weekFromLive(d) {
   });
   const sv = uc(d.survivor);
   const sg = sv ? d.games.find((g) => g.home === sv || g.away === sv) : null;
-  const survivor = sv ? { pick: sv, result: sg && sg.status === 'final' && hasScore(sg) ? (mlTest(sv, sg)(marginOf(sg)) ? 'won' : 'lost') : 'open' } : null;
+  const survivor = sv ? { pick: sv, result: sg && sg.status === 'final' && hasScore(sg) ? (mlTest(sv, sg)(marginOf(sg)) ? 'won' : 'lost') : 'open' } : survWeekLive(d);
   const shownPicks = (which) => { const src = (which === 'spread' ? d.spreadPicks : d.pickemPicks) || {}, me = d.me[which], out = {}; Object.keys(src).forEach((p) => { out[p] = {}; Object.keys(src[p] || {}).forEach((gid) => { const g = byId[gid]; if (g && (p === me || shownFor(g, which))) out[p][gid] = src[p][gid]; }); }); return out; };
   return { week: Number(d.week), games: d.games.slice(), finals: finals.length, picks: { spread: shownPicks('spread'), pickem: shownPicks('pickem') }, order: null, tb: null, survivor, bets, done: finals.length === d.games.length && d.games.length > 0, total: d.games.length, live: true };
 }
@@ -2103,11 +2183,12 @@ function ResultsTab({ data, results, prev }) {
   const strip = h('div.strip', null,
     sp ? Stat(ordinal(sp.m.seasonRank) + ' of ' + sp.P.rows.length, data.leagues.spread.name + ': ' + sp.m.season + ' pts' + gapText(sp.P) + ', ' + recText(sp.rec) + ' ATS') : null,
     pk ? Stat(ordinal(pk.m.seasonRank) + ' of ' + pk.P.rows.length, data.leagues.pickem.name + ': ' + pk.m.season + ' pts' + gapText(pk.P) + ', ' + recText(pk.rec)) : null,
-    survWeeks.length || data.survivorOut ? Stat(outWk || data.survivorOut ? 'Out' : 'Alive', 'Survivor: ' + (outWk ? 'lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : data.survivorOut ? 'out in ' + data.survivorOut : survWeeks.length + ' weeks survived')) : null,
+    data.survivorPool && (data.survivorPool.entries || []).length ? (() => { const SP = data.survivorPool, al = survAlive(SP); return Stat(al.length + ' of ' + SP.entries.length + ' alive', (SP.short || 'Survivor') + (SP.startWeek ? ' since Week ' + SP.startWeek : '') + (outWk ? '; Splash pool lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : '')); })()
+      : survWeeks.length || data.survivorOut ? Stat(outWk || data.survivorOut ? 'Out' : 'Alive', 'Survivor: ' + (outWk ? 'lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : data.survivorOut ? 'out in ' + data.survivorOut : survWeeks.length + ' weeks survived')) : null,
     tracked.length ? Stat(signed(betTot.net), 'Bets since Week ' + tracked[0].week + ': ' + betTot.won + ' won, ' + betTot.lost + ' lost, ' + cash(betTot.staked) + ' staked') : null);
   const cellPool = (Wk, which) => { const P = Wk.pools[which], m = P.mine; if (!m || !m.n) return h('span.hint', null, Wk.live && !Wk.finals ? '' : 'no picks'); return h('div', null, h('b.tnum', null, recText(m)), h('span.muted', null, ' ' + rankText(m) + ' this week'), h('div.hint', null, (Wk.live && !Wk.done ? 'so far; ' : '') + 'season ' + ordinal(m.seasonRank) + gapText(P))); };
   const cellBets = (Wk) => (!Wk.betSum ? h('span.hint', null, 'not tracked') : !Wk.betSum.n ? h('span.hint', null, 'none') : h('div', null, signed(Wk.betSum.net), h('div.hint', null, Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : '')), Wk.betsNote ? h('div.hint.res-bn', null, Wk.betsNote) : null));
-  const cellSurv = (Wk) => (!Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
+  const cellSurv = (Wk) => (Wk.survivor && Wk.survivor.entries ? h('span.res-sv.multi', { title: Wk.survivor.pool || 'Survivor' }, Wk.survivor.entries.map((e) => h('span.res-sve', { key: e.n }, h(Logo, { t: e.pick, size: 14 }), e.pick, survMark(e.result) || h('span.hint', null, '\u2026')))) : !Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
   const table = h('div.panel', null,
     h('div.row.between', { style: { marginBottom: 8 } }, h('h3', null, 'Week by week'), h('span.hint', null, 'Tap a week for the details')),
     h('div.res-head', null, h('span', null, 'Week'), h('span', null, data.leagues.spread.name), h('span', null, data.leagues.pickem.name), h('span', null, 'Survivor'), h('span', null, 'Bets')),
@@ -2168,10 +2249,11 @@ function WeekDetail({ Wk, weeks, setSel, data, me }) {
       h('div.res-gh', null, h('span', null, 'Game'), h('span', null, 'Line'), h('span', null, data.leagues.spread.name), h('span', null, data.leagues.pickem.name), h('span', { style: { textAlign: 'right' } }, 'Bets')),
       games.map((g) => {
         const sv = Wk.survivor && Wk.survivor.pick && (g.home === Wk.survivor.pick || g.away === Wk.survivor.pick);
+        const svE = Wk.survivor && Wk.survivor.entries ? Wk.survivor.entries.filter((e) => g.home === e.pick || g.away === e.pick) : [];
         const bs = byGame[g.id] || [], done = bs.filter((b) => b.status !== 'open'), net = done.reduce((t, b) => t + (b.net || 0), 0), nOpen = bs.length - done.length;
         const when = g.status === 'live' ? h('span.livepill', { style: { fontSize: 11, marginLeft: 6 } }, g.clock || 'Live') : g.status === 'upcoming' ? h('span.hint', { style: { marginLeft: 6 } }, kickText(g)) : g.ot ? h('span.hint', null, ' OT') : null;
         return h('div.res-g', { key: g.id },
-          h('span.res-gs', null, h('span.res-score', null, h(Logo, { t: g.away, size: 16 }), g.away + (hasScore(g) ? ' ' + g.awayScore : ''), h('span.dim', null, hasScore(g) ? ' \u2013 ' : ' at '), (hasScore(g) ? g.homeScore + ' ' : '') + g.home, h(Logo, { t: g.home, size: 16 }), when), sv ? h('span.hint.res-svl', null, 'Survivor: ' + Wk.survivor.pick + ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : '') : null),
+          h('span.res-gs', null, h('span.res-score', null, h(Logo, { t: g.away, size: 16 }), g.away + (hasScore(g) ? ' ' + g.awayScore : ''), h('span.dim', null, hasScore(g) ? ' \u2013 ' : ' at '), (hasScore(g) ? g.homeScore + ' ' : '') + g.home, h(Logo, { t: g.home, size: 16 }), when), sv ? h('span.hint.res-svl', null, 'Survivor: ' + Wk.survivor.pick + ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : '') : null, svE.length ? h('span.hint.res-svl', null, (Wk.survivor.pool || 'Survivor') + ' ' + svE.map((e) => '#' + e.n).join(', ') + ': ' + svE[0].pick + ' ', survMark(svE[0].result)) : null),
           h('span.tnum.muted.res-gl', null, lineText(g)),
           h('span.res-gp', { 'data-l': 'CBS' }, pickCell('spread', g)),
           h('span.res-gp', { 'data-l': 'ESPN' }, pickCell('pickem', g)),
@@ -2299,7 +2381,7 @@ function rzItems(a, data) {
     const c = live && i.cush ? i.cush(a.margin) : null;
     const r = final ? a.cur(i) : undefined;
     const st = final ? (r === true ? 'up' : r === false ? 'down' : 'even') : c == null ? 'pre' : c > 0 ? 'up' : c < 0 ? 'down' : 'even';
-    const who = i.kind === 'pool' ? (i.key === 'spread' ? 'CBS pool' : 'ESPN pool') : i.kind === 'survivor' ? 'Survivor' : 'Survivor field';
+    const who = i.kind === 'pool' ? (i.key === 'spread' ? 'CBS pool' : 'ESPN pool') : i.kind === 'survivor' ? i.src || 'Survivor' : 'Survivor field';
     const what = i.kind === 'pool' ? i.label : i.label || i.side;
     const how = final ? (r === true ? 'hit' : r === false ? 'missed' : 'push') : c == null ? '' : cushText(i, c);
     out.push({ key: i.key, who, what, how, st, w: i.weight });
