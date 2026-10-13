@@ -277,6 +277,32 @@ table.bb tr.me td{background:rgba(242,194,48,.07)}
 .bb-bet:last-child{border-bottom:0}
 .bb-miss{grid-column:2/-1;font-size:12px}
 .bb-amt{white-space:nowrap;font-weight:700}
+.sc-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 14px;margin-bottom:6px}
+.sc-key{display:flex;gap:14px;color:var(--muted);font-size:12px}
+.sc-k{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sc-kl{position:relative;display:inline-block;width:18px;height:2px;background:var(--flag);border-radius:1px}
+.sc-kl::after{content:"";position:absolute;left:5px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--flag)}
+.sc-kb{display:inline-block;width:9px;height:12px;background:var(--dim);border-radius:3px 3px 0 0}
+.sc-plot{position:relative;touch-action:pan-y;border-radius:8px}
+.sc-plot:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.sc-plot svg{display:block;overflow:visible}
+.sc-plot svg text{font:11px Barlow,sans-serif;fill:var(--dim);font-variant-numeric:tabular-nums}
+.sc-plot svg text.sc-on{fill:var(--text)}
+.sc-plot svg text.sc-end{font-size:13px;font-weight:700;fill:var(--text)}
+.sc-g{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+.sc-z{stroke:var(--dim);stroke-width:1;shape-rendering:crispEdges}
+.sc-x{stroke:var(--line2);stroke-width:1;shape-rendering:crispEdges}
+.sc-c{fill:var(--dim)}
+.sc-c.sc-on{fill:var(--muted)}
+.sc-ln{fill:none;stroke:var(--flag);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.sc-d{fill:var(--flag);stroke:var(--panel);stroke-width:2}
+.sc-tip{position:absolute;z-index:2;box-sizing:border-box;pointer-events:none;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.35);white-space:nowrap}
+.sc-tip b{display:block;font:700 15px/1.3 "Barlow Condensed",sans-serif;color:var(--text)}
+.sc-tip b .hint{font:400 12px Barlow,sans-serif;margin-left:2px}
+.sc-tip .k{color:var(--muted);display:inline-block;min-width:66px}
+.sc-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px;margin-top:6px}
+.sc-table{margin-top:8px;max-width:520px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .fut-now{color:var(--flag)}
 .flagtxt{color:var(--flag);font-weight:600}
 .sv-pick{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -288,7 +314,6 @@ tr.sv-out td{opacity:.55}
 .res-sve{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .m-inl{display:none}
 .book.m-inl{margin-right:6px}
-input.cashout{width:104px;margin-top:4px;font-size:12px}
 .rz-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .rz-head h2{font:700 30px/1.1 "Barlow Condensed",sans-serif;margin:0}
 .rz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
@@ -378,7 +403,7 @@ input.cashout{width:104px;margin-top:4px;font-size:12px}
 .rz.compact .rz-item{font-size:14px;padding:4px 0}
 .rz.compact .rz-sit{font-size:13px}
 @media (max-width:430px){nav.tabs{gap:0}nav.tabs button{padding:10px 5px;font-size:14px}}
-@media (max-width:560px){.m-inl{display:inline-block}input.cashout{width:90px}.rz-grid{grid-template-columns:minmax(0,1fr)}.rz-score{font-size:26px}.rz-score b{font-size:32px}.rz-item{font-size:16px}.bb-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.m-inl{display:inline-block}.rz-grid{grid-template-columns:minmax(0,1fr)}.rz-score{font-size:26px}.rz-score b{font-size:32px}.rz-item{font-size:16px}.bb-grid{grid-template-columns:minmax(0,1fr)}}
 .res-gh,.res-g{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.5fr);gap:10px;align-items:center}
 .res-gh{color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
 .res-g{padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
@@ -420,8 +445,8 @@ const NL = String.fromCharCode(10);
 const MINUS = '\u2212', ARROW = ' \u2192 ';
 
 // ---------- formatting ----------
-const cash = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '$' + (Number.isInteger(v) ? v : v.toFixed(2)); };
-const usd = (n) => '$' + Math.round(Number(n) || 0);
+const cash = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '$' + (Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); };
+const usd = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
 const uc = (s) => (s == null ? '' : String(s)).trim().toUpperCase();
 const fmtLine = (n) => (n == null || isNaN(n) ? '' : n > 0 ? '+' + n : n < 0 ? MINUS + Math.abs(n) : 'PK');
 const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
@@ -1887,7 +1912,6 @@ function SurvivorPanel({ data }) {
 }
 
 function BetsTab({ data, results, prev, futs }) {
-  const [offers, setOffers] = useState({});
   const [openGrp, setOpenGrp] = useState({});
   const W = data.weights;
   const ids = new Set(data.games.map((g) => g.id));
@@ -1916,10 +1940,7 @@ function BetsTab({ data, results, prev, futs }) {
   const fairCell = (b) => {
     const fv = betFair(b, data);
     if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settles by hand' : 'n/a');
-    const o = parseFloat(offers[b.id]), diff = o > 0 && fv > 0 ? (o - fv) / fv : null;
-    return h('div', null, cash(fv),
-      h('div', null, h('input.cashout', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', 'aria-label': 'Cash-out offer', value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
-      diff == null ? null : h('div' + (diff < -0.03 ? '.bad' : diff > 0.03 ? '.ok' : '.muted'), { style: { fontSize: 12, marginTop: 2 } }, diff < -0.03 ? Math.round(-diff * 100) + '% below fair' : diff > 0.03 ? Math.round(diff * 100) + '% above fair: take it' : 'about fair'));
+    return h('div', null, cash(fv));
   };
   const statusCell = (b) => { const st = stOf(b); return h('td.m-hide', null, h('span' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : '.muted'), null, st === 'void' ? 'push' : st)); };
   const betRow = (b, mode, sub) => h('tr', { key: b.id, className: sub ? 'subrow' : undefined },
@@ -2347,6 +2368,8 @@ function betKind(b) {
   if (/promo/i.test(d)) return 'Promo';
   if (/correct score|exact score/i.test(d + ' ' + ((legs[0] || {}).t || ''))) return 'Exact score';
   if (games.size > 1) return 'Multi-game parlay';
+  // the books' own pre-built combos ("A.J. Brown and JSN both 50+ yds", odds boosts and McAfee Super Boosts) aren't parlays he built
+  if (!/^SGP/.test(d) && n > 1 && /odds boost|super boost/i.test(d)) return 'Boosted special';
   if (/^SGP/.test(d) || n > 1) return 'Same-game parlay';
   const L0 = legs[0] || {}, t = String(L0.t || (L0.type ? legText(L0) : '') || d);
   if (/first TD/i.test(t)) return 'First TD';
@@ -2358,13 +2381,14 @@ function betKind(b) {
 }
 const betLive = (b) => (b.live != null ? !!b.live : /\blive\b/i.test(String(b.desc || '')));
 function betBoost(b) {
+  if (b.boost === 'special') return 'Boosted special';
   const d = String(b.boost != null ? b.boost + '% boost' : b.desc || '');
   const m = d.match(/(\d+)% (?:parlay )?boost/i);
   if (m && Number(m[1]) > 0) { const p = Number(m[1]); return p >= 100 ? '100% or more' : p >= 50 ? '50%' : '20\u201330%'; }
   if (/odds boost|super boost/i.test(d)) return 'Boosted special';
   return 'No boost';
 }
-const BB_ORDER = { kind: ['Moneyline', 'Spread', 'Total', 'Same-game parlay', 'Multi-game parlay', 'TD scorer', 'First TD', 'Player prop', 'Exact score', 'Promo'], boost: ['No boost', '20\u201330%', '50%', '100% or more', 'Boosted special'], live: ['Before kickoff', 'Live'] };
+const BB_ORDER = { kind: ['Moneyline', 'Spread', 'Total', 'Same-game parlay', 'Multi-game parlay', 'Boosted special', 'TD scorer', 'First TD', 'Player prop', 'Exact score', 'Promo'], boost: ['No boost', '20\u201330%', '50%', '100% or more', 'Boosted special'], live: ['Before kickoff', 'Live'] };
 function bbStats(list) {
   const won = list.filter((b) => b.status === 'won').length, lost = list.filter((b) => b.status === 'lost').length, push = list.filter((b) => b.status === 'void').length;
   const staked = list.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0), net = list.reduce((t, b) => t + (Number(b.net) || 0), 0);
@@ -2376,7 +2400,8 @@ function bbGroup(list, keyOf, order) {
   const rows = [...m.entries()].map(([k, bs]) => Object.assign({ key: k }, bbStats(bs)));
   return order ? rows.sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key)) : rows;
 }
-const teamsOf = (b) => [...new Set((b.legs || []).map((l) => l.g || l.game).filter((g) => g && g.indexOf('@') > 0).flatMap((g) => g.split('@')))];
+// both teams of a single-game bet; a multi-game parlay isn't a bet on any one team's game, so it counts for none
+const teamsOf = (b) => { const gs = [...new Set((b.legs || []).map((l) => l.g || l.game).filter((g) => g && g.indexOf('@') > 0))]; return gs.length === 1 ? gs[0].split('@') : []; };
 const bbSigned = (v) => h('span' + (v > 0.004 ? '.ok' : v < -0.004 ? '.bad' : '.muted'), null, (v > 0.004 ? '+' : v < -0.004 ? MINUS : '') + cash(Math.abs(v)));
 const bbRec = (r) => r.won + '\u2013' + r.lost + (r.push ? '\u2013' + r.push : '');
 const bbRoi = (r) => (r.roi == null ? h('span.dim', null, 'bonus') : h('span' + (r.roi > 0.004 ? '.ok' : r.roi < -0.004 ? '.bad' : '.muted'), null, (r.roi > 0 ? '+' : r.roi < 0 ? MINUS : '') + Math.round(Math.abs(r.roi) * 100) + '%'));
@@ -2396,6 +2421,104 @@ function BBTable({ title, rows, label, note, limit, fan }) {
         h('td.rt.tnum', null, bbRoi(r)))))),
     limit && rows.length > limit ? h('button.linkbtn', { style: { marginTop: 6 }, onClick: () => setAll(!all) }, all ? 'Show fewer' : 'Show all ' + rows.length) : null,
     note ? h('div.hint', { style: { marginTop: 6 } }, note) : null);
+}
+// ---------- season profit: the running total after each week (line) over each week's own net (columns) ----------
+function scTicks(lo, hi) {
+  const raw = Math.max(hi - lo, 10) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((x) => x >= raw);
+  const out = [];
+  for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + step / 2; v += step) out.push(Math.round(v * 100) / 100);
+  return out;
+}
+const scAxis = (v) => (v < 0 ? MINUS : '') + '$' + (Math.abs(v) >= 1000 ? Math.round(Math.abs(v) / 100) / 10 + 'K' : Math.round(Math.abs(v)));
+const scSigned = (v) => (v > 0.004 ? '+' : v < -0.004 ? MINUS : '') + cash(Math.abs(v));
+function SeasonChart({ weeks }) {
+  const pts = [];
+  let run = 0;
+  weeks.forEach((Wk) => {
+    const s = Wk.betSum;
+    if (!s || (Wk.live && !(s.won + s.lost + s.push))) return; // the current week shows up once a bet in it settles
+    run += s.net;
+    pts.push({ week: Wk.week, net: s.net, cum: run, won: s.won, lost: s.lost, push: s.push, sofar: !!Wk.live && (!Wk.done || s.open > 0) });
+  });
+  const wrap = useRef(null);
+  const [w, setW] = useState(0);
+  const [at, setAt] = useState(null);
+  const [table, setTable] = useState(false);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return undefined;
+    const fit = () => setW(Math.round(el.clientWidth));
+    fit();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [pts.length > 0]);
+  if (!pts.length) return null;
+  const n = pts.length, last = pts[n - 1];
+  const W = Math.max(w, 240), small = W < 480, H = small ? 200 : 228;
+  const m = { l: 44, r: small ? 66 : 78, t: 12, b: 24 };
+  const vals = pts.reduce((a, p) => a.concat([p.net, p.cum]), [0]);
+  const ticks = scTicks(Math.min.apply(null, vals), Math.max.apply(null, vals)), y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, step = pw / n;
+  const X = (i) => m.l + step * (i + 0.5), Y = (v) => m.t + ph * (1 - (v - y0) / (y1 - y0));
+  const bw = Math.max(4, Math.min(24, step * 0.46));
+  // a column from the zero line to the week's net, rounded only at its data end
+  const col = (i, v) => {
+    const x = X(i) - bw / 2, z = Y(0), e = Y(v), r = Math.min(4, bw / 2, Math.abs(z - e));
+    if (Math.abs(z - e) < 0.5) return 'M' + x + ',' + (z - 0.75) + 'h' + bw + 'v1.5h' + -bw + 'Z';
+    return v > 0 ? 'M' + x + ',' + z + 'V' + (e + r) + 'A' + r + ',' + r + ' 0 0 1 ' + (x + r) + ',' + e + 'H' + (x + bw - r) + 'A' + r + ',' + r + ' 0 0 1 ' + (x + bw) + ',' + (e + r) + 'V' + z + 'Z'
+      : 'M' + x + ',' + z + 'V' + (e - r) + 'A' + r + ',' + r + ' 0 0 0 ' + (x + r) + ',' + e + 'H' + (x + bw - r) + 'A' + r + ',' + r + ' 0 0 0 ' + (x + bw) + ',' + (e - r) + 'V' + z + 'Z';
+  };
+  const every = Math.max(1, Math.ceil(30 / step));
+  const wkName = (p) => 'Week ' + p.week + (p.sofar ? ' so far' : '');
+  const rec = (p) => p.won + '\u2013' + p.lost + (p.push ? '\u2013' + p.push : '');
+  const say = (p) => wkName(p) + ': ' + scSigned(p.net) + ' that week (' + rec(p) + '), ' + scSigned(p.cum) + ' for the season.';
+  const pick = (e) => { const r = e.currentTarget.getBoundingClientRect(); setAt(Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left - m.l) / step)))); };
+  const onKey = (e) => {
+    const k = e.key, cur = at == null ? n - 1 : at;
+    const nx = k === 'ArrowLeft' ? Math.max(0, cur - 1) : k === 'ArrowRight' ? Math.min(n - 1, cur + 1) : k === 'Home' ? 0 : k === 'End' ? n - 1 : null;
+    if (nx != null) { e.preventDefault(); setAt(nx); } else if (k === 'Escape') setAt(null);
+  };
+  const P = at == null ? null : pts[at];
+  // the tooltip sits beside the crosshair; when neither side has room (narrow phones) it moves above or below the point instead
+  const TW = 164, TH = 70;
+  let tl = 0, tt = m.t;
+  if (P) {
+    tl = X(at) + 14;
+    if (tl + TW > W) tl = X(at) - 14 - TW;
+    const beside = tl >= 0;
+    tl = Math.max(0, Math.min(W - TW, tl));
+    if (!beside) { const py = Y(P.cum); tt = py < m.t + ph / 2 ? Math.min(H - TH, py + 14) : Math.max(0, py - 14 - TH); }
+  }
+  const endY = Math.max(m.t + 8, Math.min(m.t + ph - 2, Y(last.cum) + 4));
+  return h('div.panel.sc', null,
+    h('div.sc-top', null,
+      h('h3', null, 'Season profit'),
+      h('div.sc-key', { 'aria-hidden': 'true' }, h('span.sc-k', null, h('i.sc-kl'), 'Running total'), h('span.sc-k', null, h('i.sc-kb'), 'Each week\u2019s net'))),
+    h('div.sc-plot', { ref: wrap, tabIndex: 0, role: 'group', 'aria-label': 'Season profit by week. ' + say(last) + ' Use the arrow keys to read each week.', onKeyDown: onKey, onFocus: () => { if (at == null) setAt(n - 1); }, onBlur: () => setAt(null) },
+      h('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, 'aria-hidden': 'true', onPointerMove: pick, onPointerDown: pick, onPointerLeave: (e) => { if (e.pointerType === 'mouse') setAt(null); } },
+        ticks.map((t) => h('g', { key: 't' + t },
+          h('line.' + (t === 0 ? 'sc-z' : 'sc-g'), { x1: m.l, x2: W - m.r + 8, y1: Y(t), y2: Y(t) }),
+          h('text', { x: m.l - 8, y: Y(t) + 4, textAnchor: 'end' }, scAxis(t)))),
+        P ? h('line.sc-x', { x1: X(at), x2: X(at), y1: m.t, y2: m.t + ph }) : null,
+        pts.map((p, i) => h('path.sc-c' + (at === i ? '.sc-on' : ''), { key: 'c' + p.week, d: col(i, p.net) })),
+        h('path.sc-ln', { d: pts.map((p, i) => (i ? 'L' : 'M') + X(i) + ',' + Y(p.cum)).join('') }),
+        pts.map((p, i) => h('circle.sc-d', { key: 'p' + p.week, cx: X(i), cy: Y(p.cum), r: at === i ? 5.5 : 4 })),
+        h('text.sc-end', { x: X(n - 1) + 11, y: endY }, scSigned(last.cum)),
+        pts.map((p, i) => (i % every && i !== n - 1 ? null : h('text' + (at === i ? '.sc-on' : ''), { key: 'x' + p.week, x: X(i), y: H - 6, textAnchor: 'middle' }, 'W' + p.week + (p.sofar ? '*' : ''))))),
+      P ? h('div.sc-tip', { style: { left: tl, top: tt, width: TW } },
+        h('b', null, wkName(P), h('span.hint', null, ' ' + rec(P))),
+        h('div', null, h('span.k', null, 'That week'), bbSigned(P.net)),
+        h('div', null, h('span.k', null, 'Season'), bbSigned(P.cum))) : null,
+      h('div.sr', { 'aria-live': 'polite' }, P ? say(P) : '')),
+    h('div.sc-foot', null,
+      h('span.hint', null, 'Settled bets only. A bonus bet counts just what it won.' + (last.sofar ? ' * Week ' + last.week + ' is still being played.' : '')),
+      h('button.linkbtn', { onClick: () => setTable(!table), 'aria-expanded': table ? 'true' : 'false' }, table ? 'Hide the numbers' : 'Show the numbers')),
+    table ? h('table.bb.sc-table', null,
+      h('thead', null, h('tr', null, h('th', null, 'Week'), h('th.rt', null, 'W\u2013L'), h('th.rt', null, 'That week'), h('th.rt', null, 'Season'))),
+      h('tbody', null, pts.map((p) => h('tr', { key: p.week }, h('td', null, wkName(p)), h('td.rt.tnum', null, rec(p)), h('td.rt.tnum', null, bbSigned(p.net)), h('td.rt.tnum', null, bbSigned(p.cum)))))) : null);
 }
 function BetBreakdown({ weeks, data }) {
   const all = [];
@@ -2431,16 +2554,17 @@ function BetBreakdown({ weeks, data }) {
       Stat(cash(tot.staked), 'Cash staked (bonus bets not counted)'),
       Stat(bbSigned(tot.net), 'Net since Week ' + Math.min.apply(null, all.map((b) => b.week))),
       Stat(tot.roi == null ? '\u2013' : (tot.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(tot.roi) * 100) + '%', 'Return on cash staked')),
+    h(SeasonChart, { weeks }),
     heads.length ? h('div.panel.bb-heads', null, h('h3', null, 'What stands out'), h('ul', null, heads.map((r) => h('li', { key: r.what }, h('b', null, r.what + ': '), bbRec(r) + ', ', bbSigned(r.net), r.roi != null ? h('span.hint', null, ' (' + (r.roi >= 0 ? '+' : MINUS) + Math.round(Math.abs(r.roi) * 100) + '% on ' + cash(r.staked) + ' staked)') : null)))) : null,
     h('div.bb-grid', null,
       h(BBTable, { title: 'By book', rows: byBook, label: bookLabel }),
-      h(BBTable, { title: 'By bet type', rows: byKind }),
+      h(BBTable, { title: 'By bet type', rows: byKind, note: byKind.some((r) => r.key === 'Boosted special') ? 'Boosted specials are the books\u2019 own two-player combos (DraftKings odds boosts and McAfee Super Boosts).' : null }),
       h(BBTable, { title: 'Live or before kickoff', rows: byLive }),
       h(BBTable, { title: 'By boost', rows: byBoost, note: 'Profit boosts by size; boosted specials are the books\u2019 pre-priced specials and odds boosts.' }),
-      h(BBTable, { title: 'By team', rows: byTeam, label: teamLabel, limit: 8, fan, note: 'Every bet touching that team\u2019s game, whichever side it was on. A parlay counts for each team in it.' })),
+      h(BBTable, { title: 'By team', rows: byTeam, label: teamLabel, limit: 8, fan, note: 'Every bet on that team\u2019s game, whichever side it was on. Multi-game parlays are left out.' })),
     h('div.bb-grid', null,
       h('div.bb-card', null, h('div.bb-h', null, 'Biggest wins'), wins.map((b) => betLine(b, h('span.tnum.ok.bb-amt', null, '+' + cash(b.net))))),
-      h('div.bb-card', null, h('div.bb-h', null, 'Lost by one leg', h('span.hint', null, ' ' + close.length + ' parlay' + (close.length === 1 ? '' : 's') + (close.length ? ', ' + cash(closeMissed) + ' in payouts' : ''))),
+      h('div.bb-card', null, h('div.bb-h', null, 'Lost by one leg', h('span.hint', null, ' ' + close.length + ' bet' + (close.length === 1 ? '' : 's') + (close.length ? ', ' + cash(closeMissed) + ' in payouts' : ''))),
         close.length ? close.slice(0, 6).map((b) => { const miss = (b.legs || []).find((l) => l.r === 'lost'); return betLine(b, h('span.bb-miss', null, h('span.bad', null, '\u2717 ' + miss.t + (miss.v ? ' (' + miss.v + ')' : '')), h('span.tnum.dim', null, ' would have paid ' + cash(b.toPay)))); }) : h('div.hint', null, 'None yet.'),
         close.length > 6 ? h('div.hint', { style: { marginTop: 6 } }, 'And ' + (close.length - 6) + ' more.') : null)));
 }
