@@ -217,6 +217,60 @@ input[type=checkbox]{accent-color:var(--flag);width:15px;height:15px}
 .you{color:var(--flag);font-size:12px;font-weight:600;margin-left:6px}
 .ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}.dim{color:var(--dim)}
 .empty-state{padding:28px;text-align:center;color:var(--muted)}
+.adv-intro{color:var(--muted);font-size:13px;margin:6px 0 0;max-width:86ch}
+.adv-head,.adv-row{display:grid;gap:12px;align-items:center}
+.adv.ats .adv-head,.adv.ats .adv-row{grid-template-columns:minmax(150px,1.2fr) minmax(130px,1fr) minmax(100px,.8fr) minmax(120px,.9fr) minmax(190px,1.3fr)}
+.adv.su .adv-head,.adv.su .adv-row{grid-template-columns:minmax(150px,1.2fr) minmax(150px,1.1fr) minmax(120px,.9fr) minmax(190px,1.3fr)}
+.adv-head{color:var(--muted);font-size:12px;font-weight:600;padding:8px 0 6px;border-bottom:1px solid var(--line)}
+.adv-row{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.adv-row:last-child{border-bottom:0}
+.adv-row.locked{opacity:.55}
+.adv-g{display:flex;flex-direction:column;gap:2px;min-width:0}
+.adv-m{display:inline-flex;align-items:center;gap:6px;font:700 18px/1.1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.adv-m .at{font-size:13px}
+.adv-c{min-width:0}
+.adv-pick{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.adv-why{font-size:12px;color:var(--muted)}
+.adv-mine{font-size:12px;color:var(--muted)}
+.adv-mine.differs{color:var(--flag);font-weight:600}
+.flagtxt{color:var(--flag)}
+.res-head,.res-row{display:grid;grid-template-columns:96px minmax(0,1.25fr) minmax(0,1.25fr) minmax(0,.7fr) minmax(0,.9fr);gap:12px;align-items:start}
+.res-head{color:var(--muted);font-size:12px;font-weight:600;padding:0 10px 6px;border-bottom:1px solid var(--line)}
+.res-row{border-bottom:1px solid var(--line);padding:9px 10px;cursor:pointer;border-radius:6px;font-size:13px}
+.res-row:last-of-type{border-bottom:0}
+.res-row:hover{background:var(--panel2)}
+.res-row.on{background:var(--panel2);box-shadow:inset 3px 0 0 var(--flag)}
+.res-row:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.res-wk{font:700 18px/1.2 "Barlow Condensed",sans-serif;display:flex;flex-direction:column}
+.res-wk .hint{font:400 11px Barlow,sans-serif}
+.res-c{min-width:0}
+.res-sv{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.res-boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.res-board{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px 6px}
+.res-bh{font:700 19px/1.2 "Barlow Condensed",sans-serif;margin-bottom:2px}
+.res-bh .hint{font:400 12px Barlow,sans-serif;margin-left:6px}
+.res-board td,.res-board th{padding:5px 6px}
+tr.me td{font-weight:600}
+.res-sub{font:700 21px/1.2 "Barlow Condensed",sans-serif;margin:18px 0 8px}
+.res-sub .hint{font:400 13px Barlow,sans-serif;margin-left:4px}
+.res-score{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-weight:600}
+.res-pk{white-space:nowrap}
+.res-gh,.res-g{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.5fr);gap:10px;align-items:center}
+.res-gh{color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.res-g{padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
+.res-g:last-child{border-bottom:0}
+.res-gs{display:flex;flex-direction:column;min-width:0}
+.res-gb{text-align:right}
+.m-only{display:none}
+table.season td,table.season th{padding:5px 8px}
+td.wk-top{color:var(--good);font-weight:700}
+.wkbar{padding:10px 14px;font-size:13px;color:var(--muted);margin-top:12px}
+.wkbar b{color:var(--text)}
+.wkbar .linkbtn{color:var(--flag);font-size:13px;font-weight:600;margin-left:6px}
+.oops{border-color:var(--bad)}
+select{cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+@media (max-width:560px){.adv-head{display:none}.adv.ats .adv-row,.adv.su .adv-row{grid-template-columns:minmax(0,1fr) auto;row-gap:3px;column-gap:10px}.adv-row .adv-c{grid-column:1;font-size:12px}.adv-row .adv-pick{grid-column:2;grid-row:1 / span 4;align-items:flex-end;text-align:right}.adv-c .hint{display:inline;margin-left:4px}.res-head{display:none}.res-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);row-gap:8px;padding:10px 8px}.res-wk{grid-column:1 / -1;flex-direction:row;gap:8px;align-items:baseline}.res-c:before{content:attr(data-l);display:block;color:var(--dim);font-size:11px;margin-bottom:1px}.res-boards{grid-template-columns:minmax(0,1fr)}.res-gh{display:none}.res-g{grid-template-columns:minmax(0,1fr) auto;row-gap:3px}.res-gs{grid-column:1}.res-gb{grid-column:2;grid-row:1}.res-gl{display:none}.res-gp{grid-column:1 / -1;display:inline}.res-gp:before{content:attr(data-l) ' ';color:var(--dim);font-size:11px}.res-g .res-gp + .res-gp{margin-top:-2px}.m-only{display:block}.m-hide{display:none}}
 @media (max-width:560px){.wrap{padding:16px 12px 48px}.grid{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.r{grid-template-columns:62px minmax(0,1fr) auto minmax(14px,auto);gap:8px}.lb-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}.lb-row .mt{white-space:normal;flex-wrap:wrap;row-gap:3px}.lb-row .clk{flex-basis:100%;margin-left:0}.matchup{font-size:21px;gap:8px}.pts{font-size:23px}.stake .amt{font-size:23px}.brand h1{font-size:28px}.brand{gap:2px 10px}.top{margin-bottom:12px}.strip .cell{flex-basis:45%;padding:8px 10px}.strip .v{font-size:21px}.tabs .full{display:none}.tabs .short{display:inline}.tabs button{padding:10px 9px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -291,6 +345,7 @@ async function fetchLive(season, week) {
       else if (dm) { const fav = ESPN_ABBR[dm[1]] || dm[1], n = Math.abs(parseFloat(dm[2])); mkt.homeLine = fav === ab(home) ? -n : n; }
       const hml = Number(od.homeTeamOdds && od.homeTeamOdds.moneyLine), aml = Number(od.awayTeamOdds && od.awayTeamOdds.moneyLine);
       if (hml && aml) { const ih = 1 / decOdds(hml), ia = 1 / decOdds(aml); mkt.homeWP = ih / (ih + ia); }
+      if (Number(od.overUnder) > 0) mkt.total = Number(od.overUnder);
       rec.mkt = mkt;
       const sit = c.situation;
       if (status === 'live' && sit) {
@@ -345,6 +400,17 @@ async function addLiveOdds(res) {
     res[k].mkLive = o;
   }));
 }
+// Pre-game DraftKings line, total and moneylines from ESPN's odds feed (the scoreboard often leaves the moneylines out).
+async function fetchPregameOdds(eventId) {
+  try {
+    const r = await fetch('https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/' + eventId + '/competitions/' + eventId + '/odds', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const it = ((await r.json()).items || []).find((i) => !/live/i.test((i.provider && i.provider.name) || ''));
+    if (!it) return null;
+    const n = (x) => { const v = parseFloat(x); return isFinite(v) ? v : null; };
+    return { spread: n(it.spread), total: n(it.overUnder), hml: n(it.homeTeamOdds && it.homeTeamOdds.moneyLine), aml: n(it.awayTeamOdds && it.awayTeamOdds.moneyLine) };
+  } catch (e) { return null; }
+}
 async function fetchSchedule(season, week) {
   try {
     const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=' + week + '&dates=' + season, { cache: 'no-store' });
@@ -366,8 +432,17 @@ async function fetchSchedule(season, week) {
       else if (dm) { const fav = ESPN_ABBR[dm[1]] || dm[1], n = Math.abs(parseFloat(dm[2])); line = fav === home ? -n : n; }
       const hml = Number(od.homeTeamOdds && od.homeTeamOdds.moneyLine), aml = Number(od.awayTeamOdds && od.awayTeamOdds.moneyLine);
       if (hml && aml) { const ih = 1 / decOdds(hml), ia = 1 / decOdds(aml); wp = Math.round(100 * ih / (ih + ia)) / 100; }
-      games.push({ id: away + '@' + home, away, home, kick: isNaN(when) ? '' : etKick(when), line, homeWP: wp, status: 'upcoming', awayScore: null, homeScore: null, clock: '', t: when.getTime() || 0 });
+      const total = Number(od.overUnder) > 0 ? Number(od.overUnder) : null;
+      games.push({ id: away + '@' + home, away, home, kick: isNaN(when) ? '' : etKick(when), line, total, homeWP: wp, status: 'upcoming', awayScore: null, homeScore: null, clock: '', t: when.getTime() || 0, ev: ev.id });
     });
+    await Promise.all(games.filter((g) => g.homeWP == null && g.ev).map(async (g) => {
+      const o = await fetchPregameOdds(g.ev);
+      if (!o) return;
+      if (o.hml && o.aml) { const ih = 1 / decOdds(o.hml), ia = 1 / decOdds(o.aml); g.homeWP = Math.round(1000 * ih / (ih + ia)) / 1000; }
+      if (g.line == null && o.spread != null) g.line = o.spread;
+      if (g.total == null && o.total != null) g.total = o.total;
+    }));
+    games.forEach((g) => { delete g.ev; });
     games.sort((x, y) => x.t - y.t);
     games.forEach((g) => { delete g.t; });
     return games.length ? games : null;
@@ -380,6 +455,15 @@ function rolloverData(pv, sched) {
   d.gamesLeft = Math.max(0, (Number(d.gamesLeft) || 0) - pv.games.length);
   d.week = Number(pv.week) + 1;
   d.games = sched; d.spreadPicks = {}; d.pickemPicks = {}; d.survivor = ''; d.autoWeek = true;
+  d.lineSource = 'DraftKings';
+  const prevById = {}; pv.games.forEach((g) => { prevById[g.id] = g; });
+  const nextIds = new Set(sched.map((g) => g.id));
+  d.bets = (d.bets || []).filter((b) => {
+    const legs = b.legs || [];
+    if (legs.some((l) => l.kind === 'game' && nextIds.has(l.game))) return true;
+    if (!legs.some((l) => l.kind === 'game' && prevById[l.game])) return true;
+    return betStatus(b, prevById, pv.boxes || {}) === 'open';
+  });
   delete d.boxes;
   return d;
 }
@@ -720,33 +804,6 @@ function slotOf(kick) {
   return { key: di * 10 + 3, title: dn + ' night' };
 }
 
-// ---------- bet legs ----------
-function parseLeg(s) {
-  const raw = (s || '').trim();
-  if (!raw) return null;
-  const t = raw.split(/\s+/);
-  let status = 'open';
-  const last = t[t.length - 1].toLowerCase();
-  if (['won', 'lost', 'void'].includes(last)) { status = last; t.pop(); }
-  const head = (t[0] || '').toLowerCase();
-  if (head === 'future') return { kind: 'future', team: uc(t[1]), desc: t.slice(2).join(' '), status };
-  if (head === 'other' || !(t[0] || '').includes('@')) return { kind: 'other', desc: (head === 'other' ? t.slice(1) : t).join(' '), status };
-  const game = uc(t[0]);
-  const type = (t[1] || '').toLowerCase();
-  if (type === 'ml') return { kind: 'game', game, type, side: uc(t[2]), status };
-  if (type === 'spread') return { kind: 'game', game, type, side: uc(t[2]), line: parseFloat(t[3]), status };
-  if (type === 'total') return { kind: 'game', game, type, side: (t[2] || '').toLowerCase().startsWith('u') ? 'under' : 'over', line: parseFloat(t[3]), status };
-  return { kind: 'game', game, type: 'prop', desc: t.slice(type === 'prop' ? 2 : 1).join(' '), status };
-}
-function legToString(l) {
-  const st = l.status && l.status !== 'open' ? ' ' + l.status : '';
-  if (l.kind === 'future') return 'future ' + l.team + ' ' + (l.desc || '') + st;
-  if (l.kind === 'other') return 'other ' + (l.desc || '') + st;
-  if (l.type === 'ml') return l.game + ' ml ' + l.side + st;
-  if (l.type === 'spread') return l.game + ' spread ' + l.side + ' ' + (l.line > 0 ? '+' : '') + l.line + st;
-  if (l.type === 'total') return l.game + ' total ' + l.side + ' ' + l.line + st;
-  return l.game + ' prop ' + (l.desc || '') + st;
-}
 const legText = (l) => (l.type === 'score' && l.score ? 'Exact score ' + Object.keys(l.score).map((k) => k + ' ' + l.score[k]).join(', ') : l.type === 'ml' ? l.side + ' ML' : l.type === 'spread' ? l.side + ' ' + fmtLine(Number(l.line)) : l.type === 'total' ? (l.side === 'under' ? 'Under ' : 'Over ') + l.line : l.desc || '');
 
 // ---------- outcomes by final margin (home minus away) ----------
@@ -861,6 +918,16 @@ function currentWins(data, which) {
   return out;
 }
 const PRIOR_N = 16;
+// Every past week's picks from the results archive, in the shape pickRates and archivePicks use.
+function historyFromResults(results) {
+  const out = [];
+  ((results && results.weeks) || []).forEach((W) => (W.games || []).forEach((g) => {
+    const [away, home] = g.id.split('@'), fav = g.line < 0 ? home : g.line > 0 ? away : null;
+    ['spread', 'pickem'].forEach((lg) => { const src = archPicks(W, (W[lg] || {}).picks), picks = {}; Object.keys(src).forEach((p) => { if (src[p][g.id]) picks[p] = src[p][g.id]; }); if (Object.keys(picks).length) out.push({ week: Number(W.week), league: lg, game: g.id, fav, picks }); });
+  }));
+  return out;
+}
+const withHistory = (d, hist) => { if (!d || !hist || !hist.length) return d; const wk = new Set(hist.map((x) => x.week)); return Object.assign({}, d, { history: hist.concat((d.history || []).filter((x) => !wk.has(Number(x.week)))) }); };
 function pickRates(data, which) {
   const L = data.leagues[which] || {}, players = L.players || [], me = data.me[which];
   const src = (which === 'spread' ? data.spreadPicks : data.pickemPicks) || {};
@@ -1020,7 +1087,7 @@ function analyze(g, data) {
   const inGame = (t) => t === g.home || t === g.away;
   const spread = poolInfo(g, data, 'spread'), pickem = poolInfo(g, data, 'pickem');
   [spread, pickem].forEach((p) => {
-    if (p.state === 'noline') notes.push('Add the spread in Setup to score your ' + p.src.toLowerCase() + ' pick.');
+    if (p.state === 'noline') notes.push('No line yet for this game, so your ' + p.src.toLowerCase() + ' pick can\u2019t be scored.');
     if (p.state === 'edge' || p.state === 'pending') ints.push({ key: p.which, src: p.src, kind: 'pool', side: p.side, weight: p.weight + (p.state === 'pending' ? 0.01 : 0), test: p.test, cush: p.cush, ctype: p.ctype, label: p.label });
   });
   const surv = uc(data.survivor);
@@ -1448,7 +1515,7 @@ function slateOutcome(items, data, firstKey) {
 }
 const outcomeText = (o) => (o.live ? 'on pace for ' : '') + ordinal(o.pct) + ' percentile, ' + (o.vs >= 0 ? '+' : MINUS) + usd(Math.abs(o.vs)) + ' vs expected' + (o.unknown ? ' (' + o.unknown + ' bet' + (o.unknown === 1 ? '' : 's') + ' still to settle)' : '');
 const PCTL_TIP = 'Where the actual results rank among 4,000 simulated outcomes of the same games from pre-game odds, counting pool equity, bets and survivor. 50th is a typical result; higher is better. While games are on, "on pace" projects where the slate is likely to finish from the current scores and live odds.';
-function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
+function RootingTab({ data, analyses, auto, recap, onDismiss, onAdvisor }) {
   const [openSlots, setOpenSlots] = useState({});
   const [how, setHow] = useState(false);
   const open = analyses.filter((a) => a.g.status !== 'final');
@@ -1490,22 +1557,29 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
   const pnlWk = settledWk.reduce((t, b) => t + pnlOf(b), 0);
   const fvWk = openWk.reduce((t, b) => { const fv = betFair(b, data); return t + (fv != null ? fv : (Number(b.toPay) || 0) * betProb(b, data.weights)); }, 0);
   const costWk = openWk.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0);
-  const stats = [
-    Stat(h('span' + (pnlWk >= 0 ? '.ok' : '.bad'), null, (pnlWk >= 0 ? '+' : MINUS) + cash(Math.abs(pnlWk))), 'Settled bets this week (' + settledWk.length + ')'),
+  const stats = wk.length ? [
+    Stat(h('span' + (pnlWk > 0 ? '.ok' : pnlWk < 0 ? '.bad' : '.muted'), null, (pnlWk > 0 ? '+' : pnlWk < 0 ? MINUS : '') + cash(Math.abs(pnlWk))), 'Settled bets this week (' + settledWk.length + ')'),
     Stat(cash(fvWk), 'Open bets worth now (' + openWk.length + ', ' + cash(costWk) + ' staked)'),
-  ];
+  ] : [Stat('None yet', 'Bets this week')];
   ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(data, w); if (s) { const sim = poolSim(data, w); const pct = sim.pot ? Math.round(100 * sim.equity(null) / sim.pot) : 0; stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts, ' + pct + '% to win')); } });
   return h('div', null,
     recap && recap.length ? h('div.panel.recap', null, h('b', null, 'Since you last looked: '), recap.slice(0, 6).join('; ') + (recap.length > 6 ? '; and ' + (recap.length - 6) + ' more' : '') + '.', h('button.linkbtn', { onClick: onDismiss }, 'Dismiss')) : null,
-    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and lines loaded from ESPN. Your pool picks, the CBS lines and your survivor pick come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results')) : null,
+    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and DraftKings lines loaded from ESPN. Your pool picks' + (data.survivorOut ? '' : ', your survivor pick') + ' and the CBS lines come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results'), !auto.showPrev && onAdvisor ? h('button.linkbtn', { onClick: onAdvisor, style: { marginLeft: 14 } }, 'See pick suggestions') : null) : null,
     outcomes.days.length ? h('div.panel.howwent', { title: PCTL_TIP }, h('b', null, 'How it went: '), outcomes.days.map((D, i) => h('span', { key: D.title }, i ? '; ' : '', D.title + (D.soFar ? ' so far' : '') + ' ', h('span.pctl', null, outcomeText(D)))), outcomes.week ? h('span', null, '; week so far ', h('span.pctl', null, outcomeText(outcomes.week))) : null) : null,
     h('div.strip', null, stats),
+    (() => {
+      if (auto || !data.games.length || data.games.some((g) => g.status !== 'upcoming')) return null;
+      const mineS = Object.keys((data.spreadPicks || {})[data.me.spread] || {}).length, mineP = Object.keys((data.pickemPicks || {})[data.me.pickem] || {}).length;
+      if (mineS && mineP && wk.length) return null;
+      const missing = [!mineS ? 'spread picks' : null, !mineP ? 'pick\u2019em picks' : null, !wk.length ? 'bets' : null].filter(Boolean);
+      return h('div.panel.wkbar', null, h('b', null, 'Week ' + data.week + ' is loaded. '), 'Your ' + missing.join(', ').replace(/, ([^,]*)$/, ' and $1') + ' aren\u2019t in yet, so every game shows nothing riding' + (mineS || mineP || wk.length ? ' until they are' : '') + '. ' + (data.lineSource && data.lineSource !== 'CBS' ? 'Lines are DraftKings\u2019 until CBS posts the pool\u2019s. ' : ''), onAdvisor ? h('button.linkbtn', { onClick: onAdvisor }, 'See pick suggestions') : null);
+    })(),
     h(LiveBar, { analyses, data }),
     h(BetTracker, { data }),
     h('div.toolbar', null,
       h('span.legend', { style: { margin: 0 } }, 'Green and red figures show your best and worst case from each result, compared with where you stand now. ', h('button.linkbtn', { onClick: () => setHow(!how) }, how ? 'Hide details' : 'How it\u2019s calculated'))),
     how ? h('p.legend', { style: { maxWidth: '78ch', marginTop: 6 } }, legend(data)) : null,
-    !data.games.length ? h('div.panel.empty-state', null, 'No games loaded. Add this week\u2019s games in Setup.') : null,
+    !data.games.length ? h('div.panel.empty-state', null, 'No games loaded for this week yet.') : null,
     slots.map((s) => {
       const cards = s.items.filter((a) => !a.quiet).sort((x, y) => order(x) - order(y) || y.score - x.score);
       const quiet = s.items.filter((a) => a.quiet);
@@ -1522,44 +1596,50 @@ function RootingTab({ data, analyses, update, onHow, auto, recap, onDismiss }) {
           h('h2', null, s.title, times.length ? h('span.times', null, times.join(', ')) : null, s.redzone && !done ? h('span.rz', null, 'RedZone') : null),
           outcomes[s.key] ? h('span.sm.pctl', { title: PCTL_TIP }, outcomeText(outcomes[s.key])) : h('span.sm', null, s.items.length + ' game' + (s.items.length === 1 ? '' : 's') + (sUp >= 0.5 || sDn >= 0.5 ? ', best +' + usd(sUp) + ', worst ' + MINUS + usd(sDn) : '') + (s.items.some((a) => a.pending) ? ' so far' : ''))),
         done ? h('div.donesum', null, sumParts.map((x, i) => h('span', { key: i }, x[0], h('b', null, x[1]))), h('button.linkbtn', { onClick: () => setOpenSlots(Object.assign({}, openSlots, { [s.key]: !openSlots[s.key] })) }, shown ? 'Hide games' : 'Show ' + s.items.length + ' game' + (s.items.length === 1 ? '' : 's'))) : null,
-        shown && cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), update, data }))) : null,
+        shown && cards.length ? h('div.grid', null, cards.map((a) => h(GameCard, { key: a.g.id, a, rank: rankOf(a), data }))) : null,
         !done && quiet.length ? h('div.quiet', null, h('span', null, 'Nothing riding:'), quiet.map((a) => h('span.q', { key: a.g.id }, h(Logo, { t: a.g.away, size: 16 }), a.g.status !== 'upcoming' && hasScore(a.g) ? a.g.away + ' ' + a.g.awayScore + '\u2013' + a.g.homeScore + ' ' + a.g.home + (a.g.status === 'final' ? ', final' : a.g.clock ? ', ' + a.g.clock : '') : a.g.away + ' at ' + a.g.home, h(Logo, { t: a.g.home, size: 16 })))) : null);
     }));
 }
 
-const EMPTY_FORM = { id: null, book: 'DK', placed: '', desc: '', stake: '', toPay: '', status: 'open', bonus: false, weight: '', odds: '', legsText: '' };
-const LEG_HELP = ['One leg per line, for example:', 'ATL@GB ml ATL', 'ATL@GB spread ATL +6.5', 'ATL@GB total over 44.5', 'ATL@GB prop Bijan anytime TD', 'future PHI Super Bowl', 'Add won or lost at the end of a line to settle just that leg.'].join(NL);
-function BetsTab({ data }) {
+function BetsTab({ data, results, prev }) {
   const [offers, setOffers] = useState({});
   const [openGrp, setOpenGrp] = useState({});
   const W = data.weights;
   const ids = new Set(data.games.map((g) => g.id));
   const isWeek = (b) => (b.legs || []).some((l) => l.kind === 'game' && ids.has(l.game));
+  const isFuture = (b) => (b.legs || []).length > 0 && (b.legs || []).every((l) => l.kind === 'future' || l.kind === 'other');
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
   const stOf = (b) => betStatus(b, byId, data.boxes || {});
   const open = data.bets.filter((b) => stOf(b) === 'open');
-  const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b)), settled = data.bets.filter((b) => stOf(b) !== 'open');
-  const net = (b) => { const st = stOf(b); return st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0; };
-  const netAll = settled.reduce((t, b) => t + net(b), 0);
+  const week = open.filter(isWeek), longer = open.filter((b) => !isWeek(b) && isFuture(b)), waiting = open.filter((b) => !isWeek(b) && !isFuture(b));
+  const settled = data.bets.filter((b) => stOf(b) !== 'open' && isWeek(b));
+  const net = (b) => betNet(b, stOf(b));
+  const netWeek = settled.reduce((t, b) => t + net(b), 0);
+  const arch = ((results && results.weeks) || []).filter((w) => w.bets && Number(w.week) !== Number(data.week));
+  // last week's bets while the board is already showing the new week and the archive hasn't caught up
+  const prevNet = prev && !arch.some((w) => Number(w.week) === Number(prev.week)) ? (weekFromLive(prev).bets || []).reduce((t, b) => t + (b.net || 0), 0) : 0;
+  const netSeason = arch.reduce((t, w) => t + w.bets.reduce((u, b) => u + (Number(b.net) || 0), 0), 0) + prevNet + netWeek;
+  const firstTracked = arch.length ? Math.min.apply(null, arch.map((w) => Number(w.week))) : Number(data.week);
   const legLine = (l) => (l.kind === 'game' ? l.game + ' ' + legText(l) : l.kind === 'future' ? l.team + ' ' + (l.desc || '') : l.desc || '') + (l.status && l.status !== 'open' ? ' (' + l.status + ')' : '');
   const right = { textAlign: 'right' };
   const fvOf = (b) => { const fv = betFair(b, data); return fv == null ? (Number(b.toPay) || 0) * betProb(b, W) : fv; };
   const dvCell = (pay, fv) => h('span.dv3', { title: 'If it wins / if it loses, compared with what it is worth now' }, h('span.ok', null, '+' + usd(Math.max(0, pay - fv))), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(fv)));
   const fairCell = (b) => {
     const fv = betFair(b, data);
-    if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settle by hand' : 'n/a');
+    if (fv == null) return h('span.hint', null, (b.legs || []).some((l) => byId[l.game] && byId[l.game].status === 'final') ? 'settles by hand' : 'n/a');
     const o = parseFloat(offers[b.id]), diff = o > 0 && fv > 0 ? (o - fv) / fv : null;
     return h('div', null, cash(fv),
-      h('div', null, h('input', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', style: { width: 104, marginTop: 4, fontSize: 12 }, value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
+      h('div', null, h('input', { type: 'number', step: 0.01, placeholder: 'Cash-out $', title: 'Type a cash-out offer to compare it with fair value', 'aria-label': 'Cash-out offer', style: { width: 104, marginTop: 4, fontSize: 12 }, value: offers[b.id] || '', onChange: (e) => setOffers(Object.assign({}, offers, { [b.id]: e.target.value })) })),
       diff == null ? null : h('div' + (diff < -0.03 ? '.bad' : diff > 0.03 ? '.ok' : '.muted'), { style: { fontSize: 12, marginTop: 2 } }, diff < -0.03 ? Math.round(-diff * 100) + '% below fair' : diff > 0.03 ? Math.round(diff * 100) + '% above fair: take it' : 'about fair'));
-  };  const statusCell = (b) => { const st = stOf(b); return h('td', null, h('span' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : '.muted'), null, st)); };
+  };
+  const statusCell = (b) => { const st = stOf(b); return h('td.m-hide', null, h('span' + (st === 'won' ? '.ok' : st === 'lost' ? '.bad' : '.muted'), null, st === 'void' ? 'push' : st)); };
   const betRow = (b, mode, sub) => h('tr', { key: b.id, className: sub ? 'subrow' : undefined },
     h('td', null, h('span.book.' + (b.book || 'Other'), null, b.book)),
-    h('td.muted.tnum', null, b.placed || ''),
-    h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), !sub && (b.legs || []).length ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null),
-    h('td.tnum', { style: right }, cash(b.stake)),
-    h('td.tnum', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
-    h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) >= 0 ? '.ok' : '.bad'), null, cash(net(b))) : dvCell(Number(b.toPay) || 0, fvOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
+    h('td.muted.tnum.m-hide', null, b.placed || ''),
+    h('td', null, h('div', null, b.desc, b.bonus ? h('span.hint', null, ' (bonus bet)') : null), !sub && (b.legs || []).length > 1 ? h('div.legs', null, (b.legs || []).map(legLine).join(', ')) : null, h('div.m-only.hint.tnum', null, cash(b.stake) + ARROW + cash(b.toPay) + (american(b) ? ' (' + american(b) + ')' : '') + (b.placed ? ', placed ' + b.placed : ''))),
+    h('td.tnum.m-hide', { style: right }, cash(b.stake)),
+    h('td.tnum.m-hide', { style: right }, cash(b.toPay), h('div.hint', null, american(b))),
+    h('td.tnum', { style: right }, mode === 'settled' ? h('span' + (net(b) > 0 ? '.ok' : net(b) < 0 ? '.bad' : '.muted'), null, (net(b) > 0 ? '+' : net(b) < 0 ? MINUS : '') + cash(Math.abs(net(b)))) : dvCell(Number(b.toPay) || 0, fvOf(b)), mode === 'week' ? h('div.hint', null, hitText((() => { const fv = betFair(b, data); return fv != null && Number(b.toPay) ? fv / Number(b.toPay) : betProb(b, W); })())) : null),
     mode === 'week' ? h('td.tnum', { style: right }, fairCell(b)) : null,
     statusCell(b));
   // futures on the same outcome share one row; tap it to see the individual tickets
@@ -1574,29 +1654,41 @@ function BetsTab({ data }) {
       const stake = G.bets.reduce((t, b) => t + (Number(b.stake) || 0), 0), bonus = G.bets.reduce((t, b) => t + (b.bonus ? Number(b.stake) || 0 : 0), 0);
       const pay = G.bets.reduce((t, b) => t + (Number(b.toPay) || 0), 0), fv = G.bets.reduce((t, b) => t + fvOf(b), 0);
       const books = [...new Set(G.bets.map((b) => b.book || 'Other'))];
-      rows.push(h('tr.grp', { key: 'g:' + G.key, onClick: () => setOpenGrp(Object.assign({}, openGrp, { [G.key]: !isOpen })), title: isOpen ? 'Hide the individual bets' : 'Show the individual bets' },
+      const toggle = () => setOpenGrp(Object.assign({}, openGrp, { [G.key]: !isOpen }));
+      rows.push(h('tr.grp', { key: 'g:' + G.key, onClick: toggle, tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }, 'aria-expanded': isOpen ? 'true' : 'false', title: isOpen ? 'Hide the individual bets' : 'Show the individual bets' },
         h('td', null, books.map((bk) => h('span.book.' + bk, { key: bk, style: { marginRight: 4 } }, bk))),
-        h('td', null, ''),
-        h('td', null, h('div', null, h('span.caret', null, isOpen ? '\u25be ' : '\u25b8 '), G.label), h('div.hint', null, G.bets.length + ' bets' + (bonus ? ', ' + cash(bonus) + ' of it bonus bets' : '') + (isOpen ? '' : ', tap for details'))),
-        h('td.tnum', { style: right }, cash(stake)),
-        h('td.tnum', { style: right }, cash(pay)),
+        h('td.m-hide', null, ''),
+        h('td', null, h('div', null, h('span.caret', null, isOpen ? '\u25be ' : '\u25b8 '), G.label), h('div.hint', null, G.bets.length + ' bets' + (bonus ? ', ' + cash(bonus) + ' of it bonus bets' : '') + (isOpen ? '' : ', tap for details')), h('div.m-only.hint.tnum', null, cash(stake) + ARROW + cash(pay) + ' in all')),
+        h('td.tnum.m-hide', { style: right }, cash(stake)),
+        h('td.tnum.m-hide', { style: right }, cash(pay)),
         h('td.tnum', { style: right }, dvCell(pay, fv)),
-        h('td', null, h('span.muted', null, 'open'))));
+        h('td.m-hide', null, h('span.muted', null, 'open'))));
       if (isOpen) G.bets.forEach((b) => rows.push(betRow(b, 'future', true)));
     });
     return rows;
   };
-  const table = (title, list, mode) => (!list.length ? null : h('div.panel', { key: title },
+  const table = (title, list, mode, note) => (!list.length ? null : h('div.panel', { key: title },
     h('div.row.between', null, h('h3', null, title), h('span.hint', null, list.length + ' bet' + (list.length === 1 ? '' : 's'))),
+    note ? h('p.hint', { style: { margin: '4px 0 0' } }, note) : null,
     h('div.scroll', { style: { marginTop: 8 } }, h('table', null,
-      h('thead', null, h('tr', null, ['Book', 'Placed', 'Bet', 'Stake', 'To pay', mode === 'settled' ? 'Net' : 'Win / lose'].concat(mode === 'week' ? ['Fair value'] : [], ['Status']).map((c, k) => h('th', { key: k, style: k >= 3 && k <= (mode === 'week' ? 6 : 5) ? right : null }, c)))),
+      h('thead', null, h('tr', null, [['Book'], ['Placed', 1], ['Bet'], ['Stake', 1, 1], ['To pay', 1, 1], [mode === 'settled' ? 'Net' : 'Win / lose', 0, 1]].concat(mode === 'week' ? [['Fair value', 0, 1]] : [], [['Status', 1]]).map(([c, hide, r], k) => h('th', { key: k, className: hide ? 'm-hide' : undefined, style: r ? right : null }, c)))),
       h('tbody', null, mode === 'future' ? groupRows(list) : list.map((b) => betRow(b, mode)))))));
+  const sgn = (v) => (v > 0 ? '+' : v < 0 ? MINUS : '') + cash(Math.abs(v));
+  const signed = (v) => h('span' + (v > 0 ? '.ok' : v < 0 ? '.bad' : '.muted'), null, sgn(v));
+  const weekWorth = week.reduce((s2, b) => s2 + (betFair(b, data) != null ? betFair(b, data) : fvOf(b)), 0);
   return h('div.stack', null,
-    h('div.strip', null, Stat(open.length, 'Open bets'), Stat(cash(week.reduce((s2, b) => s2 + (betFair(b, data) || 0), 0)), 'This week\u2019s bets are worth now'), Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk'), Stat(cash(week.reduce((s2, b) => s2 + (Number(b.toPay) || 0), 0)), 'Pays if this week\u2019s bets all hit'), Stat(h('span' + (netAll >= 0 ? '.ok' : '.bad'), null, cash(netAll)), 'Net on settled bets')),
-    table('This week', week, 'week'), table('Futures and season-long', longer, 'future'), table('Settled', settled, 'settled'));
+    h('div.strip', null,
+      Stat(week.length ? cash(weekWorth) : 'None yet', week.length ? 'Week ' + data.week + ': ' + week.length + ' open bet' + (week.length === 1 ? '' : 's') + ', worth now (pays ' + cash(week.reduce((t, b) => t + (Number(b.toPay) || 0), 0)) + ' if all hit)' : 'Week ' + data.week + ' bets'),
+      Stat(cash(open.reduce((s, b) => s + (b.bonus ? 0 : Number(b.stake) || 0), 0)), 'Cash at risk, all open bets'),
+      Stat(String(longer.length), 'Open futures, ' + cash(longer.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0)) + ' cash in' + (longer.some((b) => b.bonus) ? ' plus ' + cash(longer.reduce((t, b) => t + (b.bonus ? Number(b.stake) || 0 : 0), 0)) + ' in bonus bets' : '')),
+      Stat(signed(netSeason), 'Net on settled bets since Week ' + firstTracked + (settled.length ? ' (' + sgn(netWeek) + ' this week)' : ''))),
+    !week.length && !settled.length ? h('div.panel.empty-state', { style: { padding: 18 } }, 'No Week ' + data.week + ' bets yet. Send me your slips and I\u2019ll add them.') : null,
+    table('Week ' + data.week, week, 'week'),
+    table('Settled this week', settled, 'settled'),
+    table('Waiting to settle', waiting, 'future', 'These games are over but a leg still needs a stat to settle, so they settle by hand.'),
+    table('Futures and season-long', longer, 'future', 'Worth now uses the odds you got, less the book\u2019s usual margin. Past weeks\u2019 bets are under Results.'));
 }
-function PoolPanel({ data, which, update }) {
-  const [editing, setEditing] = useState(false);
+function PoolPanel({ data, which, results }) {
   const L = data.leagues[which], isSpread = which === 'spread';
   const key = isSpread ? 'spreadPicks' : 'pickemPicks';
   const picks = data[key] || {};
@@ -1607,35 +1699,364 @@ function PoolPanel({ data, which, update }) {
   const R = pickRates(data, which);
   const short = (p) => p.split(' ')[0];
   const basis = (L.players || []).reduce((mx, p) => Math.max(mx, R[p] ? (isSpread ? R[p].shared : R[p].nf) : 0), 0);
-  const rateLine = (isSpread ? 'Takes your side: ' + (L.players || []).filter((p) => p !== me).map((p) => short(p) + ' ' + Math.round(100 * R[p].agree) + '%').join(', ') : 'Picks favorites: ' + (L.players || []).map((p) => (p === me ? 'You' : short(p)) + ' ' + Math.round(100 * R[p].fav) + '%').join(', ')) + (basis ? ' (from ' + basis + ' game' + (basis === 1 ? '' : 's') + ' so far, blended with the ' + (isSpread ? '55' : '80') + '% default until there\u2019s more history)' : ' (default until picks start coming in)');
-  const setPick = (p, gid, v) => update((d) => { d[key][p] = d[key][p] || {}; if (v) d[key][p][gid] = v; else delete d[key][p][gid]; });
-  const cycle = (v, g) => (v === '' ? g.away : v === g.away ? g.home : '');
+  const rateLine = (isSpread ? 'How often each takes your side: ' + (L.players || []).filter((p) => p !== me).map((p) => short(p) + ' ' + Math.round(100 * R[p].agree) + '%').join(', ') : 'How often each picks the favorite: ' + (L.players || []).map((p) => (p === me ? 'you' : short(p)) + ' ' + Math.round(100 * R[p].fav) + '%').join(', ')) + (basis ? ' (from ' + basis + ' games)' : ' (default until picks start coming in)');
   const result = (x, g) => { if (!x || !hasScore(g)) return null; const t = isSpread ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g); return t ? t(marginOf(g)) : null; };
   const wl = (p) => { let w = 0, l = 0; games.forEach((g) => { const r = result((picks[p] || {})[g.id], g); if (r === true) w++; else if (r === false) l++; }); return w + '-' + l; };
+  const anyPicks = (L.players || []).some((p) => Object.keys(picks[p] || {}).some((gid) => games.some((g) => g.id === gid)));
+  // the season so far, week by week, from the results archive plus this week's finished games
+  const archWeeks = ((results && results.weeks) || []).map(weekFromArchive).filter((w) => w.week !== Number(data.week));
+  const live = weekFromLive(data);
+  const allWeeks = archWeeks.concat(live.finals ? [live] : []).sort((x, y) => x.week - y.week);
+  const perWeek = allWeeks.map((Wk) => { const rows = poolWeek(Wk, which, L.players || [], ppw); const top = Math.max.apply(null, rows.map((r) => r.pts)); return { Wk, by: Object.fromEntries(rows.map((r) => [r.name, r])), top }; });
+  const seasonRows = st.map((x) => x.name);
+  const leader = st.length ? st[0].pts : 0;
   return h('div.panel', null,
     h('div.row.between', { style: { marginBottom: 12, alignItems: 'flex-end' } },
-      h('div', null, h('h3', null, L.name), h('div.hint', null, [L.site, isSpread ? 'against the spread' : 'straight up', cash(L.buyIn) + ' buy-in'].filter(Boolean).join(', '))),
+      h('div', null, h('h3', null, L.name), h('div.hint', null, [L.site, isSpread ? 'against the spread' : 'straight up', cash(L.buyIn) + ' buy-in, winner take all'].filter(Boolean).join(', '))),
       st.length ? h('div.chips', null, st.map((x) => h('span.chip.plain' + (x.name === me ? '.me' : ''), { key: x.name }, ordinal(1 + st.filter((y) => y.pts > x.pts).length) + ' ' + x.name + ' ', h('b.tnum', null, x.pts)))) : null),
-    h('p.hint', { style: { margin: '-4px 0 10px' } }, rateLine),
-    h('div.scroll', null, h('table', null,
+    perWeek.length ? h('div.scroll', { style: { marginBottom: 14 } }, h('table.season', null,
+      h('thead', null, h('tr', null, h('th', null, 'Season'), h('th', { style: { textAlign: 'right' } }, 'Total'), h('th', { style: { textAlign: 'right' } }, 'Back'), perWeek.map((P) => h('th.tnum', { key: P.Wk.week, style: { textAlign: 'right' } }, 'W' + P.Wk.week + (P.Wk.live && !P.Wk.done ? '*' : ''))))),
+      h('tbody', null, seasonRows.map((p) => { const tot = (st.find((x) => x.name === p) || {}).pts || 0; return h('tr', { key: p, className: p === me ? 'me' : undefined },
+        h('td', { style: { whiteSpace: 'nowrap', fontWeight: p === me ? 700 : 500 } }, p, p === me ? h('span.you', null, 'you') : null),
+        h('td.tnum', { style: { textAlign: 'right', fontWeight: 700 } }, tot),
+        h('td.tnum.muted', { style: { textAlign: 'right' } }, tot === leader ? '\u2013' : leader - tot),
+        perWeek.map((P) => { const r = P.by[p]; return h('td.tnum' + (r && r.pts === P.top && P.top > 0 ? '.wk-top' : ''), { key: P.Wk.week, style: { textAlign: 'right' }, title: r ? recText(r) : '' }, r && r.n ? r.pts : h('span.dim', null, '\u2013')); })); }))),
+      perWeek.some((P) => P.Wk.live && !P.Wk.done) ? h('div.hint', { style: { marginTop: 4 } }, '* this week so far') : null) : null,
+    !anyPicks ? null : h('div.scroll', null, h('table', null,
       h('thead', null, h('tr', null, h('th', null, 'Week ' + data.week), h('th', null, 'W-L'), games.map((g) => h('th', { key: g.id, style: { textAlign: 'center' } }, h('div.mini', null, h(Logo, { t: g.away, size: 16 }), h(Logo, { t: g.home, size: 16 })), h('div.hint', null, isSpread ? lineText(g) : g.away + ' at ' + g.home))))),
       h('tbody', null, (L.players || []).map((p) => h('tr', { key: p },
         h('td', { style: { fontWeight: p === me ? 700 : 500, whiteSpace: 'nowrap' } }, p, p === me ? h('span.you', null, 'you') : null),
-        h('td.tnum.muted', null, wl(p)),
-        games.map((g) => { const v = (picks[p] || {})[g.id] || ''; const r = result(v, g); return h('td', { key: g.id, style: { textAlign: 'center' } }, h(editing ? 'button' : 'span', { className: 'pick' + (p === me ? ' me' : '') + (!v ? ' empty' : r === true ? ' hit' : r === false ? ' miss' : ''), onClick: editing ? () => setPick(p, g.id, cycle(v, g)) : undefined, title: editing ? 'Click to cycle away, home, blank' : undefined }, v || '\u00b7')); })))))),
-    h('div.row.between', { style: { marginTop: 10 } }, h('span.hint', null, isSpread ? 'Opponents\u2019 picks stay hidden until each game kicks off and come in when I refresh.' : 'Opponents\u2019 picks stay hidden until each game kicks off, then fill in automatically from ESPN.'), h('button.btn.sm', { onClick: () => setEditing(!editing) }, editing ? 'Done editing' : 'Edit picks')));
+        h('td.tnum.muted', { style: { whiteSpace: 'nowrap' } }, wl(p)),
+        games.map((g) => { const v = (picks[p] || {})[g.id] || ''; const r = result(v, g); return h('td', { key: g.id, style: { textAlign: 'center' } }, h('span', { className: 'pick' + (p === me ? ' me' : '') + (!v ? ' empty' : r === true ? ' hit' : r === false ? ' miss' : '') }, v || '\u00b7')); })))))),
+    h('p.hint', { style: { margin: anyPicks ? '10px 0 0' : '0' } }, (anyPicks ? '' : 'No Week ' + data.week + ' picks in yet. ') + (isSpread ? 'Opponents\u2019 picks stay hidden until each game kicks off and come in when I refresh.' : 'Opponents\u2019 picks stay hidden until each game kicks off, then fill in automatically from ESPN.') + (isSpread && data.lineSource && data.lineSource !== 'CBS' ? ' Lines shown are DraftKings\u2019 until CBS posts the pool\u2019s lines.' : '')),
+    h('p.hint', { style: { margin: '4px 0 0' } }, rateLine));
 }
-const PoolsTab = ({ data, update }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', update }), h(PoolPanel, { data, which: 'pickem', update }));
+const PoolsTab = ({ data, results }) => h('div.stack', null, h(PoolPanel, { data, which: 'spread', results }), h(PoolPanel, { data, which: 'pickem', results }));
+
+// ---------- pick advisor ----------
+// For every game not yet started, the pick that gives you the best chance of winning each winner-take-all pool.
+// Two things decide it: how likely each side is to be right (the market's line or moneyline against the pool's line),
+// and how the rest of the field tends to pick, since matching them protects a lead and going against them is how you catch up.
+const marketOf = (g) => {
+  const mk = (g.lv && g.lv.mkt) || {};
+  const line = mk.homeLine != null ? Number(mk.homeLine) : hasLine(g) ? Number(g.line) : null;
+  let wp = mk.homeWP != null ? Number(mk.homeWP) : g.homeWP != null && g.homeWP !== '' ? Number(g.homeWP) : null;
+  if (wp == null && line != null) wp = normCdf(-line / 13.5);
+  const total = mk.total != null ? Number(mk.total) : g.total != null && g.total !== '' ? Number(g.total) : null;
+  return { line, wp, total };
+};
+// Final-margin distribution with NFL key numbers (3 and 7 above all): a normal curve reweighted by how often each margin happens.
+const KEYW = [0.12, 0.7, 0.7, 2.6, 0.9, 0.75, 1.15, 1.75, 0.95, 0.75, 1.35, 0.85, 0.8, 0.95, 1.4, 0.85, 0.9, 1.4, 0.9, 0.8, 1, 1.3];
+function marginDist(mu) { const out = []; let t = 0; for (let m = -60; m <= 60; m++) { const z = (m - mu) / 13.5, p = Math.exp(-z * z / 2) * (KEYW[Math.abs(m)] != null ? KEYW[Math.abs(m)] : 1); out.push(p); t += p; } return out.map((p) => p / t); }
+const coverIn = (dist, L) => dist.reduce((a, p, i) => { const c = i - 60 + L; return a + (c > 0 ? p : c === 0 ? p / 2 : 0); }, 0);
+// Chance the home side covers the pool's line L, when the market's home line is M (each side of M is a coin flip).
+function coverProb(L, M) {
+  let lo = -40, hi = 40;
+  for (let k = 0; k < 36; k++) { const mid = (lo + hi) / 2; if (coverIn(marginDist(mid), M) < 0.5) lo = mid; else hi = mid; }
+  return coverIn(marginDist((lo + hi) / 2), L);
+}
+// Pool equity for every combination of who gets this game right (bit j set: player j is right), from the season simulation.
+const EQ_CACHE = new WeakMap();
+function eqTable(data, which) {
+  const sim = poolSim(data, which), n = sim.players.length;
+  if (sim.me < 0 || !n || n > 10) return null;
+  if (EQ_CACHE.has(sim)) return EQ_CACHE.get(sim);
+  const eq = new Float64Array(1 << n);
+  for (let mask = 0; mask < 1 << n; mask++) eq[mask] = sim.equity(sim.players.map((_, j) => (mask >> j) & 1));
+  const T = { sim, eq, n };
+  EQ_CACHE.set(sim, T);
+  return T;
+}
+function adviseGame(g, data, which, T, R) {
+  const isSpread = which === 'spread', mk = marketOf(g);
+  const poolLine = hasLine(g) ? Number(g.line) : mk.line;
+  if (isSpread && poolLine == null) return null;
+  // chance the home side is right: covering the pool's line given the market's line, or winning outright
+  const pHome = isSpread ? (mk.line == null || mk.line === poolLine ? 0.5 : coverProb(poolLine, mk.line)) : mk.wp == null ? 0.5 : mk.wp;
+  const fav = isSpread ? (poolLine < 0 ? g.home : poolLine > 0 ? g.away : null) : mk.wp == null || mk.wp === 0.5 ? null : mk.wp > 0.5 ? g.home : g.away;
+  const players = T.sim.players, me = T.sim.me;
+  const opp = players.map((_, j) => j).filter((j) => j !== me);
+  const qPick = (j, S) => { const f = R[players[j]] ? R[players[j]].fav : 0.5; return fav == null ? 0.5 : S === fav ? f : 1 - f; };
+  const evalSide = (S) => {
+    const pS = S === g.home ? pHome : 1 - pHome;
+    let E = 0;
+    for (let c = 0; c < 1 << opp.length; c++) {
+      let pr = 1, right = 1 << me, wrong = 0;
+      opp.forEach((j, i) => { const on = (c >> i) & 1, q = qPick(j, S); pr *= on ? q : 1 - q; if (on) right |= 1 << j; else wrong |= 1 << j; });
+      E += pr * (pS * T.eq[right] + (1 - pS) * T.eq[wrong]);
+    }
+    return { pS, E };
+  };
+  const A = evalSide(g.away), H = evalSide(g.home);
+  const best = H.E >= A.E ? g.home : g.away, other = best === g.home ? g.away : g.home;
+  const field = (S) => opp.reduce((t, j) => t + qPick(j, S), 0);
+  const pBest = best === g.home ? pHome : 1 - pHome;
+  const edge = Math.abs(H.E - A.E);
+  // below a quarter of a dollar the difference is noise from the simulation: call it a toss-up rather than pick a side
+  const toss = edge < 0.25;
+  const why = toss ? (isSpread ? 'no edge on this line' : 'even game') : pBest >= 0.515
+    ? (isSpread ? 'line value' : 'more likely to win')
+    : field(best) > field(other) ? 'matches the field' : 'against the field';
+  return { g, which, poolLine, mk, pHome, fav, best, other, edge, toss, pBest, why, field: { [g.away]: field(g.away), [g.home]: field(g.home) }, nOpp: opp.length };
+}
+const sideLine = (S, g, homeLine) => (homeLine == null ? S : S + ' ' + fmtLine(S === g.home ? homeLine : -homeLine));
+function AdvisorTab({ data }) {
+  const [showAll, setShowAll] = useState(false);
+  const pools = ['spread', 'pickem'].map((which) => {
+    const L = data.leagues[which], isSpread = which === 'spread';
+    const me = data.me[which], picks = ((isSpread ? data.spreadPicks : data.pickemPicks) || {})[me] || {};
+    const T = (L.players || []).length ? eqTable(data, which) : null;
+    if (!T) return { which, L, rows: [], none: true };
+    const R = pickRates(data, which), s = standingOf(data, which);
+    const rows = data.games.map((g) => {
+      if (g.status !== 'upcoming') return { g, locked: true, mine: picks[g.id] || '' };
+      const a = adviseGame(g, data, which, T, R);
+      return a ? Object.assign(a, { mine: picks[g.id] || '' }) : { g, noline: true, mine: picks[g.id] || '' };
+    });
+    const eqNow = T.sim.pot ? T.sim.equity(null) / T.sim.pot : null;
+    return { which, L, rows, s, eqNow, isSpread, me, sim: T.sim };
+  });
+  const open = data.games.filter((g) => g.status === 'upcoming');
+  const lastGame = data.games.slice().sort((x, y) => { const kx = parseKick(x.kick), ky = parseKick(y.kick); return ((kx.day ? DAYS.indexOf(kx.day) : 9) * 1440 + (kx.mins || 0)) - ((ky.day ? DAYS.indexOf(ky.day) : 9) * 1440 + (ky.mins || 0)); }).pop();
+  const tbTotal = lastGame ? marketOf(lastGame).total : null;
+  const cbsLines = data.lineSource === 'CBS';
+  const leadText = (P) => {
+    if (!P.s || !P.L.standings || !P.L.standings.length) return '';
+    const cw = currentWins(data, P.which), ppw = Number(P.L.ptsPerWin) || 1, mine = (cw[P.me] || 0) * ppw;
+    const others = (P.L.players || []).filter((p) => p !== P.me).map((p) => (cw[p] || 0) * ppw);
+    const top = Math.max.apply(null, others), gap = mine - top;
+    return ordinal(P.s.rank) + ' of ' + P.s.n + ', ' + (gap > 0 ? 'up ' + gap : gap < 0 ? 'down ' + -gap : 'tied for the lead') + (P.eqNow != null ? ', ' + Math.round(100 * P.eqNow) + '% to win the pool' : '');
+  };
+  const strategy = (P) => {
+    if (!P.s) return '';
+    const lead = P.s.rank === 1;
+    return lead ? 'You lead, so on close calls it leans toward the side the others will likely take: when you all win or all lose together, your lead holds.' : 'You\u2019re chasing, so on close calls it leans away from the field: you only gain ground on games where you differ.';
+  };
+  const pctTxt = (p) => Math.round(100 * p) + '%';
+  const rowFor = (P, r) => {
+    const g = r.g;
+    const matchup = h('div.adv-g', null, h('span.adv-m', null, h(Logo, { t: g.away, size: 18 }), g.away, h('span.at', null, ' at '), g.home, h(Logo, { t: g.home, size: 18 })), h('span.hint', null, kickText(g)));
+    const mine = r.mine ? h('span.adv-mine' + (r.best && !r.toss && r.mine !== r.best ? '.differs' : ''), null, 'You have ' + (P.isSpread && !r.locked ? sideLine(r.mine, g, r.poolLine) : r.mine) + (r.best && !r.toss ? (r.mine !== r.best ? ': consider switching' : ' \u2713') : '')) : h('span.hint', null, r.locked ? 'no pick' : 'not picked yet');
+    if (r.locked) return h('div.adv-row.locked', { key: g.id }, matchup, h('div.adv-c', null, h('span.hint', null, g.status === 'final' ? 'Final' : 'In progress')), h('div.adv-pick', null, mine));
+    if (r.noline) return h('div.adv-row', { key: g.id }, matchup, h('div.adv-c', null, h('span.hint', null, 'No line yet')), h('div.adv-pick', null, mine));
+    const pA = r.g.away === r.best ? r.pBest : 1 - r.pBest;
+    const lineCell = P.isSpread
+      ? h('div.adv-c', null, h('div', null, lineText(Object.assign({}, g, { line: r.poolLine }))), r.mk.line != null && Math.abs(r.mk.line - r.poolLine) >= 0.5 ? h('div.hint.flagtxt', null, 'market now ' + lineText(Object.assign({}, g, { line: r.mk.line }))) : h('div.hint', null, cbsLines ? 'pool line' : 'market line'))
+      : h('div.adv-c', null, h('div', null, g.away + ' ' + pctTxt(pA) + ', ' + g.home + ' ' + pctTxt(1 - pA)));
+    const chance = P.isSpread ? h('div.adv-c', null, r.toss || Math.abs(r.pBest - 0.5) < 0.005 ? h('div', null, 'Even') : h('div', null, r.best + ' ' + pctTxt(r.pBest)), h('div.hint', null, r.toss || Math.abs(r.pBest - 0.5) < 0.005 ? '50% either way' : 'to cover the pool line')) : null;
+    const fb = r.field[r.best] / Math.max(1, r.nOpp), fo = r.field[r.other] / Math.max(1, r.nOpp);
+    const big = r.field[r.best] >= r.field[r.other] ? r.best : r.other;
+    const fieldCell = h('div.adv-c', null, h('div', null, fb >= 0.6 ? 'Most take ' + r.best : fo >= 0.6 ? 'Most take ' + r.other : 'Split'), h('div.hint', null, 'about ' + Math.round(r.field[big]) + ' of ' + r.nOpp + ' on ' + big));
+    const plate = h('div.adv-pick', null,
+      r.toss ? h('span.plate.sm.outline', null, 'Toss-up') : h('span.plate.sm', { style: { background: teamColor(r.best), color: ink(teamColor(r.best)) } }, P.isSpread ? sideLine(r.best, g, r.poolLine) : r.best),
+      h('span.adv-why', { title: r.toss ? 'Either side is within a quarter of a dollar of the other' : 'Taking ' + r.best + ' instead of ' + r.other + ' is worth this much of the prize, on average' }, r.toss ? r.why : r.why + ', +' + cash(r.edge)), mine);
+    return h('div.adv-row', { key: g.id }, matchup, lineCell, chance, fieldCell, plate);
+  };
+  return h('div.stack', null,
+    h('div.panel', null,
+      h('h3', null, 'Week ' + data.week + ' pick advisor'),
+      h('p.adv-intro', null, 'For each game that hasn\u2019t started, the pick that gives you the best shot at each pool\u2019s prize. It weighs how likely each side is to be right (DraftKings\u2019 odds) against how the others usually pick. The dollar figure is how much more of the prize that pick is worth than the other side, on average.'),
+      tbTotal != null && lastGame ? h('p.hint', { style: { marginTop: 6 } }, 'Tiebreaker: ' + lastGame.away + ' at ' + lastGame.home + ' total points. The market total is ' + tbTotal + ', so ' + Math.round(tbTotal) + ' is the best single guess.') : null,
+      data.survivorOut ? h('p.hint', { style: { marginTop: 4 } }, 'Survivor: you were knocked out in ' + data.survivorOut + '.') : null),
+    !open.length ? h('div.panel.empty-state', null, 'Every Week ' + data.week + ' game has started. Advice for Week ' + (Number(data.week) + 1) + ' shows up once its schedule loads.') : null,
+    pools.map((P) => { if (P.none) return null; const allToss = P.isSpread && !cbsLines && P.rows.every((r) => r.locked || r.noline || r.toss); const showRows = !allToss || showAll; return h('div.panel', { key: P.which },
+      h('div.row.between', { style: { alignItems: 'baseline', marginBottom: 4 } }, h('h3', null, P.L.name, h('span.hint', { style: { marginLeft: 10, fontFamily: 'Barlow, sans-serif' } }, P.isSpread ? 'against the spread' : 'straight up')), h('span.muted', { style: { fontSize: 13 } }, leadText(P))),
+      allToss ? null : h('p.hint', { style: { margin: '0 0 8px' } }, strategy(P)),
+      allToss ? h('p.warnline', { style: { margin: '2px 0 8px' } }, 'CBS hasn\u2019t posted the pool\u2019s Week ' + data.week + ' lines yet. On DraftKings\u2019 own lines every side covers about half the time, and matching or fading the field moves your odds by pennies, so there\u2019s nothing to act on yet. Once CBS posts, any line the market has moved off shows up here as an edge.') : null,
+      showRows ? h('div.adv' + (P.isSpread ? '.ats' : '.su'), null,
+        h('div.adv-head', null, h('span', null, 'Game'), h('span', null, P.isSpread ? 'Line' : 'Win chance'), P.isSpread ? h('span', null, 'Cover chance') : null, h('span', null, 'The others'), h('span', null, 'Take')),
+        P.rows.filter((r) => showAll || !r.locked).map((r) => rowFor(P, r))) : null,
+      allToss ? h('button.linkbtn', { onClick: () => setShowAll(!showAll) }, showAll ? 'Hide the games' : 'Show the games anyway') : P.rows.some((r) => r.locked) ? h('button.linkbtn', { style: { marginTop: 8 }, onClick: () => setShowAll(!showAll) }, showAll ? 'Hide games that have started' : 'Show games that have started (' + P.rows.filter((r) => r.locked).length + ')') : null); }));
+}
+
+// ---------- results by week ----------
+const RESULTS_URL = 'results.json';
+const fetchResults = async () => { try { const r = await fetch(RESULTS_URL + '?t=' + Date.now(), { cache: 'no-store' }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+const betNet = (b, st) => (st === 'won' ? (b.bonus ? Number(b.toPay) : Number(b.toPay) - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0);
+// One week in a common shape, whether it comes from the archive (results.json) or the board's live data.
+// The archive stores each player's picks as one comma-separated string in game order ("SEA,LAR,,CIN": blank = no pick).
+const archPicks = (W, src) => { const out = {}; Object.keys(src || {}).forEach((p) => { const v = src[p]; out[p] = typeof v === 'string' ? v.split(',').reduce((o, t, i) => { if (t && W.games[i]) o[W.games[i].id] = t; return o; }, {}) : Object.assign({}, v); }); return out; };
+function weekFromArchive(W) {
+  const games = (W.games || []).map((g) => { const [away, home] = g.id.split('@'); return { id: g.id, away, home, awayScore: g.a, homeScore: g.h, line: g.line, status: 'final', ot: !!g.ot }; });
+  return { week: Number(W.week), games, picks: { spread: archPicks(W, (W.spread || {}).picks), pickem: archPicks(W, (W.pickem || {}).picks) }, order: (W.spread || {}).order || null, tb: (W.spread || {}).tb || null, survivor: W.survivor || null, bets: W.bets == null ? null : W.bets.map((b) => Object.assign({}, b)), done: true, total: games.length };
+}
+function weekFromLive(d) {
+  const finals = d.games.filter((g) => g.status === 'final' && hasScore(g));
+  const byId = {}; d.games.forEach((g) => { byId[g.id] = g; });
+  const boxes = d.boxes || {};
+  const bets = (d.bets || []).filter((b) => (b.legs || []).some((l) => l.kind === 'game' && byId[l.game])).map((b) => {
+    const st = betStatus(b, byId, boxes);
+    const legs = (b.legs || []).filter((l) => l.kind === 'game').map((l) => {
+      const g = byId[l.game], r = legResult(l, g, boxes);
+      let v = '';
+      if (g && l.type === 'prop') { const ps = propState(l, g, boxes[l.game]); if (ps && ps.first) v = ps.ft ? 'first TD: ' + ps.ft : ''; else if (ps && ps.pl) v = (Math.round(ps.val * 10) / 10) + ' ' + STATLBL[ps.sp.stat]; }
+      else if (g && hasScore(g) && l.type === 'total') v = (Number(g.awayScore) + Number(g.homeScore)) + ' pts';
+      return { t: legText(l), g: l.game, r, v };
+    });
+    return { id: b.id, book: b.book, placed: b.placed, desc: b.desc, stake: b.stake, toPay: b.toPay, bonus: !!b.bonus, status: st, net: st === 'open' ? null : betNet(b, st), legs, voided: b.voided };
+  });
+  const sv = uc(d.survivor);
+  const sg = sv ? d.games.find((g) => g.home === sv || g.away === sv) : null;
+  const survivor = sv ? { pick: sv, result: sg && sg.status === 'final' && hasScore(sg) ? (mlTest(sv, sg)(marginOf(sg)) ? 'won' : 'lost') : 'open' } : null;
+  const shownPicks = (which) => { const src = (which === 'spread' ? d.spreadPicks : d.pickemPicks) || {}, me = d.me[which], out = {}; Object.keys(src).forEach((p) => { out[p] = {}; Object.keys(src[p] || {}).forEach((gid) => { const g = byId[gid]; if (g && (p === me || shownFor(g, which))) out[p][gid] = src[p][gid]; }); }); return out; };
+  return { week: Number(d.week), games: d.games.slice(), finals: finals.length, picks: { spread: shownPicks('spread'), pickem: shownPicks('pickem') }, order: null, tb: null, survivor, bets, done: finals.length === d.games.length && d.games.length > 0, total: d.games.length, live: true };
+}
+// Each player's record and points for one pool in one week (final games only).
+function poolWeek(Wk, which, players, ppw) {
+  const isSpread = which === 'spread', picks = Wk.picks[which] || {};
+  const rows = players.map((p) => {
+    let w = 0, l = 0, t = 0, n = 0;
+    Wk.games.forEach((g) => {
+      const x = (picks[p] || {})[g.id];
+      if (!x) return;
+      n++;
+      if (g.status !== 'final' || !hasScore(g)) return;
+      const test = isSpread ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g), r = test ? test(marginOf(g)) : null;
+      if (r === true) w++; else if (r === false) l++; else t++;
+    });
+    return { name: p, w, l, t, n, pts: w * ppw };
+  });
+  const order = isSpread && Wk.order ? Wk.order : null;
+  rows.forEach((r) => { r.rank = order && order.indexOf(r.name) >= 0 ? order.indexOf(r.name) + 1 : 1 + rows.filter((x) => x.pts > r.pts).length; r.tied = !order && rows.some((x) => x !== r && x.pts === r.pts); });
+  return rows;
+}
+const recText = (r) => r.w + '\u2013' + r.l + (r.t ? '\u2013' + r.t : '');
+const rankText = (r) => (r.tied ? 'T-' : '') + ordinal(r.rank);
+function ResultsTab({ data, results, prev }) {
+  const me = data.me, players = { spread: data.leagues.spread.players || [], pickem: data.leagues.pickem.players || [] };
+  const ppw = { spread: Number(data.leagues.spread.ptsPerWin) || 1, pickem: Number(data.leagues.pickem.ptsPerWin) || 1 };
+  const weeks = useMemo(() => {
+    const arch = ((results && results.weeks) || []).map(weekFromArchive);
+    const have = new Set(arch.map((w) => w.week));
+    const extra = [prev, data].filter(Boolean).map(weekFromLive).filter((w) => !have.has(w.week) && (w.finals > 0 || (w.bets || []).some((b) => b.status !== 'open')));
+    const all = arch.concat(extra).sort((x, y) => x.week - y.week);
+    // season standings after each week
+    const tot = { spread: {}, pickem: {} };
+    all.forEach((Wk) => {
+      Wk.pools = {};
+      ['spread', 'pickem'].forEach((which) => {
+        const rows = poolWeek(Wk, which, players[which], ppw[which]);
+        rows.forEach((r) => { tot[which][r.name] = (tot[which][r.name] || 0) + r.pts; r.season = tot[which][r.name]; });
+        rows.forEach((r) => { r.seasonRank = 1 + rows.filter((x) => x.season > r.season).length; r.seasonTied = rows.some((x) => x !== r && x.season === r.season); });
+        const mine = rows.find((r) => r.name === me[which]);
+        const best2 = rows.filter((r) => r.name !== me[which]).reduce((m, r) => Math.max(m, r.season), -Infinity);
+        Wk.pools[which] = { rows, mine, gap: mine ? mine.season - best2 : null };
+      });
+      const bs = Wk.bets || [];
+      Wk.betSum = Wk.bets == null ? null : { n: bs.length, won: bs.filter((b) => b.status === 'won').length, lost: bs.filter((b) => b.status === 'lost').length, push: bs.filter((b) => b.status === 'void').length, open: bs.filter((b) => b.status === 'open').length, net: bs.reduce((t, b) => t + (b.net || 0), 0), staked: bs.reduce((t, b) => t + (b.bonus ? 0 : Number(b.stake) || 0), 0) };
+    });
+    return all;
+  }, [results, data, prev]);
+  const [sel, setSel] = useState(null);
+  const cur = weeks.find((w) => w.week === sel) || weeks[weeks.length - 1];
+  if (results === undefined) return h('div.panel.empty-state', null, 'Loading results\u2026');
+  if (!weeks.length) return h('div.panel.empty-state', null, 'No finished games yet this season.');
+  const last = weeks[weeks.length - 1];
+  const tracked = weeks.filter((w) => w.betSum);
+  const betTot = tracked.reduce((a, w) => ({ n: a.n + w.betSum.n, won: a.won + w.betSum.won, lost: a.lost + w.betSum.lost, net: a.net + w.betSum.net, staked: a.staked + w.betSum.staked }), { n: 0, won: 0, lost: 0, net: 0, staked: 0 });
+  const season = (which) => { const P = last.pools[which], m = P.mine; if (!m) return null; const rec = weeks.reduce((a, w) => { const r = w.pools[which].mine; return r ? { w: a.w + r.w, l: a.l + r.l, t: a.t + r.t } : a; }, { w: 0, l: 0, t: 0 }); return { m, P, rec }; };
+  const sp = season('spread'), pk = season('pickem');
+  const gapText = (P) => (P.gap == null ? '' : P.gap > 0 ? ', up ' + P.gap : P.gap < 0 ? ', down ' + -P.gap : ', tied');
+  const survWeeks = weeks.filter((w) => w.survivor && w.survivor.pick);
+  const outWk = survWeeks.find((w) => w.survivor.result === 'lost');
+  const signed = (v) => h('span' + (v > 0 ? '.ok' : v < 0 ? '.bad' : '.muted'), null, (v > 0 ? '+' : v < 0 ? MINUS : '') + cash(Math.abs(v)));
+  const strip = h('div.strip', null,
+    sp ? Stat(ordinal(sp.m.seasonRank) + ' of ' + sp.P.rows.length, data.leagues.spread.name + ': ' + sp.m.season + ' pts' + gapText(sp.P) + ', ' + recText(sp.rec) + ' ATS') : null,
+    pk ? Stat(ordinal(pk.m.seasonRank) + ' of ' + pk.P.rows.length, data.leagues.pickem.name + ': ' + pk.m.season + ' pts' + gapText(pk.P) + ', ' + recText(pk.rec)) : null,
+    survWeeks.length || data.survivorOut ? Stat(outWk || data.survivorOut ? 'Out' : 'Alive', 'Survivor: ' + (outWk ? 'lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : data.survivorOut ? 'out in ' + data.survivorOut : survWeeks.length + ' weeks survived')) : null,
+    tracked.length ? Stat(signed(betTot.net), 'Bets since Week ' + tracked[0].week + ': ' + betTot.won + ' won, ' + betTot.lost + ' lost, ' + cash(betTot.staked) + ' staked') : null);
+  const cellPool = (Wk, which) => { const P = Wk.pools[which], m = P.mine; if (!m || !m.n) return h('span.hint', null, Wk.live && !Wk.finals ? '' : 'no picks'); return h('div', null, h('b.tnum', null, recText(m)), h('span.muted', null, ' ' + rankText(m) + ' this week'), h('div.hint', null, (Wk.live && !Wk.done ? 'so far; ' : '') + 'season ' + ordinal(m.seasonRank) + gapText(P))); };
+  const cellBets = (Wk) => (!Wk.betSum ? h('span.hint', null, 'not tracked') : !Wk.betSum.n ? h('span.hint', null, 'none') : h('div', null, signed(Wk.betSum.net), h('div.hint', null, Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : ''))));
+  const cellSurv = (Wk) => (!Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
+  const table = h('div.panel', null,
+    h('div.row.between', { style: { marginBottom: 8 } }, h('h3', null, 'Week by week'), h('span.hint', null, 'Tap a week for the details')),
+    h('div.res-head', null, h('span', null, 'Week'), h('span', null, data.leagues.spread.name), h('span', null, data.leagues.pickem.name), h('span', null, 'Survivor'), h('span', null, 'Bets')),
+    weeks.slice().reverse().map((Wk) => h('div.res-row' + (cur && Wk.week === cur.week ? '.on' : ''), { key: Wk.week, role: 'button', tabIndex: 0, onClick: () => setSel(Wk.week), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(Wk.week); } }, 'aria-pressed': cur && Wk.week === cur.week ? 'true' : 'false' },
+      h('span.res-wk', null, 'Week ' + Wk.week, Wk.live && !Wk.done ? h('span.hint', null, ' ' + Wk.finals + ' of ' + Wk.total + ' final') : null),
+      h('span.res-c', { 'data-l': data.leagues.spread.name }, cellPool(Wk, 'spread')),
+      h('span.res-c', { 'data-l': data.leagues.pickem.name }, cellPool(Wk, 'pickem')),
+      h('span.res-c', { 'data-l': 'Survivor' }, cellSurv(Wk)),
+      h('span.res-c', { 'data-l': 'Bets' }, cellBets(Wk)))),
+    results && results.notes && results.notes.bets ? h('p.hint', { style: { marginTop: 8 } }, results.notes.bets) : null);
+  return h('div.stack', null, strip, table, cur ? h(WeekDetail, { Wk: cur, weeks, setSel, data, me }) : null);
+}
+function WeekDetail({ Wk, weeks, setSel, data, me }) {
+  const ix = weeks.indexOf(Wk);
+  const byGame = {};
+  (Wk.bets || []).forEach((b) => { const gs = [...new Set((b.legs || []).map((l) => l.g).filter(Boolean))]; const key = gs.length === 1 ? gs[0] : null; if (key) (byGame[key] = byGame[key] || []).push(b); });
+  const mark = (r) => (r === true ? h('span.ok', null, '\u2713') : r === false ? h('span.bad', null, '\u2717') : r === null ? h('span.dim', null, 'push') : null);
+  const pickCell = (which, g) => {
+    const x = ((Wk.picks[which] || {})[me[which]] || {})[g.id];
+    if (!x) return h('span.hint', null, '\u2013');
+    const fin = g.status === 'final' && hasScore(g);
+    const test = which === 'spread' ? coverTest(x, g, x === g.home ? Number(g.line) : -Number(g.line)) : mlTest(x, g);
+    return h('span.res-pk', null, which === 'spread' ? x + ' ' + fmtLine(x === g.home ? Number(g.line) : -Number(g.line)) : x, ' ', fin && test ? mark(test(marginOf(g))) : h('span.hint', null, 'pending'));
+  };
+  const poolBoard = (which) => {
+    const P = Wk.pools[which], L = data.leagues[which];
+    return h('div.res-board', { key: which },
+      h('div.res-bh', null, L.name, Wk.tb && which === 'spread' ? h('span.hint', null, ' tiebreaker ' + Wk.tb.game + ' total ' + Wk.tb.total) : null),
+      h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Week'), h('th', { style: { textAlign: 'right' } }, 'Pts'), h('th', { style: { textAlign: 'right' } }, 'Season'))),
+        h('tbody', null, P.rows.slice().sort((x, y) => x.rank - y.rank || y.season - x.season).map((r) => h('tr', { key: r.name, className: r.name === me[which] ? 'me' : undefined },
+          h('td', null, h('span.muted', null, rankText(r) + ' '), r.name, r.name === me[which] ? h('span.you', null, 'you') : null),
+          h('td.tnum', { style: { whiteSpace: 'nowrap' } }, r.n ? recText(r) : h('span.hint', null, 'no picks')),
+          h('td.tnum', { style: { textAlign: 'right' } }, r.pts),
+          h('td.tnum', { style: { textAlign: 'right' } }, r.season, h('span.hint', null, ' ' + (r.seasonTied ? 'T-' : '') + ordinal(r.seasonRank))))))));
+  };
+  const games = Wk.games.slice();
+  const betCard = (b) => h('div.tb', { key: b.id },
+    h('div.tb-top', null, h('span.book.' + (b.book || 'Other'), null, b.book), h('span.tb-name', null, b.desc), h('span.tb-pay.tnum', null, cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay))),
+    h('div.tb-st' + (b.status === 'won' ? '.ok' : b.status === 'lost' ? '.bad' : ''), null, b.status === 'won' ? 'Won, +' + cash(b.net) : b.status === 'lost' ? (b.bonus ? 'Lost (bonus bet, no cash lost)' : 'Lost, ' + MINUS + cash(Math.abs(b.net))) : b.status === 'void' ? 'Push, stake back' : 'Still open'),
+    h('div.legs', null, (b.legs || []).map((l, i) => h('div.leg.' + (l.r === 'won' ? 'won' : l.r === 'lost' ? 'lost' : l.r === 'void' ? 'void' : 'pre'), { key: i },
+      h('span.lg-mk', null, l.r === 'won' ? '\u2713' : l.r === 'lost' ? '\u2717' : l.r === 'void' ? '\u2013' : '\u25cb'),
+      h('span.lg-t', null, l.t, l.g && new Set((b.legs || []).map((x) => x.g)).size > 1 ? h('span.lg-g', null, ' ' + l.g) : null),
+      h('span.lg-v.tnum', null, l.v || ''))),
+      (b.voided || []).map((v, i) => h('div.leg.void', { key: 'v' + i }, h('span.lg-mk', null, '\u2013'), h('span.lg-t', null, v.desc), h('span.lg-v', null, 'void')))),
+    b.note ? h('div.hint', { style: { marginTop: 4 } }, b.note) : null);
+  const sortedBets = (Wk.bets || []).slice().sort((x, y) => (y.net || 0) - (x.net || 0));
+  return h('div.panel', null,
+    h('div.row.between', { style: { marginBottom: 10 } },
+      h('div.row', null,
+        h('button.btn.sm', { onClick: () => ix > 0 && setSel(weeks[ix - 1].week), disabled: ix <= 0, 'aria-label': 'Previous week' }, '\u2039'),
+        h('select', { value: Wk.week, onChange: (e) => setSel(Number(e.target.value)), 'aria-label': 'Week' }, weeks.slice().reverse().map((w) => h('option', { key: w.week, value: w.week }, 'Week ' + w.week + (w.live && !w.done ? ' (in progress)' : '')))),
+        h('button.btn.sm', { onClick: () => ix < weeks.length - 1 && setSel(weeks[ix + 1].week), disabled: ix >= weeks.length - 1, 'aria-label': 'Next week' }, '\u203a')),
+      h('span.hint', null, Wk.live && !Wk.done ? Wk.finals + ' of ' + Wk.total + ' games final' : Wk.total + ' games')),
+    h('div.res-boards', null, poolBoard('spread'), poolBoard('pickem')),
+    h('h4.res-sub', null, 'Your picks'),
+    h('div.res-games', null,
+      h('div.res-gh', null, h('span', null, 'Game'), h('span', null, 'Line'), h('span', null, data.leagues.spread.name), h('span', null, data.leagues.pickem.name), h('span', { style: { textAlign: 'right' } }, 'Bets')),
+      games.map((g) => {
+        const sv = Wk.survivor && Wk.survivor.pick && (g.home === Wk.survivor.pick || g.away === Wk.survivor.pick);
+        const bs = byGame[g.id] || [], done = bs.filter((b) => b.status !== 'open'), net = done.reduce((t, b) => t + (b.net || 0), 0), nOpen = bs.length - done.length;
+        const when = g.status === 'live' ? h('span.livepill', { style: { fontSize: 11, marginLeft: 6 } }, g.clock || 'Live') : g.status === 'upcoming' ? h('span.hint', { style: { marginLeft: 6 } }, kickText(g)) : g.ot ? h('span.hint', null, ' OT') : null;
+        return h('div.res-g', { key: g.id },
+          h('span.res-gs', null, h('span.res-score', null, h(Logo, { t: g.away, size: 16 }), g.away + (hasScore(g) ? ' ' + g.awayScore : ''), h('span.dim', null, hasScore(g) ? ' \u2013 ' : ' at '), (hasScore(g) ? g.homeScore + ' ' : '') + g.home, h(Logo, { t: g.home, size: 16 }), when), sv ? h('span.hint.res-svl', null, 'Survivor: ' + Wk.survivor.pick + ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : '') : null),
+          h('span.tnum.muted.res-gl', null, lineText(g)),
+          h('span.res-gp', { 'data-l': 'CBS' }, pickCell('spread', g)),
+          h('span.res-gp', { 'data-l': 'ESPN' }, pickCell('pickem', g)),
+          h('span.tnum.res-gb', null, done.length ? h('span' + (net > 0 ? '.ok' : net < 0 ? '.bad' : '.muted'), { title: done.length + ' settled bet' + (done.length > 1 ? 's' : '') }, (net > 0 ? '+' : net < 0 ? MINUS : '') + cash(Math.abs(net))) : null, nOpen ? h('span.hint', { style: { display: 'block' } }, nOpen + ' open') : null));
+      })),
+    Wk.bets == null ? h('p.hint', { style: { marginTop: 12 } }, 'Bets weren\u2019t tracked on the board this week.') : !Wk.bets.length ? h('p.hint', { style: { marginTop: 12 } }, 'No bets this week.') : h('div', null,
+      h('h4.res-sub', null, 'Bets', h('span.hint', null, ' ' + Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.push ? ', ' + Wk.betSum.push + ' pushed' : '') + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : '') + ', net '), h('span' + (Wk.betSum.net > 0 ? '.ok' : Wk.betSum.net < 0 ? '.bad' : '.muted'), { style: { fontSize: 14 } }, (Wk.betSum.net > 0 ? '+' : Wk.betSum.net < 0 ? MINUS : '') + cash(Math.abs(Wk.betSum.net)))),
+      h('div.tb-grid', null, sortedBets.map(betCard))));
+}
 
 
 // ---------- app ----------
+// A tab that throws shows a note instead of taking the whole board down with it.
+class Boundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidUpdate(prev) { if (prev.k !== this.props.k && this.state.err) this.setState({ err: null }); }
+  render() { return this.state.err ? h('div.panel.empty-state.oops', null, 'This tab hit a snag (' + String((this.state.err && this.state.err.message) || this.state.err).slice(0, 140) + '). The other tabs still work; reloading usually fixes it.') : this.props.children; }
+}
 const BOX_CACHE = {};
 const readLocal = () => { try { const v = localStorage.getItem(KEY); return v ? migrate(JSON.parse(v)) : null; } catch (e) { return null; } };
 const fetchPublished = async () => { try { const r = await fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' }); return r.ok ? migrate(await r.json()) : null; } catch (e) { return null; } };
 function App() {
   const [data, setData] = useState(() => migrate(EMPTY));
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem('rb-tab'); return ['root', 'bets', 'pools', 'advisor'].indexOf(t) >= 0 ? t : 'root'; } catch (e) { return 'root'; } });
+  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem('rb-tab'); return ['root', 'bets', 'pools', 'advisor', 'results'].indexOf(t) >= 0 ? t : 'root'; } catch (e) { return 'root'; } });
   useEffect(() => { try { localStorage.setItem('rb-tab', tab); } catch (e) { /* storage unavailable */ } }, [tab]);
   const [published, setPublished] = useState(null);
   const [source, setSource] = useState('');
@@ -1705,9 +2126,7 @@ function App() {
       const loc = readLocal();
       if (!alive) return;
       setPublished(pub);
-      const newer = (x, y) => ((x && x.updatedAt) || '') > ((y && y.updatedAt) || '');
-      if (pub && loc && newer(loc, pub)) { setData(loc); setSource('local'); }
-      else if (pub) { setData(pub); setSource('published'); }
+          if (pub) { setData(pub); setSource('published'); }
       else if (loc) { setData(loc); setSource('local'); }
       else setSource('none');
       setLoaded(true);
@@ -1715,9 +2134,8 @@ function App() {
     return () => { alive = false; };
   }, []);
   useEffect(() => { if (loaded) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ } } }, [data, loaded]);
-  const update = (fn) => { if (rolled && !showPrev) { setRolled((d) => { const c = JSON.parse(JSON.stringify(d)); fn(c); return c; }); return; } setData((d) => { const c = JSON.parse(JSON.stringify(d)); fn(c); c.updatedAt = new Date().toISOString(); return c; }); setSource('local'); };
-  const replaceData = (d) => { setData(Object.assign({}, d, { updatedAt: new Date().toISOString() })); setSource('local'); };
-  const loadPublished = async () => { const pub = await fetchPublished(); if (pub) { setPublished(pub); setData(pub); setSource('published'); } };
+  const [results, setResults] = useState(undefined);
+  useEffect(() => { let alive = true; fetchResults().then((r) => { if (alive) setResults(r); }); return () => { alive = false; }; }, [data.updatedAt]);
   const [live, setLive] = useState({});
   const [liveAt, setLiveAt] = useState(null);
   const [liveErr, setLiveErr] = useState(false);
@@ -1783,8 +2201,11 @@ function App() {
     tick();
     return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
   }, [loaded, data.season, data.week, data.games.length]);
-  const view = useMemo(() => (rolled && showPrev && prevView ? prevView : withLive(rolled || data, live, boxes, espn)), [data, rolled, showPrev, prevView, live, boxes, espn]);
+  const histR = useMemo(() => historyFromResults(results), [results]);
+  const view = useMemo(() => withHistory(rolled && showPrev && prevView ? prevView : withLive(rolled || data, live, boxes, espn), histR), [data, rolled, showPrev, prevView, live, boxes, espn, histR]);
   const analyses = useMemo(() => view.games.map((g) => analyze(g, view)), [view]);
+  // the coming week while the board is showing last week's results (Advisor and Results always want the live week)
+  const nextView = useMemo(() => (rolled ? withHistory(withLive(rolled, live, boxes, espn), histR) : null), [rolled, live, boxes, espn, histR]);
   const viewRef = useRef(view);
   viewRef.current = view;
   const analysesRef = useRef(analyses);
@@ -1804,18 +2225,20 @@ function App() {
   }, [tickN]);
   const stale = !!liveAt && now - liveAt.getTime() > (view.games.some((g) => g.status === 'live') ? 60000 : 600000);
   const doRefresh = () => { setBusy(true); if (refreshRef.current) refreshRef.current(); if (verCheckRef.current) verCheckRef.current().then((isNew) => { if (isNew) hardReload(newHashRef.current); }); };
-  const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Showing your edits from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
-  const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor']];
+  const src = source === 'published' ? 'Updated ' + fmtWhen(data.updatedAt) : source === 'local' ? 'Offline copy from ' + fmtWhen(data.updatedAt) : source === 'none' ? 'No published data found' : '';
+  const tabs = [['root', 'Rooting guide', 'Guide'], ['bets', 'Bets', 'Bets'], ['pools', 'Pools', 'Pools'], ['advisor', 'Pick advisor', 'Advisor'], ['results', 'Results', 'Results']];
   return h('div.wrap', null,
     newVer ? h('div.updbar', null, 'The board was updated; it reloads itself when you pause.', h('button.linkbtn', { onClick: () => hardReload(newHashRef.current) }, 'Reload now')) : null,
     h('header.top', null,
-      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null, source === 'local' && published ? h('button.btn.sm', { onClick: loadPublished }, 'Load published') : null),
-      h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k) }, h('span.full', null, l), h('span.short', null, sl))))),
+      h('div.brand', null, h('h1', null, 'Rooting Board'), h('span.wk', null, 'Week ' + view.week + ', ' + view.season), src ? h('span.src', null, src) : null, liveAt || liveErr ? h('span.livesrc' + (stale || liveErr ? '.stale' : ''), null, liveErr ? 'Live scores unavailable' : 'Live scores' + (espn ? ' and ESPN picks' : '') + ' as of ' + liveAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }), h('button.refresh' + (busy ? '.spin' : ''), { onClick: doRefresh, title: 'Refresh now', 'aria-label': 'Refresh now' }, '\u21bb')) : null),
+      h('nav.tabs', null, tabs.map(([k, l, sl]) => h('button' + (tab === k ? '.on' : ''), { key: k, onClick: () => setTab(k), 'aria-current': tab === k ? 'page' : undefined }, h('span.full', null, l), h('span.short', null, sl))))),
     !loaded ? h('div.empty-state', null, 'Loading\u2026')
-      : tab === 'root' ? h(RootingTab, { data: view, analyses, update, recap, onDismiss: () => setRecap(null), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
-      : tab === 'bets' ? h(BetsTab, { data: view, update })
-      : tab === 'pools' ? h(PoolsTab, { data: view, update })
-      : h(AdvisorTab, { data: view }));
+      : h(Boundary, { k: tab },
+        tab === 'root' ? h(RootingTab, { data: view, analyses, recap, onDismiss: () => setRecap(null), onAdvisor: () => setTab('advisor'), auto: rolled ? { week: rolled.week, prevWeek: data.week, showPrev, toggle: () => setShowPrev(!showPrev) } : null })
+        : tab === 'bets' ? h(BetsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null })
+        : tab === 'pools' ? h(PoolsTab, { data: view, results })
+        : tab === 'advisor' ? h(AdvisorTab, { data: nextView || view })
+        : h(ResultsTab, { data: nextView || view, results, prev: rolled && prevView ? prevView : null })));
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
