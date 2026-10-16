@@ -1082,7 +1082,7 @@ function historyFromResults(results) {
   const out = [];
   ((results && results.weeks) || []).forEach((W) => (W.games || []).forEach((g) => {
     const [away, home] = g.id.split('@'), fav = g.line < 0 ? home : g.line > 0 ? away : null;
-    ['spread', 'pickem'].forEach((lg) => { const src = archPicks(W, (W[lg] || {}).picks), picks = {}; Object.keys(src).forEach((p) => { if (src[p][g.id]) picks[p] = src[p][g.id]; }); if (Object.keys(picks).length) out.push({ week: Number(W.week), league: lg, game: g.id, fav, picks }); });
+    ['spread', 'pickem'].forEach((lg) => { const src = archPicks(W, (W[lg] || {}).picks), picks = {}; Object.keys(src).forEach((p) => { if (src[p][g.id]) picks[p] = src[p][g.id]; }); if (Object.keys(picks).length) out.push({ week: Number(W.week), league: lg, game: g.id, fav, picks, line: g.line, home, away }); });
   }));
   return out;
 }
@@ -1121,6 +1121,19 @@ function archivePicks(d) {
     });
   });
 }
+// Past games with everyone's picks, the templates poolSim draws the rest of the season from. pk[j] is 1 when player
+// j took the home team, 2 the away team, 0 no pick. pHome is the home team's chance to win straight up (from the
+// line) or to cover (a coin flip). Null until there are enough games in which nearly everyone picked.
+function poolTemplates(data, which, players) {
+  const recs = (data.history || []).filter((r) => r.league === which && r.home && r.away);
+  const games = recs.map((r) => {
+    const line = Number(r.line), hasLine = r.line != null && r.line !== '' && isFinite(line);
+    const pHome = which === 'spread' ? 0.5 : hasLine ? 1 - normCdf(line / 13.5) : r.fav ? (r.fav === r.home ? 0.66 : 0.34) : 0.5;
+    return { pk: players.map((p) => { const t = (r.picks || {})[p]; return t === r.home ? 1 : t === r.away ? 2 : 0; }), pHome };
+  });
+  if (games.length < 30 || players.some((p, j) => games.filter((g) => g.pk[j]).length < games.length * 0.6)) return null;
+  return { games, n: games.length, sig: recs.length + ':' + recs[recs.length - 1].week + ':' + recs[recs.length - 1].game };
+}
 function poolSim(data, which) {
   const L = data.leagues[which] || {};
   const players = L.players || [], nP = players.length, me = players.indexOf(data.me[which]);
@@ -1128,16 +1141,22 @@ function poolSim(data, which) {
   const left = Math.max(0, (Number(data.gamesLeft) || 0) - data.games.filter((g) => g.status === 'final').length - 1);
   const cw = currentWins(data, which);
   const base = players.map((p) => cw[p] || 0);
-  const R = pickRates(data, which);
-  const qs = players.map((p) => R[p].agree), fs = players.map((p) => R[p].fav);
+  // The rest of the season is drawn from the season so far: each draw is a real past game with everyone's actual
+  // picks, and its result comes from the line (straight up: the margin is normal around the spread, sd 13.5; against
+  // the spread: a coin flip). That keeps how often each rival differs from you, and how close the games are where
+  // they do, as they really have been. Early in the season, before there are enough games, flat pick rates stand in.
+  const T = poolTemplates(data, which, players);
+  const R = T ? null : pickRates(data, which);
+  const qs = R ? players.map((p) => R[p].agree) : [], fs = R ? players.map((p) => R[p].fav) : [];
   const favWin = M.favWin == null ? 0.66 : Number(M.favWin);
-  const key = [which, nP, me, left, base.join(','), qs.map((x) => x.toFixed(3)).join(','), fs.map((x) => x.toFixed(3)).join(','), favWin, L.buyIn, ppw].join('|');
+  const key = [which, nP, me, left, base.join(','), T ? 'T' + T.n + ':' + T.sig : qs.map((x) => x.toFixed(3)).join(',') + ';' + fs.map((x) => x.toFixed(3)).join(','), favWin, L.buyIn, ppw].join('|');
   if (simCache.has(key)) return simCache.get(key);
   const inc = new Int16Array(SIMS * nP), rnd = rng(which === 'spread' ? 20260901 : 20260902);
   for (let s = 0; s < SIMS; s++) {
     const o = s * nP;
     for (let k = 0; k < left; k++) {
-      if (which === 'spread') { const right = rnd() < 0.5; for (let j = 0; j < nP; j++) if (j === me ? right : (rnd() < qs[j]) === right) inc[o + j]++; }
+      if (T) { const t = T.games[Math.floor(rnd() * T.n)], won = rnd() < t.pHome ? 1 : 2; for (let j = 0; j < nP; j++) if (t.pk[j] === won) inc[o + j]++; }
+      else if (which === 'spread') { const right = rnd() < 0.5; for (let j = 0; j < nP; j++) if (j === me ? right : (rnd() < qs[j]) === right) inc[o + j]++; }
       else { const fav = rnd() < favWin; for (let j = 0; j < nP; j++) if ((rnd() < fs[j]) === fav) inc[o + j]++; }
     }
   }
