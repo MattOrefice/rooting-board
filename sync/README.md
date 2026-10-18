@@ -101,16 +101,20 @@ Send Matt a short summary from the report: both pools' week and season standing,
 settled bets and net, and anything left to settle. Don't ask for FanDuel or DraftKings bet histories: he sends a
 screenshot of each bet as he makes it. Ask only for:
 
-- DraftKings survivor: a screenshot of the entries once he has made next week's picks, plus the pool's entry count
-  (how many entries are still alive, if the pool screen shows it). The board values each live entry from the prize
+- DraftKings survivor: a screenshot of each pool's entries once he has made next week's picks, plus the pool's entry
+  count (how many entries are still alive, from the pool screen). The board values each live entry from the prize
   and that count.
 - Any bet the report couldn't settle from the box scores, by name.
 
 ## 7. When the screenshots come in
 
-Put the survivor picks from the screenshot in `data.json` `survivorPool.entries[].pick`. If Matt gives the pool's
-entry count, set `survivorPool.alive` to it and `aliveEst` to false (and `survivorPool.field` to the starting count
-the first time). Rerun the smoke test and publish (step 5).
+Put the survivor picks from the screenshot in `data.json` `survivorPools[].entries[].pick`. Each DraftKings pool is
+its own object in `survivorPools`, and entry numbers run on across pools (#1-#3 are in the $10K+ pool, #4-#6 in the
+$15K+ pool). If Matt gives a pool's entry count before the week's first game, set that pool's `alive` to it and
+`aliveEst` to false (and `field` to the starting count the first time). A count from partway through the week goes
+in `aliveNow`, with `aliveNowAt` saying when ("3:22 PM Sunday"), and `alive` stays the count at the start of the
+week; the sync clears both at the roll. A new pool is a new object with `name`, `short`, `site`, `buyIn`, `prize`,
+`field`, `startWeek` and its entries `{n, pick, used: []}`. Rerun the smoke test and publish (step 5).
 
 Add each bet screenshot Matt sends, at any point in the week, with the book's own numbers from it (stake, odds,
 payout, and the bet ID as `ref`). Never invent a payout.

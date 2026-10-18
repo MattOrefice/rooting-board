@@ -124,11 +124,12 @@ const settled = [], unsettled = [];
 let survivor = null;
 const sv = uc(D.survivor);
 if (sv) survivor = { pick: sv, result: L.survResult(sv, games) };
-const SP = D.survivorPool;
-if (SP && Array.isArray(SP.entries)) {
-  const ent = SP.entries.filter((e) => e.pick && !e.out).map((e) => ({ n: e.n, pick: uc(e.pick), result: L.survResult(uc(e.pick), games) }));
-  if (ent.length) survivor = { pool: SP.short || 'Survivor', entries: ent };
-  SP.entries.filter((e) => !e.out && !e.pick).forEach((e) => warn((SP.short || 'Survivor') + ' entry #' + e.n + ' had no pick recorded for week ' + N + '; ask Matt whether it is still alive'));
+// survivor pools (data.survivorPools; an older data.json has one as survivorPool). Entry numbers run on across pools.
+const pools0 = L.survPools(D);
+if (pools0.length) {
+  const ent = pools0.flatMap((SP) => SP.entries.filter((e) => e.pick && !e.out).map((e) => ({ n: e.n, pick: uc(e.pick), result: L.survResult(uc(e.pick), games), pool: SP.short || 'Survivor' })));
+  if (ent.length) survivor = { pool: L.survLabel(pools0), entries: ent };
+  pools0.forEach((SP) => SP.entries.filter((e) => !e.out && !e.pick).forEach((e) => warn((SP.short || 'Survivor') + ' entry #' + e.n + ' had no pick recorded for week ' + N + '; ask Matt whether it is still alive')));
 }
 
 // ---------- 6. the archived week ----------
@@ -143,6 +144,7 @@ R.updatedAt = stamp;
 
 // ---------- 7. roll data.json to next week ----------
 const nd = JSON.parse(JSON.stringify(D));
+const pools1 = L.survPools(nd);
 const sched = (E.nx || []).map(([id, iso, line, total, wp], i) => { const [away, home] = id.split('@'), when = new Date(iso); return { id, away, home, kick: isNaN(when) ? '' : L.etKick(when), line, total, homeWP: wp, status: 'upcoming', awayScore: null, homeScore: null, clock: '', _t: when.getTime() || 0, _i: i }; })
   .sort((x, y) => x._t - y._t || x._i - y._i).map((g) => { delete g._t; delete g._i; return g; });
 if (!sched.length) warn('no week ' + (N + 1) + ' schedule in the ESPN dump; data.json keeps its games');
@@ -171,23 +173,25 @@ if (sched.length) {
   // bets: drop what settled; keep futures, anything still open, and bets already placed on next week's games
   const nextIds = new Set(sched.map((g) => g.id)), done = new Set(settled.map((b) => b.id));
   nd.bets = (D.bets || []).filter((b) => { const legs = b.legs || []; if (legs.some((l) => l.kind === 'game' && nextIds.has(l.game))) return true; if (!legs.some((l) => l.kind === 'game' && byId[l.game])) return true; return !done.has(b.id); });
-  // survivor pool: used teams, eliminations, blank picks for the new week
-  if (nd.survivorPool && Array.isArray(nd.survivorPool.entries)) nd.survivorPool.entries.forEach((e) => {
+  // survivor pools: used teams, eliminations, blank picks for the new week
+  pools1.forEach((SP) => SP.entries.forEach((e) => {
     if (e.out || !e.pick) return;
     const pk = uc(e.pick), res = L.survResult(pk, games);
     e.used = (e.used || []).concat([pk]);
     e.pick = '';
     if (res === 'lost') { e.out = N; e.outPick = pk; }
-    else if (res === 'tie') warn((nd.survivorPool.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' tied. Kept alive; check the pool\'s rule for ties');
-    else if (res !== 'won') warn((nd.survivorPool.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' has no final result');
+    else if (res === 'tie') warn((SP.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' tied. Kept alive; check the pool\'s rule for ties');
+    else if (res !== 'won') warn((SP.short || 'Survivor') + ' entry #' + e.n + ': ' + pk + ' has no final result');
+  }));
+  // each pool's field after this week: Matt's count when he sends one, otherwise an estimate from the week's favorites
+  pools1.forEach((SP, i) => {
+    delete SP.aliveNow; delete SP.aliveNowAt;
+    if (!SP.prize || !pools0[i]) return;
+    const sv0 = L.survValue(pools0[i], D.games);
+    SP.alive = Math.max(1, Math.round(Math.min(sv0.alive * sv0.s, sv0.aliveNow || Infinity)));
+    SP.aliveEst = true;
+    warn((SP.short || 'Survivor') + ' field: about ' + SP.alive + ' entries left (an estimate from about ' + Math.round(100 * sv0.s) + '% surviving). Ask Matt for the real count from the pool screen; set that pool\'s alive in survivorPools to it and aliveEst to false' + (SP.field ? '' : ', and its field to the starting count'));
   });
-  // the survivor field after this week: Matt's count when he sends one, otherwise an estimate from the week's favorites
-  if (nd.survivorPool && nd.survivorPool.prize && D.survivorPool) {
-    const sv0 = L.survValue(D.survivorPool, D.games);
-    nd.survivorPool.alive = Math.max(1, Math.round(sv0.alive * sv0.s));
-    nd.survivorPool.aliveEst = true;
-    warn((nd.survivorPool.short || 'Survivor') + ' field: about ' + nd.survivorPool.alive + ' entries left (an estimate from about ' + Math.round(100 * sv0.s) + '% surviving). Ask Matt for the real count from the pool screen; set survivorPool.alive to it and aliveEst to false' + (nd.survivorPool.field ? '' : ', and survivorPool.field to the starting count'));
-  }
   ['boxes', 'history', 'autoWeek'].forEach((k) => { delete nd[k]; });
   nd.updatedAt = stamp;
 }
@@ -202,7 +206,7 @@ if (pool.total && pool.total[me.pickem] != null && nd.leagues && nd.leagues.pick
 const W = settled.filter((b) => b.status === 'won').length, Lo = settled.filter((b) => b.status === 'lost').length, P = settled.filter((b) => b.status === 'void').length;
 report.push('Bets settled on the board: ' + settled.length + ' (' + W + ' won, ' + Lo + ' lost' + (P ? ', ' + P + ' push' : '') + '), net ' + money(settled.reduce((t, b) => t + (b.net || 0), 0)) + '.');
 if (unsettled.length) report.push('Not settled, kept open in data.json (settle by hand):\n  ' + unsettled.join('\n  '));
-if (survivor && survivor.entries) report.push(survivor.pool + ': ' + survivor.entries.map((e) => '#' + e.n + ' ' + e.pick + ' ' + e.result).join(', ') + '. ' + (nd.survivorPool ? L.survAlive(nd.survivorPool).length + ' of ' + nd.survivorPool.entries.length + ' entries alive.' : ''));
+if (survivor && survivor.entries) report.push(survivor.pool + ': ' + survivor.entries.map((e) => '#' + e.n + ' ' + e.pick + ' ' + e.result).join(', ') + '. ' + pools1.map((SP) => (SP.short || 'Survivor') + ': ' + L.survAlive(SP).length + ' of ' + SP.entries.length + ' entries alive.').join(' '));
 else if (survivor) report.push('Survivor: ' + survivor.pick + ' ' + survivor.result + '.');
 if (sched.length) report.push('Week ' + (N + 1) + ': ' + sched.length + ' games, lines from ' + lineSource + ', first kickoff ' + sched[0].kick + ' (' + sched[0].id + '). ' + nd.bets.length + ' open bets carried over.');
 if (warns.length) report.push('Check these:\n  ' + warns.join('\n  '));
