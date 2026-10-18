@@ -322,6 +322,8 @@ table.bb tr.me td{background:rgba(242,194,48,.07)}
 tr.sv-out td{opacity:.55}
 .res-sv.multi{display:flex;flex-wrap:wrap;gap:4px 8px}
 .res-sve{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.res-svp{display:flex;flex-wrap:wrap;gap:4px 8px;flex:1 0 100%}
+@media (max-width:560px){.res-svp{gap:3px 7px}.res-svp .logo,.res-svp .logo-fb{display:none}}
 .m-inl{display:none}
 .book.m-inl{margin-right:6px}
 .rz-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -1743,10 +1745,10 @@ function RootingTab({ data, analyses, auto, recap, onDismiss, onAdvisor }) {
     Stat(cash(fvWk), 'Open bets worth now (' + openWk.length + ', ' + cash(costWk) + ' staked)'),
   ] : [Stat('None yet', 'Bets this week')];
   ['spread', 'pickem'].forEach((w) => { const L = data.leagues[w], s = standingOf(data, w); if (s) { const sim = poolSim(data, w); const pct = sim.pot ? Math.round(100 * sim.equity(null) / sim.pot) : 0; stats.push(Stat(ordinal(s.rank) + ' of ' + s.n, L.name + ', ' + s.pts + ' pts, ' + pct + '% to win')); } });
-  { const SP = data.survivorPool; if (SP && Array.isArray(SP.entries) && SP.entries.length) { const al = survAlive(SP); stats.push(Stat(al.length + ' of ' + SP.entries.length + ' alive', (SP.short || 'Survivor') + (al.length ? ': ' + al.map((e) => uc(e.pick) || 'no pick').join(', ') + ' this week' : ', every entry out'))); } }
+  { const pools = survPools(data), all = pools.flatMap((P) => P.entries); if (all.length) { const al = pools.flatMap(survAlive); stats.push(Stat(al.length + ' of ' + all.length + ' alive', survLabel(pools) + (al.length ? ': ' + survPickText(al) + ' this week' : ', every entry out'))); } }
   return h('div', null,
     recap && recap.length ? h('div.panel.recap', null, h('b', null, 'Since you last looked: '), recap.slice(0, 6).join('; ') + (recap.length > 6 ? '; and ' + (recap.length - 6) + ' more' : '') + '.', h('button.linkbtn', { onClick: onDismiss }, 'Dismiss')) : null,
-    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and DraftKings lines loaded from ESPN. Your pool picks' + (data.survivorOut && !survAlive(data.survivorPool).length ? '' : ', your survivor picks') + ' and the CBS lines come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results'), !auto.showPrev && onAdvisor ? h('button.linkbtn', { onClick: onAdvisor, style: { marginLeft: 14 } }, 'See pick suggestions') : null) : null,
+    auto ? h('div.panel.autobar', null, auto.showPrev ? 'Showing Week ' + auto.prevWeek + ' results. ' : 'Week ' + auto.week + ' schedule and DraftKings lines loaded from ESPN. Your pool picks' + (data.survivorOut && !survPools(data).some((P) => survAlive(P).length) ? '' : ', your survivor picks') + ' and the CBS lines come in when I refresh. ', h('button.linkbtn', { onClick: auto.toggle }, auto.showPrev ? 'Back to Week ' + auto.week : 'Show Week ' + auto.prevWeek + ' results'), !auto.showPrev && onAdvisor ? h('button.linkbtn', { onClick: onAdvisor, style: { marginLeft: 14 } }, 'See pick suggestions') : null) : null,
     outcomes.days.length ? h('div.panel.howwent', { title: PCTL_TIP }, h('b', null, 'How it went: '), outcomes.days.map((D, i) => h('span', { key: D.title }, i ? '; ' : '', D.title + (D.soFar ? ' so far' : '') + ' ', h('span.pctl', null, outcomeText(D)))), outcomes.week ? h('span', null, '; week so far ', h('span.pctl', null, outcomeText(outcomes.week))) : null) : null,
     h('div.strip', null, stats),
     (() => {
@@ -1851,33 +1853,43 @@ function futFair(b, futs) {
 const fmtAm = (a) => (a > 0 ? '+' + a : MINUS + Math.abs(a));
 const pctText = (p) => (p >= 0.995 ? '99%+' : p < 0.005 ? 'under 1%' : p < 0.1 ? (Math.round(p * 1000) / 10) + '%' : Math.round(p * 100) + '%');
 
-// ---------- survivor: the old single pick (data.survivor) and pools with several entries (data.survivorPool) ----------
-// survivorPool: { name, short, site, buyIn, prize, field, alive, aliveEst, startWeek, value,
-//                 entries: [{ n, pick, used: [teams], out: week or null, outPick }] }
+// ---------- survivor: the old single pick (data.survivor) and pools with several entries (data.survivorPools) ----------
+// survivorPools: [{ name, short, site, buyIn, prize, field, alive, aliveEst, startWeek, value,
+//                   entries: [{ n, pick, used: [teams], out: week or null, outPick }] }]
+// An older data.json has one pool as data.survivorPool. Entry numbers run on across pools (#1-#3, then #4-#6).
 // prize: the pool's prize. field: entries in the pool at the start (from Matt's screenshot; until then, the size that
-// just covers the guaranteed prize after the book's cut). alive: entries still alive (aliveEst when it is a guess).
-// value: a flat dollar figure per entry, used only when there is no prize.
+// just covers the guaranteed prize after DraftKings' 15% cut). alive: entries alive at the start of the week (aliveEst
+// when a guess). aliveNow / aliveNowAt: a count Matt sent mid-week, and when. value: a flat dollar figure per entry,
+// used only when there is no prize.
+const survPools = (d) => (Array.isArray(d && d.survivorPools) ? d.survivorPools : d && d.survivorPool ? [d.survivorPool] : []).filter((P) => P && Array.isArray(P.entries));
+// what the strips call the entries together: one pool's short name, or "DK survivor" across DraftKings pools
+const survLabel = (pools) => (pools.length === 1 ? pools[0].short || 'Survivor' : pools.length && pools.every((P) => /draftkings/i.test(P.site || '')) ? 'DK survivor' : 'Survivor');
+// the entries' picks grouped by team, "SF \u00d72, KC \u00d72, LAR"; mark(t) adds a result after a team
+const survPickText = (entries, mark) => { const m = new Map(); entries.forEach((e) => { const t = uc(e.pick) || 'no pick'; m.set(t, (m.get(t) || 0) + 1); }); return [...m].map(([t, c]) => (t === 'no pick' ? (c === 1 ? 'one entry' : c + ' entries') + ' without a pick' : t + (c > 1 ? ' \u00d7' + c : '') + (mark ? mark(t) : ''))).join(', '); };
 // What one live entry stands to lose on this week's game: the prize shared by the entries that survive the week.
 // The field mostly takes the week's biggest favorites, so its survival rate is a weighted average of the top five.
 function survValue(P, games) {
   if (!P) return null;
   const prize = Number(P.prize) || 0, buy = Number(P.buyIn) || 0;
   if (!prize) { const v = Number(P.value) || buy || 0; return { V: v, now: v, flat: true }; }
-  const fieldGuess = buy ? Math.round(prize / (buy * 0.9)) : 1000;
+  const fieldGuess = buy ? Math.round(prize / (buy * 0.85)) : 1000;
   const field = Number(P.field) || fieldGuess, alive = Math.max(1, Number(P.alive) || field);
   const ps = [];
   (games || []).forEach((g) => { if (g.homeWP == null || g.homeWP === '') return; const x = Number(g.homeWP); if (x > 0 && x < 1) ps.push(x, 1 - x); });
   ps.sort((a, b) => b - a);
   const wts = [0.35, 0.25, 0.2, 0.12, 0.08];
   const s = ps.length >= 5 ? wts.reduce((t, w, i) => t + w * ps[i], 0) : 0.8;
-  return { V: prize / Math.max(1, alive * s), now: prize / alive, prize, field, alive, s, fieldGuess: !Number(P.field), aliveGuess: !Number(P.alive) || !!P.aliveEst };
+  // a mid-week count: the value now is the prize over the entries left; the week's survivors can't outnumber them
+  const an = Number(P.aliveNow) > 0 ? Math.min(alive, Number(P.aliveNow)) : 0;
+  return { V: prize / Math.max(1, an ? Math.min(an, alive * s) : alive * s), now: prize / (an || alive), prize, field, alive, aliveNow: an || null, s, fieldGuess: !Number(P.field), aliveGuess: !Number(P.alive) || !!P.aliveEst };
 }
 function survEntries(data) {
   const out = [], sv = uc(data.survivor || '');
   if (sv) out.push({ key: 'surv', n: 0, pick: sv, who: 'Survivor', legacy: true });
-  const P = data.survivorPool;
-  const val = P && Array.isArray(P.entries) ? survValue(P, data.games) : null;
-  if (val) P.entries.forEach((e) => { const pk = uc(e.pick); if (pk && !e.out) out.push({ key: 'surv' + e.n, n: e.n, pick: pk, who: (P.short || 'Survivor') + ' #' + e.n, V: val.V }); });
+  survPools(data).forEach((P) => {
+    const val = survValue(P, data.games);
+    P.entries.forEach((e) => { const pk = uc(e.pick); if (pk && !e.out) out.push({ key: 'surv' + e.n, n: e.n, pick: pk, who: (P.short || 'Survivor') + ' #' + e.n, V: val.V }); });
+  });
   return out;
 }
 const survAlive = (P) => (P && Array.isArray(P.entries) ? P.entries.filter((e) => !e.out) : []);
@@ -1890,26 +1902,27 @@ function survResult(t, games) {
 }
 // this week's survivor-pool picks and their results so far, in the shape the Results tab archives
 function survWeekLive(d) {
-  const P = d.survivorPool;
-  if (!P || !Array.isArray(P.entries)) return null;
+  const pools = survPools(d);
+  if (!pools.length) return null;
   const wk = Number(d.week);
-  const entries = P.entries.filter((e) => e.pick && !(e.out && Number(e.out) < wk)).map((e) => ({ n: e.n, pick: uc(e.pick), result: survResult(uc(e.pick), d.games) }));
-  return entries.length ? { pool: P.short || 'Survivor', entries } : null;
+  const entries = pools.flatMap((P) => P.entries.filter((e) => e.pick && !(e.out && Number(e.out) < wk)).map((e) => ({ n: e.n, pick: uc(e.pick), result: survResult(uc(e.pick), d.games), pool: P.short || 'Survivor' })));
+  return entries.length ? { pool: survLabel(pools), entries } : null;
 }
 const survMark = (r) => (r === 'won' ? h('span.ok', null, '\u2713') : r === 'lost' ? h('span.bad', null, '\u2717') : r === 'tie' ? h('span.flagtxt', null, 'tie') : null);
 // one line for the Pick advisor: this week's picks, or that the old pool is over
 function survNote(data) {
-  const P = data.survivorPool, alive = survAlive(P);
-  if (P && P.entries && P.entries.length) {
-    if (!alive.length) return (P.short || 'Survivor') + ': every entry is out.';
-    const missing = alive.filter((e) => !e.pick).length;
-    return (P.short || 'Survivor') + ': ' + alive.map((e) => '#' + e.n + ' ' + (uc(e.pick) || 'no pick yet')).join(', ') + ' this week.' + (missing ? ' The Pools tab lists the safest teams each entry hasn\u2019t used.' : '');
+  const pools = survPools(data).filter((P) => P.entries.length);
+  if (pools.length) {
+    const missing = pools.some((P) => survAlive(P).some((e) => !e.pick));
+    return pools.map((P) => { const alive = survAlive(P); return (P.short || 'Survivor') + ': ' + (alive.length ? alive.map((e) => '#' + e.n + ' ' + (uc(e.pick) || 'no pick yet')).join(', ') + ' this week.' : 'every entry is out.'); }).join(' ') + (missing ? ' The Pools tab lists the safest teams each entry hasn\u2019t used.' : '');
   }
   return data.survivorOut ? 'Survivor: you were knocked out in ' + data.survivorOut + '.' : null;
 }
 function SurvivorPanel({ data }) {
-  const P = data.survivorPool;
-  if (!P || !Array.isArray(P.entries) || !P.entries.length) return null;
+  const pools = survPools(data).filter((P) => P.entries.length);
+  return pools.length ? h(React.Fragment, null, pools.map((P, i) => h(SurvivorPoolPanel, { key: i, P, data }))) : null;
+}
+function SurvivorPoolPanel({ P, data }) {
   const games = data.games || [], alive = survAlive(P);
   const gameOf = (t) => games.find((x) => x.home === t || x.away === t);
   const pWin = (t) => { const g = gameOf(t); if (!g || g.homeWP == null || g.homeWP === '') return null; return t === g.home ? Number(g.homeWP) : 1 - Number(g.homeWP); };
@@ -1928,7 +1941,7 @@ function SurvivorPanel({ data }) {
   const usedCell = (e) => { const u = (e.used || []).map(uc); return u.length ? h('span.sv-used', null, u.map((t) => h('span.sv-u', { key: t, title: t }, h(Logo, { t, size: 14 }), t))) : h('span.hint', null, 'none yet'); };
   const lost = P.entries.length - alive.length, sv = survValue(P, games);
   const worth = sv.flat ? 'Each live entry counts as about ' + cash(sv.V) + ' on the board. '
-    : 'A live entry is worth about ' + cash(Math.round(sv.now * 100) / 100) + ' now and about ' + cash(Math.round(sv.V * 100) / 100) + ' if it survives Week ' + data.week + ': the $' + Number(sv.prize).toLocaleString('en-US') + ' prize over ' + (sv.aliveGuess ? 'about ' : '') + sv.alive.toLocaleString() + ' live entries' + (sv.fieldGuess ? ' (the size that just covers the guarantee; send me the entry count from the pool screen and I\u2019ll use the real one)' : '') + ', with about ' + Math.round(100 * sv.s) + '% of the field expected to survive this week. ';
+    : 'A live entry is worth about ' + cash(Math.round(sv.now * 100) / 100) + ' now and about ' + cash(Math.round(sv.V * 100) / 100) + ' if it survives Week ' + data.week + ': the $' + Number(sv.prize).toLocaleString('en-US') + ' prize over ' + (sv.aliveNow ? sv.aliveNow.toLocaleString('en-US') + ' live entries (' + (P.aliveNowAt ? 'the pool\u2019s count at ' + P.aliveNowAt + '; ' : '') + sv.alive.toLocaleString('en-US') + ' started the week)' : (sv.aliveGuess ? 'about ' : '') + sv.alive.toLocaleString('en-US') + ' live entries') + (sv.fieldGuess ? ' (the size that just covers the guarantee; send me the entry count from the pool screen and I\u2019ll use the real one)' : '') + ', with about ' + Math.round(100 * sv.s) + '% of the field expected to survive this week. ';
   return h('div.panel', null,
     h('div.row.between', { style: { alignItems: 'baseline' } }, h('h3', null, P.name || 'Survivor'), h('span.muted', { style: { fontSize: 13 } }, alive.length + ' of ' + P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' alive' + (lost ? ', ' + lost + ' out' : ''))),
     h('p.hint', { style: { margin: '4px 0 8px' } }, (P.buyIn ? P.entries.length + ' entr' + (P.entries.length === 1 ? 'y' : 'ies') + ' at ' + cash(P.buyIn) + (P.startWeek ? ', picks from Week ' + P.startWeek : '') + '. ' : '') + 'Pick one team to win each week and never reuse it; a loss ends that entry. ' + worth + (P.site || 'The pool') + ' can\u2019t be opened from here, so send me your picks each week (a screenshot works).'),
@@ -2306,12 +2319,15 @@ function ResultsTab({ data, results, prev }) {
   const strip = h('div.strip', null,
     sp ? Stat(ordinal(sp.m.seasonRank) + ' of ' + sp.P.rows.length, data.leagues.spread.name + ': ' + sp.m.season + ' pts' + gapText(sp.P) + ', ' + recText(sp.rec) + ' ATS') : null,
     pk ? Stat(ordinal(pk.m.seasonRank) + ' of ' + pk.P.rows.length, data.leagues.pickem.name + ': ' + pk.m.season + ' pts' + gapText(pk.P) + ', ' + recText(pk.rec)) : null,
-    data.survivorPool && (data.survivorPool.entries || []).length ? (() => { const SP = data.survivorPool, al = survAlive(SP); return Stat(al.length + ' of ' + SP.entries.length + ' alive', (SP.short || 'Survivor') + (SP.startWeek ? ' since Week ' + SP.startWeek : '') + (outWk ? '; Splash pool lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : '')); })()
+    survPools(data).some((P) => P.entries.length) ? (() => { const pools = survPools(data), all = pools.flatMap((P) => P.entries), al = pools.flatMap(survAlive), sw = Math.min.apply(null, pools.map((P) => Number(P.startWeek) || 99)); return Stat(al.length + ' of ' + all.length + ' alive', survLabel(pools) + (sw < 99 ? ' since Week ' + sw : '') + (outWk ? '; Splash pool lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : '')); })()
       : survWeeks.length || data.survivorOut ? Stat(outWk || data.survivorOut ? 'Out' : 'Alive', 'Survivor: ' + (outWk ? 'lost in Week ' + outWk.week + ' (' + outWk.survivor.pick + ')' : data.survivorOut ? 'out in ' + data.survivorOut : survWeeks.length + ' weeks survived')) : null,
     tracked.length ? Stat(signed(betTot.net), 'Bets since Week ' + tracked[0].week + ': ' + betTot.won + ' won, ' + betTot.lost + ' lost, ' + cash(betTot.staked) + ' staked') : null);
   const cellPool = (Wk, which) => { const P = Wk.pools[which], m = P.mine; if (!m || !m.n) return h('span.hint', null, Wk.live && !Wk.finals ? '' : 'no picks'); return h('div', null, h('b.tnum', null, recText(m)), h('span.muted', null, ' ' + rankText(m) + ' this week'), h('div.hint', null, (Wk.live && !Wk.done ? 'so far; ' : '') + 'season ' + ordinal(m.seasonRank) + gapText(P))); };
   const cellBets = (Wk) => (!Wk.betSum ? h('span.hint', null, 'not tracked') : !Wk.betSum.n ? h('span.hint', null, 'none') : h('div', null, signed(Wk.betSum.net), h('div.hint', null, Wk.betSum.won + ' won, ' + Wk.betSum.lost + ' lost' + (Wk.betSum.open ? ', ' + Wk.betSum.open + ' open' : '')), Wk.betsNote ? h('div.hint.res-bn', null, Wk.betsNote) : null));
-  const cellSurv = (Wk) => (Wk.survivor && Wk.survivor.entries ? h('span.res-sv.multi', { title: Wk.survivor.pool || 'Survivor' }, Wk.survivor.entries.map((e) => h('span.res-sve', { key: e.n }, h(Logo, { t: e.pick, size: 14 }), e.pick, survMark(e.result) || h('span.hint', null, '\u2026')))) : !Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
+  const svEnt = (Wk) => (e) => h('span.res-sve', { key: e.n, title: (e.pool || Wk.survivor.pool || 'Survivor') + ' #' + e.n }, h(Logo, { t: e.pick, size: 14 }), e.pick, survMark(e.result) || h('span.hint', null, '\u2026'));
+  // entries from two or more pools: a line per pool
+  const svGroups = (Wk) => { const E = Wk.survivor.entries, ps = [...new Set(E.map((e) => e.pool || ''))]; return ps.length > 1 ? ps.map((p) => h('span.res-svp', { key: p, title: p }, E.filter((e) => (e.pool || '') === p).map(svEnt(Wk)))) : E.map(svEnt(Wk)); };
+  const cellSurv = (Wk) => (Wk.survivor && Wk.survivor.entries ? h('span.res-sv.multi', { title: Wk.survivor.pool || 'Survivor' }, svGroups(Wk)) : !Wk.survivor || !Wk.survivor.pick ? h('span.hint', null, '\u2013') : h('span.res-sv', null, h(Logo, { t: Wk.survivor.pick, size: 16 }), Wk.survivor.pick, ' ', Wk.survivor.result === 'won' ? h('span.ok', null, '\u2713') : Wk.survivor.result === 'lost' ? h('span.bad', null, '\u2717') : h('span.hint', null, 'pending')));
   const table = h('div.panel', null,
     h('div.row.between', { style: { marginBottom: 8 } }, h('h3', null, 'Week by week'), h('span.hint', null, 'Tap a week for the details')),
     h('div.res-head', null, h('span', null, 'Week'), h('span', null, data.leagues.spread.name), h('span', null, data.leagues.pickem.name), h('span', null, 'Survivor'), h('span', null, 'Bets')),
@@ -2797,10 +2813,10 @@ function rzTodayStrip(data, analyses, tickets) {
   if (open.length) cells.push(Stat(cash(worth), open.length + ' open ticket' + (open.length === 1 ? '' : 's') + ' worth now; ' + cash(pays) + ' if all hit'));
   const cbs = rec('spread'), espn = rec('pickem');
   if (cbs || espn) cells.push(Stat([cbs ? 'CBS ' + cbs : null, espn ? 'ESPN ' + espn : null].filter(Boolean).join(' \u00b7 '), 'Pool picks decided today'));
-  const SP = data.survivorPool;
-  if (SP && (SP.entries || []).length) {
-    const al = survAlive(SP), res = al.filter((e) => e.pick).map((e) => survResult(uc(e.pick), data.games));
-    cells.push(Stat(al.length - res.filter((r) => r === 'lost').length + ' of ' + SP.entries.length + ' alive', (SP.short || 'Survivor') + (res.length ? ': ' + al.filter((e) => e.pick).map((e, i) => uc(e.pick) + (res[i] === 'won' ? ' \u2713' : res[i] === 'lost' ? ' \u2717' : '')).join(', ') : '')));
+  const pools = survPools(data), allE = pools.flatMap((P) => P.entries);
+  if (allE.length) {
+    const al = pools.flatMap(survAlive), res = al.filter((e) => e.pick).map((e) => survResult(uc(e.pick), data.games));
+    cells.push(Stat(al.length - res.filter((r) => r === 'lost').length + ' of ' + allE.length + ' alive', survLabel(pools) + (res.length ? ': ' + survPickText(al.filter((e) => e.pick), (t) => { const r = survResult(t, data.games); return r === 'won' ? ' \u2713' : r === 'lost' ? ' \u2717' : ''; }) : '')));
   }
   return cells.length ? h('div.strip.rz-today', null, cells) : null;
 }
