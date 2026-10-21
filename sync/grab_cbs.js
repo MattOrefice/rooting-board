@@ -41,7 +41,10 @@ await (async () => {
       if (!NUM.test(tok[k] || '') || !NUM.test(tok[k + 1] || '')) throw new Error('bad points for ' + name + ': ' + tok[k] + ' ' + tok[k + 1]);
       const pts = Number(tok[k++]), ytd = Number(tok[k++]);
       const picks = [];
+      // a player who hasn't picked any game yet (early in the week) has an empty row
+      const none = k >= tok.length || (tok[k] !== '-' && !TEAM.test(tok[k]));
       for (let j = 0; j < games.length; j++) {
+        if (none) { picks.push(''); continue; }
         const x = tok[k++];
         if (x !== '-' && !TEAM.test(x || '')) throw new Error('bad pick for ' + name + ' in game ' + (j + 1) + ': ' + x);
         picks.push(x === '-' ? '' : ab(x));
