@@ -124,7 +124,10 @@ payout, and the bet ID as `ref`). Never invent a payout.
   `{kind: "game", game: "AWAY@HOME", type: "ml", side: "PHI", status: "open"}`, `type: "spread"` with `line`,
   `type: "total"` with `side: "over"` and `line`, or a prop:
   `{kind: "game", game, type: "prop", desc, player, stat, line, side: "over"}` (stats: passYds, passTD,
-  passInt, passAtt, rushYds, rushTD, rushAtt, recYds, rec, recTD, td, rushRecYds, fgMade, firstTD), and
+  passInt, passAtt, rushYds, rushTD, rushAtt, recYds, rec, recTD, td, rushRecYds, fgMade, firstTD, sacks; for
+  "1+ sacks" use line 0.75, since half sacks count as 0.5). A leg the box score can't settle (most receptions or
+  passing yards in a game, a leg from another sport) goes in as `{kind: "game", game, type: "other", desc}` and is
+  settled by hand with `status: "won"` or `"lost"` once the game is final, and
   futures as `{kind: "future", team: "LAC", desc: "Super Bowl", status: "open"}`. The board settles game bets
   from the scores, and the next sync archives them.
 - A bet from a week that's already archived goes in `results.json` under its week, settled, like the bets
