@@ -79,7 +79,7 @@ const pickem = { picks: {} };
 Object.keys(pool.picks).forEach((name) => { if (pickemPlayers.indexOf(name) < 0) warn('ESPN entry "' + name + '" is not in the pick\'em player list'); pickem.picks[name] = pickStr(pool.picks[name]); });
 
 // ---------- 4. bets: settle with the board's own rules ----------
-const KEYS = ['passAtt', 'passYds', 'passTD', 'passInt', 'rushAtt', 'rushYds', 'rushTD', 'rec', 'recYds', 'recTD', 'fgMade'];
+const KEYS = ['passAtt', 'passYds', 'passTD', 'passInt', 'rushAtt', 'rushYds', 'rushTD', 'rec', 'recYds', 'recTD', 'fgMade', 'sacks'];
 const boxes = {};
 Object.keys(E.box || {}).forEach((gid) => {
   const bx = E.box[gid];

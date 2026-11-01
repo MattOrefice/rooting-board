@@ -60,8 +60,8 @@ await (async () => {
       out.nx.push([away + '@' + home, e.date || c.date || '', line, total, wp]);
     }
   } catch (e) { out.err.push('scoreboard week ' + (CFG.week + 1) + ': ' + e.message); }
-  // 3. box scores, every player in the passing, rushing, receiving and kicking tables (blank = not in that table)
-  const KEYS = ['passAtt', 'passYds', 'passTD', 'passInt', 'rushAtt', 'rushYds', 'rushTD', 'rec', 'recYds', 'recTD', 'fgMade'];
+  // 3. box scores, every player in the passing, rushing, receiving, kicking and defensive tables (blank = not in that table)
+  const KEYS = ['passAtt', 'passYds', 'passTD', 'passInt', 'rushAtt', 'rushYds', 'rushTD', 'rec', 'recYds', 'recTD', 'fgMade', 'sacks'];
   const firstTd = (j) => {
     const plays = (j && j.scoringPlays) || [];
     const td = plays.find((p) => /touchdown/i.test(((p.type || {}).text || '') + ' ' + ((p.scoringType || {}).name || '') + ' ' + ((p.scoringType || {}).displayName || '')));
@@ -94,6 +94,7 @@ await (async () => {
             const v = (i) => (i >= 0 && a.stats && a.stats[i] != null ? parseFloat(String(a.stats[i]).split('/')[0]) || 0 : 0);
             if (cat.name === 'passing') { p.s.passYds = v(col('passingYards', 'YDS')); p.s.passTD = v(col('passingTouchdowns', 'TD')); p.s.passInt = v(col('interceptions', 'INT')); const ca = col('completions/passingAttempts', 'C/ATT'); p.s.passAtt = ca >= 0 && a.stats && a.stats[ca] != null ? parseFloat(String(a.stats[ca]).split('/')[1]) || 0 : 0; }
             else if (cat.name === 'kicking') { p.s.fgMade = v(col('fieldGoalsMade/fieldGoalAttempts', 'FG')); }
+            else if (cat.name === 'defensive') { p.s.sacks = v(col('sacks', 'SACKS')); }
             else if (cat.name === 'rushing') { p.s.rushAtt = v(col('rushingAttempts', 'CAR')); p.s.rushYds = v(col('rushingYards', 'YDS')); p.s.rushTD = v(col('rushingTouchdowns', 'TD')); }
             else if (cat.name === 'receiving') { p.s.rec = v(col('receptions', 'REC')); p.s.recYds = v(col('receivingYards', 'YDS')); p.s.recTD = v(col('receivingTouchdowns', 'TD')); }
           });
