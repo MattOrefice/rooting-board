@@ -2739,14 +2739,17 @@ function rzItems(a, data) {
   const byId = {};
   data.games.forEach((x) => { byId[x.id] = x; });
   const live = g.status === 'live' && a.margin != null, final = g.status === 'final';
+  const pm = rzPoolMoves(a);
   a.ints.filter((i) => !i.minor && i.kind !== 'bet' && i.weight > 0.02).forEach((i) => {
     const c = live && i.cush ? i.cush(a.margin) : null;
     const r = final ? a.cur(i) : undefined;
     const st = final ? (r === true ? 'up' : r === false ? 'down' : 'even') : c == null ? 'pre' : c > 0 ? 'up' : c < 0 ? 'down' : 'even';
-    const who = i.kind === 'pool' ? (i.key === 'spread' ? 'CBS pool' : 'ESPN pool') : i.kind === 'survivor' ? i.src || 'Survivor' : 'Survivor field';
+    const mvp = i.kind === 'pool' ? pm.find((x) => x.key === i.key) : null;
+    const dpts = mvp ? Math.round(1000 * (mvp.now - mvp.was)) / 10 : 0;
+    const who = (i.kind === 'pool' ? (i.key === 'spread' ? 'CBS pool' : 'ESPN pool') : i.kind === 'survivor' ? i.src || 'Survivor' : 'Survivor field') + (mvp ? ', ' + Math.round(100 * mvp.now) + '% to win it' + (dpts ? ' (' + (dpts > 0 ? '+' : MINUS) + Math.abs(dpts) + ')' : '') : '');
     const what = i.kind === 'pool' ? i.label : i.label || i.side;
     const how = final ? (r === true ? 'hit' : r === false ? 'missed' : 'push') : c == null ? '' : cushText(i, c);
-    out.push({ key: i.key, who, what, how, st, w: i.weight });
+    out.push({ key: i.key, who, what, how, st, w: i.weight, ev: mvp ? mvp.ev : null });
   });
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).forEach((x) => {
     const b = (data.bets || []).find((y) => y.id === x.betId);
@@ -2778,18 +2781,35 @@ function rzMood(items) {
 const RZ_MOOD = { good: 'Going your way', bad: 'Going against you', mixed: 'Mixed', calm: '' };
 // a dollar move, whole dollars from $10 up
 const evText = (v) => (v > 0 ? '+' : MINUS) + (Math.abs(v) >= 9.995 ? usd(Math.abs(v)) : cash(Math.abs(v)));
-const RZ_EV_TIP = 'How much this game has moved your bets since you placed them: what they are worth now on live chances, against what they were worth at the prices you got (hold taken out). Updates with every refresh.';
-// what this game has done to your bets so far: each bet's move from its price that came from this game's legs
-function rzGameMove(g, data) {
-  let t = 0, n = 0;
-  (data.bets || []).forEach((b) => { if (!(b.legs || []).some((l) => l.kind === 'game' && l.game === g.id)) return; const m = betMove(b, data, g.id); if (m != null) { t += m; n++; } });
-  return n ? t : null;
+const RZ_EV_TIP = 'How much this game has moved you since kickoff, in dollars. Bets: what they are worth now on live chances, against what they were worth at the prices you got (hold taken out). Pools: the shift in your chance of winning the whole pool, times the pot. Updates with every refresh.';
+// What this game has done to your chance of winning each pool: your pick's chance of hitting now against before kickoff,
+// carried through your chance of winning the whole pool if it hits and if it misses (the season simulation), times the pot.
+function rzPoolMoves(a) {
+  const g = a.g, out = [];
+  if (g.status !== 'live' || a.margin == null) return out;
+  const { sd, mu } = liveMu(g, a.margin), od = otDist(g);
+  ['spread', 'pickem'].forEach((k) => {
+    const p = a[k];
+    if (!p || (p.state !== 'edge' && p.state !== 'pending') || !p.test || !p.cush || p.oddsHit == null || p.oddsMiss == null) return;
+    const q = od ? discP(od, p.test) : normCdf(p.cush(mu) / sd);
+    out.push({ key: k, name: k === 'spread' ? 'CBS pool' : 'ESPN pool', ev: (q - p.pHit) * (p.gap || 0), now: q * p.oddsHit + (1 - q) * p.oddsMiss, was: p.pHit * p.oddsHit + (1 - p.pHit) * p.oddsMiss });
+  });
+  return out;
 }
+// what this game has done for you so far: each bet's move from its price that came from this game's legs, plus the pools
+function rzGameMove(a, data) {
+  const g = a.g;
+  let bets = 0, n = 0;
+  (data.bets || []).forEach((b) => { if (!(b.legs || []).some((l) => l.kind === 'game' && l.game === g.id)) return; const m = betMove(b, data, g.id); if (m != null) { bets += m; n++; } });
+  const pools = rzPoolMoves(a), pt = pools.reduce((t, x) => t + x.ev, 0);
+  return n || pools.length ? { total: bets + pt, bets: n ? bets : null, pools } : null;
+}
+const rzMoveTip = (mv) => RZ_EV_TIP + (mv ? '\n\n' + [mv.bets != null ? 'Bets ' + evText(mv.bets) : null].concat(mv.pools.map((x) => x.name + ' ' + evText(x.ev) + ' (' + Math.round(100 * x.was) + '% \u2192 ' + Math.round(100 * x.now) + '% to win it)')).filter(Boolean).join('\n') : '');
 function RZTile({ a, data, flash, compact }) {
   const g = a.g, live = g.status === 'live', final = g.status === 'final', scored = hasScore(g);
   const dv = !final ? dollarView(a, data) : null, v = verdictOf(a, dv);
   const items = rzItems(a, data), mood = live || final ? rzMood(items) : 'calm';
-  const ev = live ? rzGameMove(g, data) : null;
+  const mv = live ? rzGameMove(a, data) : null, ev = mv ? mv.total : null;
   const sit = live && g.lv && g.lv.sit;
   const pnl = a.ints.concat(a.wants).reduce((t, x) => t + (x.pnl || 0), 0);
   const k = parseKick(g.kick);
@@ -2806,7 +2826,7 @@ function RZTile({ a, data, flash, compact }) {
     h('div.rz-verdict', null,
       h('span.' + v.pcls, { style: v.pstyle }, v.title),
       RZ_MOOD[mood] ? h('span.rz-mood', null, RZ_MOOD[mood]) : null,
-      ev != null && Math.abs(ev) >= 0.5 ? h('span.rz-ev.tnum.' + (ev > 0 ? 'ok' : 'bad'), { title: RZ_EV_TIP }, evText(ev) + ' EV') : null,
+      ev != null && Math.abs(ev) >= 0.5 ? h('span.rz-ev.tnum.' + (ev > 0 ? 'ok' : 'bad'), { title: rzMoveTip(mv) }, evText(ev) + ' EV') : null,
       dv && (dv.up >= 0.5 || dv.down >= 0.5) ? h('span.rz-swing.tnum', { title: 'Best and worst case from this game, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : final && pnl ? h('span.rz-swing.tnum', null, bbSigned(pnl)) : null),
     h('div.rz-items', null, items.map((x) => h('div.rz-item.' + x.st, { key: x.key },
       h('span.rz-mk', null, x.st === 'up' ? '\u25b2' : x.st === 'down' ? '\u25bc' : x.st === 'even' ? '\u25c6' : '\u25cb'),
@@ -2861,8 +2881,10 @@ function rzTodayStrip(data, analyses, tickets) {
   const cells = [];
   if (done.length) cells.push(Stat(bbSigned(net), 'Bets settled today, ' + done.filter((x) => x.st === 'won').length + '\u2013' + done.filter((x) => x.st === 'lost').length));
   if (open.length) cells.push(Stat(cash(worth), open.length + ' open ticket' + (open.length === 1 ? '' : 's') + ' worth now; ' + cash(pays) + ' if all hit'));
-  const moved = open.filter((x) => x.move != null), mv = moved.reduce((t, x) => t + x.move, 0);
-  if (moved.some((x) => Math.abs(x.move) >= 0.5)) cells.push(Stat(h('span.' + (mv > 0.004 ? 'ok' : mv < -0.004 ? 'bad' : 'muted'), { title: RZ_EV_TIP.replace('this game has', 'the games have') }, evText(mv) + ' EV'), 'Open tickets against the prices you got'));
+  const moved = open.filter((x) => x.move != null), mvB = moved.reduce((t, x) => t + x.move, 0);
+  const pms = analyses.flatMap((a) => rzPoolMoves(a)), mvP = pms.reduce((t, x) => t + x.ev, 0), mv = mvB + mvP;
+  const pTxt = (k) => { const xs = pms.filter((x) => x.key === k); return xs.length ? (k === 'spread' ? 'CBS ' : 'ESPN ') + evText(xs.reduce((t, x) => t + x.ev, 0)) : null; };
+  if (moved.some((x) => Math.abs(x.move) >= 0.5) || pms.some((x) => Math.abs(x.ev) >= 0.5)) cells.push(Stat(h('span.' + (mv > 0.004 ? 'ok' : mv < -0.004 ? 'bad' : 'muted'), { title: RZ_EV_TIP.replace('this game has', 'the games have') }, evText(mv) + ' EV'), ['Open tickets ' + evText(mvB)].concat([pTxt('spread'), pTxt('pickem')].filter(Boolean)).join(' \u00b7 ') + (pms.length ? ' (pools: live games)' : '')));
   const cbs = rec('spread'), espn = rec('pickem');
   if (cbs || espn) cells.push(Stat([cbs ? 'CBS ' + cbs : null, espn ? 'ESPN ' + espn : null].filter(Boolean).join(' \u00b7 '), 'Pool picks decided today'));
   const pools = survPools(data), allE = pools.flatMap((P) => P.entries);
