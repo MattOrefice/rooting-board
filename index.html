@@ -345,6 +345,9 @@ tr.sv-out td{opacity:.55}
 .rz-tile.bad .rz-mood{color:var(--bad)}
 .rz-tile.mixed .rz-mood{color:var(--flag)}
 .rz-swing{margin-left:auto;font:700 24px/1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.rz-ev{font:700 21px/1 "Barlow Condensed",sans-serif;white-space:nowrap;cursor:help}
+.rz-iev{font-size:13px;font-weight:700}
+.rz-tk-ev{font-weight:700}
 .rz-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:8px;align-items:baseline;font-size:17px;font-weight:600;padding:7px 0;border-top:1px solid var(--line)}
 .rz-item .who{display:block;color:var(--muted);font-size:12px;font-weight:500}
 .rz-mk{font-size:13px;color:var(--dim)}
@@ -907,6 +910,37 @@ function propLiveP(l, g, box, p0) {
   if (ps.first || !ps.loaded || !g || g.status !== 'live') return null;
   return propProbLive(Object.assign({}, ps, { val: 0 }), p0, fracLeft(g));
 }
+// Each leg's chance before kickoff, from the market where the board has one: a moneyline from the game's pregame win
+// probability, a spread or total from its line and total (normal margins, as the live model uses at kickoff).
+function legBase(l, g) {
+  if (!g || l.kind !== 'game') return null;
+  if (l.type === 'ml') { const hw = Number(g.homeWP); return hw > 0 && hw < 1 ? (l.side === g.home ? hw : l.side === g.away ? 1 - hw : null) : null; }
+  if (l.type === 'spread') { const L = Number(l.line), ln = Number(g.line); if (isNaN(L) || g.line == null || g.line === '' || isNaN(ln)) return null; return l.side === g.home ? 1 - normCdf((ln - L) / 13.5) : l.side === g.away ? normCdf((L + ln) / 13.5) : null; }
+  if (l.type === 'total') { const L = Number(l.line), T = Number(g.total); if (!(T > 0) || isNaN(L)) return null; const pOver = 1 - normCdf((L - T) / 13); return l.side === 'under' ? 1 - pOver : pOver; }
+  return null;
+}
+// A ticket's legs: each one's chance before kickoff (props and anything without a market share what the ticket's own
+// price leaves) and now (1 hit, 0 missed, the live model while its game is on). The ticket is worth pay * P^gamma, P
+// the product of the chances now: that is its price (the price's chance with the hold taken out, times the payout)
+// while no leg has moved, and the full payout once every leg has hit.
+function betModel(b, data, byId, boxes) {
+  const legs = b.legs || [], pay = Number(b.toPay) || 0, pT = betProb(b, data.weights);
+  const mk = legs.map((l) => { const p = legBase(l, byId[l.game]); return p == null ? null : Math.min(0.995, Math.max(0.005, p)); });
+  const kn = mk.filter((p) => p != null), nu = mk.length - kn.length, prodK = kn.reduce((t, p) => t * p, 1);
+  const fill = nu ? Math.min(0.97, Math.max(0.01, Math.pow(Math.min(1, pT / prodK), 1 / nu))) : null;
+  const b0 = mk.map((p) => (p == null ? fill : p)), P0 = b0.reduce((t, p) => t * p, 1);
+  const gamma = P0 > 0 && P0 < 1 && pT > 0 && pT < 1 ? Math.log(pT) / Math.log(P0) : 1;
+  const now = legs.map((l, i) => {
+    const g = byId[l.game], r = legResult(l, g, boxes);
+    if (r === 'won' || r === 'void') return 1;
+    if (r === 'lost') return 0;
+    if (!g || g.status !== 'live' || !hasScore(g)) return b0[i];
+    const pn = l.type === 'prop' ? propLiveP(l, g, boxes[g.id], b0[i]) : legProbLive(l, g);
+    return pn == null || isNaN(pn) ? b0[i] : Math.max(0, Math.min(1, pn));
+  });
+  const val = (P) => (P > 0 ? Math.max(0, Math.min(pay, pay * Math.pow(P, gamma))) : 0);
+  return { pT, b0, P0, gamma, now, val, prod: (arr) => arr.reduce((t, p) => t * p, 1) };
+}
 function betFair(b, data) {
   const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
   const boxes = data.boxes || {}, legs = b.legs || [], pay = Number(b.toPay) || 0;
@@ -915,19 +949,21 @@ function betFair(b, data) {
   if (st === 'lost') return 0;
   if (st === 'void') return b.bonus ? 0 : Number(b.stake) || 0;
   if (!legs.length || override(b) != null || b.manualSettle && legs.some((l) => byId[l.game] && byId[l.game].status === 'final') || legs.some((l) => l.kind === 'future' || l.kind === 'other' || (l.kind === 'game' && byId[l.game] && byId[l.game].status === 'final' && legResult(l, byId[l.game], boxes) === 'open'))) return null;
-  const pT = betProb(b, data.weights), p0 = Math.pow(pT, 1 / legs.length);
-  let ratio = 1;
-  legs.forEach((l) => {
-    const g = byId[l.game], r = legResult(l, g, boxes);
-    if (r === 'won' || r === 'void') { ratio *= 1 / p0; return; }
-    if (r === 'lost') { ratio = 0; return; }
-    if (!g || g.status !== 'live' || !hasScore(g)) return;
-    let pn = null;
-    if (l.type === 'prop') pn = propLiveP(l, g, boxes[g.id], p0);
-    else pn = legProbLive(l, g);
-    if (pn != null) ratio *= Math.max(0, pn) / p0;
-  });
-  return Math.max(0, Math.min(pay, pay * pT * ratio));
+  const m = betModel(b, data, byId, boxes);
+  return m.val(m.prod(m.now));
+}
+// How far a bet has moved from the price you got: what it is worth now less what it was worth at that price. With gid,
+// only the part of the move that came from that game's legs, holding the rest of the ticket where it stands now.
+// Null when betFair can't price the bet (futures, overrides, a final game still waiting on a stat).
+function betMove(b, data, gid) {
+  const fv = betFair(b, data);
+  if (fv == null) return null;
+  const byId = {}; data.games.forEach((x) => { byId[x.id] = x; });
+  const m = betModel(b, data, byId, data.boxes || {}), legs = b.legs || [];
+  if (!gid) return fv - m.val(m.P0);
+  const here = legs.map((l) => l.kind === 'game' && l.game === gid);
+  if (!here.some(Boolean)) return 0;
+  return fv - m.val(m.prod(m.now.map((p, i) => (here[i] ? m.b0[i] : p))));
 }
 
 // ---------- teams ----------
@@ -2715,7 +2751,8 @@ function rzItems(a, data) {
   a.ints.filter((i) => i.kind === 'bet').concat(a.wants).forEach((x) => {
     const b = (data.bets || []).find((y) => y.id === x.betId);
     if (!b) return;
-    if (x.done && x.done !== 'open' && g.status !== 'final') return;
+    // a ticket already settled stays on a live game's tile only when this game settled it
+    if (x.done && x.done !== 'open' && g.status !== 'final' && deciderOf(b, byId, boxes) !== g.id) return;
     const legs = (b.legs || []).filter((l) => l.kind === 'game' && l.game === g.id).map((l) => { const n = legNow(l, g, boxes); return { t: legText(l), v: n.text, st: n.st, pct: n.pct }; });
     // the ticket's legs in other games, so a parlay across games reads as a whole
     const other = (b.legs || []).filter((l) => l.kind === 'game' && l.game !== g.id).map((l) => { const og = byId[l.game], n = legNow(l, og, boxes); return { st: n.st, t: legText(l), when: og ? (n.st === 'pre' ? kickText(og) : n.st === 'live' ? n.text : n.st === 'won' ? 'hit' : n.st === 'lost' ? 'missed' : n.st) : '' }; });
@@ -2726,7 +2763,7 @@ function rzItems(a, data) {
     const dead = legs.some((l) => l.st === 'lost') || other.some((l) => l.st === 'lost');
     const st = done ? (done === 'won' ? 'up' : done === 'lost' ? 'down' : 'even') : dead ? 'down' : pre ? 'pre' : q != null && q0 > 0 ? (q > q0 * 1.15 ? 'up' : q < q0 * 0.85 ? 'down' : 'even') : 'even';
     const how = done ? (done === 'won' ? 'won' : done === 'lost' ? 'lost' : 'push') : dead ? 'dead' : pctText(pre || q == null ? q0 : q) + ' to hit';
-    out.push({ key: x.key, who: x.src + (x.type ? ' ' + x.type : ''), what: legs.length > 1 ? legs.length + '-leg ' + (x.type || 'bet') + (other.length ? ' here' : '') : legs.length ? legs[0].t : x.label, how, st, w: x.weight, legs: legs.length > 1 ? legs : legs[0] && legs[0].v && b.legs.length === 1 && (b.legs[0].type === 'prop' || b.legs[0].type === 'total') ? [Object.assign({}, legs[0], { t: '' })] : null, other: other.length ? other : null, money: cash(b.stake) + ARROW + cash(b.toPay), pnl: x.pnl });
+    out.push({ key: x.key, who: x.src + (x.type ? ' ' + x.type : ''), what: legs.length > 1 ? legs.length + '-leg ' + (x.type || 'bet') + (other.length ? ' here' : '') : legs.length ? legs[0].t : x.label, how, st, w: x.weight, legs: legs.length > 1 ? legs : legs[0] && legs[0].v && b.legs.length === 1 && (b.legs[0].type === 'prop' || b.legs[0].type === 'total') ? [Object.assign({}, legs[0], { t: '' })] : null, other: other.length ? other : null, money: cash(b.stake) + ARROW + cash(b.toPay), pnl: x.pnl, ev: g.status === 'live' ? betMove(b, data, g.id) : null });
   });
   return out.sort((x, y) => y.w - x.w);
 }
@@ -2739,10 +2776,20 @@ function rzMood(items) {
   return r > 0.25 ? 'good' : r < -0.25 ? 'bad' : 'mixed';
 }
 const RZ_MOOD = { good: 'Going your way', bad: 'Going against you', mixed: 'Mixed', calm: '' };
+// a dollar move, whole dollars from $10 up
+const evText = (v) => (v > 0 ? '+' : MINUS) + (Math.abs(v) >= 9.995 ? usd(Math.abs(v)) : cash(Math.abs(v)));
+const RZ_EV_TIP = 'How much this game has moved your bets since you placed them: what they are worth now on live chances, against what they were worth at the prices you got (hold taken out). Updates with every refresh.';
+// what this game has done to your bets so far: each bet's move from its price that came from this game's legs
+function rzGameMove(g, data) {
+  let t = 0, n = 0;
+  (data.bets || []).forEach((b) => { if (!(b.legs || []).some((l) => l.kind === 'game' && l.game === g.id)) return; const m = betMove(b, data, g.id); if (m != null) { t += m; n++; } });
+  return n ? t : null;
+}
 function RZTile({ a, data, flash, compact }) {
   const g = a.g, live = g.status === 'live', final = g.status === 'final', scored = hasScore(g);
   const dv = !final ? dollarView(a, data) : null, v = verdictOf(a, dv);
   const items = rzItems(a, data), mood = live || final ? rzMood(items) : 'calm';
+  const ev = live ? rzGameMove(g, data) : null;
   const sit = live && g.lv && g.lv.sit;
   const pnl = a.ints.concat(a.wants).reduce((t, x) => t + (x.pnl || 0), 0);
   const k = parseKick(g.kick);
@@ -2759,11 +2806,12 @@ function RZTile({ a, data, flash, compact }) {
     h('div.rz-verdict', null,
       h('span.' + v.pcls, { style: v.pstyle }, v.title),
       RZ_MOOD[mood] ? h('span.rz-mood', null, RZ_MOOD[mood]) : null,
+      ev != null && Math.abs(ev) >= 0.5 ? h('span.rz-ev.tnum.' + (ev > 0 ? 'ok' : 'bad'), { title: RZ_EV_TIP }, evText(ev) + ' EV') : null,
       dv && (dv.up >= 0.5 || dv.down >= 0.5) ? h('span.rz-swing.tnum', { title: 'Best and worst case from this game, compared with where you stand now' }, h('span.ok', null, '+' + usd(dv.up)), h('span.dim', null, ' / '), h('span.bad', null, MINUS + usd(dv.down))) : final && pnl ? h('span.rz-swing.tnum', null, bbSigned(pnl)) : null),
     h('div.rz-items', null, items.map((x) => h('div.rz-item.' + x.st, { key: x.key },
       h('span.rz-mk', null, x.st === 'up' ? '\u25b2' : x.st === 'down' ? '\u25bc' : x.st === 'even' ? '\u25c6' : '\u25cb'),
       h('span.rz-what', null, h('span.who', null, x.who + (x.money ? ', ' + x.money : '')), x.what),
-      h('span.rz-how.tnum', null, x.how),
+      h('span.rz-how.tnum', null, x.how, x.ev != null && Math.abs(x.ev) >= 0.5 ? h('span.rz-iev.' + (x.ev > 0 ? 'ok' : 'bad'), { title: 'Moved this much since you placed it' }, ' ' + evText(x.ev)) : null),
       x.legs && !compact ? h('span.rz-legs', null, x.legs.map((l, i) => h('span.rz-leg.' + l.st, { key: i }, l.t ? h('span', null, (l.st === 'won' ? '\u2713 ' : l.st === 'lost' ? '\u2717 ' : '') + l.t) : null, l.v ? h('span.tnum', null, l.v) : null, l.pct != null && l.st !== 'lost' && l.st !== 'won' ? h('span.bar', null, h('span.fill', { style: { width: Math.round(100 * l.pct) + '%' } })) : null))) : null,
       x.other ? h('span.rz-other', null, 'Also needs: ', x.other.map((l, i) => h('span.rz-ol.' + l.st, { key: i }, (i ? ', ' : '') + rzMark(l.st) + ' ' + l.t + (l.when ? ' (' + l.when + ')' : '')))) : null))),
     a.notes.length && !compact ? h('div.hint', { style: { marginTop: 6 } }, a.notes.join(' ')) : null);
@@ -2785,12 +2833,12 @@ function rzTickets(data) {
     const doneToday = st !== 'open' && !!dg && dg.status === 'final' && parseKick(dg.kick).day === today;
     const net = st === 'won' ? (b.bonus ? pay : pay - Number(b.stake)) : st === 'lost' ? -(b.bonus ? 0 : Number(b.stake)) : 0;
     const trend = st !== 'open' || !live || q == null || !(q0 > 0) ? '' : q > q0 * 1.15 ? 'up' : q < q0 * 0.85 ? 'down' : '';
-    return { b, st, fv, q, q0, legs, live, left, when, doneToday, net, trend, sweat: live && q != null ? pay * q * (1 - q) : 0 };
+    return { b, st, fv, q, q0, legs, live, left, when, doneToday, net, trend, sweat: live && q != null ? pay * q * (1 - q) : 0, move: st === 'open' ? betMove(b, data) : null };
   });
 }
 function RZTicket({ T }) {
   const { b, st, fv, q, legs, left, net, trend } = T, multi = new Set(legs.map((x) => x.l.game)).size > 1;
-  const status = st === 'won' ? h('span.ok', null, 'Won ' + bbSignedText(net)) : st === 'lost' ? h('span.bad', null, 'Lost ' + bbSignedText(net)) : st === 'void' ? h('span.muted', null, 'Push') : h('span', null, hitText(q != null ? q : T.q0) + (fv != null ? ', worth ' + cash(fv) + ' now' : ''));
+  const status = st === 'won' ? h('span.ok', null, 'Won ' + bbSignedText(net)) : st === 'lost' ? h('span.bad', null, 'Lost ' + bbSignedText(net)) : st === 'void' ? h('span.muted', null, 'Push') : h('span', null, hitText(q != null ? q : T.q0) + (fv != null ? ', worth ' + cash(fv) + ' now' : ''), T.move != null && Math.abs(T.move) >= 0.5 ? h('span.rz-tk-ev.' + (T.move > 0 ? 'ok' : 'bad'), { title: 'Against what it was worth at the price you got' }, ' ' + evText(T.move) + ' EV') : null);
   const needs = st === 'open' && legs.length > 1 && left.length === 1 ? left[0] : null;
   return h('div.rz-tk' + (st === 'won' ? '.won' : st === 'lost' ? '.lost' : trend ? '.' + trend : '') + (T.live ? '.live' : ''), { key: b.id },
     h('div.rz-tk-top', null, h('span.book.' + (b.book || 'Other'), null, b.book), h('span.rz-tk-name', { title: b.desc }, rzBetName(b)), h('span.rz-tk-pay.tnum', null, cash(b.stake) + (b.bonus ? ' bonus' : '') + ARROW + cash(b.toPay))),
@@ -2813,6 +2861,8 @@ function rzTodayStrip(data, analyses, tickets) {
   const cells = [];
   if (done.length) cells.push(Stat(bbSigned(net), 'Bets settled today, ' + done.filter((x) => x.st === 'won').length + '\u2013' + done.filter((x) => x.st === 'lost').length));
   if (open.length) cells.push(Stat(cash(worth), open.length + ' open ticket' + (open.length === 1 ? '' : 's') + ' worth now; ' + cash(pays) + ' if all hit'));
+  const moved = open.filter((x) => x.move != null), mv = moved.reduce((t, x) => t + x.move, 0);
+  if (moved.some((x) => Math.abs(x.move) >= 0.5)) cells.push(Stat(h('span.' + (mv > 0.004 ? 'ok' : mv < -0.004 ? 'bad' : 'muted'), { title: RZ_EV_TIP.replace('this game has', 'the games have') }, evText(mv) + ' EV'), 'Open tickets against the prices you got'));
   const cbs = rec('spread'), espn = rec('pickem');
   if (cbs || espn) cells.push(Stat([cbs ? 'CBS ' + cbs : null, espn ? 'ESPN ' + espn : null].filter(Boolean).join(' \u00b7 '), 'Pool picks decided today'));
   const pools = survPools(data), allE = pools.flatMap((P) => P.entries);
