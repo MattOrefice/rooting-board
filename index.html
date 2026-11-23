@@ -1555,9 +1555,11 @@ function dollarView(a, data) {
   const { sd, mu } = liveMu(g, g.status === 'live' && a.margin != null ? a.margin : 0), od = otDist(g);
   const per = new Map();
   const betOf = (id) => (data.bets || []).find((x) => x.id === id);
-  const betDelta = (b, q) => {
+  // what a ticket gains if the legs behind q hit and loses if they miss; oneLeg: q is one of its legs, so any other leg,
+  // in this game or another, still has to hit
+  const betDelta = (b, q, oneLeg) => {
     const pay = Number(b.toPay) || 0, fv = betFair(b, data), legs = b.legs || [], n = legs.length || 1;
-    const others = legs.some((l) => !(l.kind === 'game' && l.game === g.id));
+    const others = oneLeg ? legs.length > 1 : legs.some((l) => !(l.kind === 'game' && l.game === g.id));
     if (fv != null) { const G = others ? Math.min(pay, fv / Math.max(q, 0.001)) : pay; return { up: Math.max(0, G - fv), down: fv }; }
     const G = others ? pay * Math.pow(betProb(b, W), (n - 1) / n) : pay;
     return { up: G * (1 - q), down: G * q };
@@ -1568,7 +1570,7 @@ function dollarView(a, data) {
     if (i.kind === 'pool') { const p = i.key === 'spread' ? a.spread : a.pickem; if (!p || p.state !== 'edge') return; const G = Math.max(0, p.gap || 0); per.set(i.key, { up: G * (1 - q), down: G * q }); }
     else if (i.kind === 'survivor') { const G = i.gap != null ? i.gap : Number(W.survivor) || 0; per.set(i.key, { up: G * (1 - q), down: G * q }); }
     else if (i.kind === 'survfield') { per.set(i.key, { up: i.gap * (1 - q), down: i.gap * q }); }
-    else if (i.kind === 'bet') { const b = betOf(i.betId); if (b) per.set(i.key, betDelta(b, q)); }
+    else if (i.kind === 'bet') { const b = betOf(i.betId); if (b) per.set(i.key, betDelta(b, q, true)); }
   });
   let propsUp = 0, propsDown = 0;
   a.wants.forEach((x) => {
@@ -2790,7 +2792,7 @@ function rzItems(a, data) {
     const pre = g.status === 'upcoming';
     const dead = legs.some((l) => l.st === 'lost') || other.some((l) => l.st === 'lost');
     const st = done ? (done === 'won' ? 'up' : done === 'lost' ? 'down' : 'even') : dead ? 'down' : pre ? 'pre' : q != null && q0 > 0 ? (q > q0 * 1.15 ? 'up' : q < q0 * 0.85 ? 'down' : 'even') : 'even';
-    const how = done ? (done === 'won' ? 'won' : done === 'lost' ? 'lost' : 'push') : dead ? 'dead' : pctText(pre || q == null ? q0 : q) + ' to hit';
+    const how = done ? (done === 'won' ? 'won' : done === 'lost' ? 'lost' : 'push') : dead ? 'dead' : pctText(q != null ? q : q0) + ' to hit';
     out.push({ key: x.key, who: x.src + (x.type ? ' ' + x.type : ''), what: legs.length > 1 ? legs.length + '-leg ' + (x.type || 'bet') + (other.length ? ' here' : '') : legs.length ? legs[0].t : x.label, how, st, w: x.weight, legs: legs.length > 1 ? legs : legs[0] && legs[0].v && b.legs.length === 1 && (b.legs[0].type === 'prop' || b.legs[0].type === 'total') ? [Object.assign({}, legs[0], { t: '' })] : null, other: other.length ? other : null, money: cash(b.stake) + ARROW + cash(b.toPay), pnl: x.pnl, ev: g.status === 'live' ? betMove(b, data, g.id) : null });
   });
   return out.sort((x, y) => y.w - x.w);
